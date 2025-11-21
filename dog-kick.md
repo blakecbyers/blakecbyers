@@ -147,3 +147,4 @@ permalink: /dog-kick
     
     <div id="instruction-text">TAP TO KICK THE DOG!</div>
 </div>
+<script src="/js/dog-kick.js"></script>
