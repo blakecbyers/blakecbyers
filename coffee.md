@@ -1,6 +1,8 @@
-layout: bcb-theme
-title: "Coffee"
-permalink: /coffee
+        ---
+        layout: page
+        title: "Coffee"
+        permalink: /coffee/
+        ---
 
 
 <!-- WRAPPER: Sets the dark background and centers the app like a mobile screen -->
