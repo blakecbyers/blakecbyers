@@ -1,7 +1,7 @@
- ---
-        layout: jekyll-theme-minimal
-        title: "Dog Kick"
-        permalink: /dog-kick/
+---
+layout: none
+title: "Dog Kick"
+permalink: /dog-kick/
 ---
 
 <!DOCTYPE html>
