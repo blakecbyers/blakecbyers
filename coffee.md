@@ -1,5 +1,5 @@
         ---
-        layout: jekyll-theme-minimal
+        layout: null
         title: "Coffee"
         permalink: /coffee/
         ---
