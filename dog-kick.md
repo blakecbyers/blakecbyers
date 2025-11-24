@@ -1,5 +1,5 @@
 ---
-layout: none
+layout: null
 title: "Dog Kick"
 permalink: /dog-kick/
 ---
