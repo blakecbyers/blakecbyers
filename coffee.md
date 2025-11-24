@@ -148,4 +148,4 @@
         </div>
     </div>
 
-    <script src="/js/coffee.js"></script>
+    <script src="/coffee.js"></script>
