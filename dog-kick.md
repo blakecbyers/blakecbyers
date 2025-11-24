@@ -1,6 +1,8 @@
-layout: bcb-theme
-title: "Dog Kick"
-permalink: /dog-kick
+ ---
+        layout: jekyll-theme-minimal
+        title: "Dog Kick"
+        permalink: /dog-kick/
+---
 
 <!DOCTYPE html>
 <html lang="en">
