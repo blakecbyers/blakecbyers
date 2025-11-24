@@ -1,3 +1,8 @@
+---
+layout: null
+title: "Home"
+---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
