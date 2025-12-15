@@ -1,3 +1,9 @@
+---
+layout: null
+title: "Heads Up"
+permalink: /hedzup/
+---
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, RotateCcw, Check, X, ChevronLeft, Scroll, OctagonAlert, Smartphone, Info } from 'lucide-react';
 
