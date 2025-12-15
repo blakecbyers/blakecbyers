@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// This base must match your repo name exactly
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/hedzup/', 
+  // This ensures assets (like your game scripts) are linked correctly
+  base: '/', 
+  build: {
+    outDir: 'dist',
+  }
 })
