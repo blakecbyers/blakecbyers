@@ -1,12 +1,143 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>HedzUp</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blake Byers</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .animate-enter {
+      animation: enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    @keyframes enter {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .delay-100 {
+      animation-delay: 100ms;
+    }
+
+    .delay-200 {
+      animation-delay: 200ms;
+    }
+
+    .delay-300 {
+      animation-delay: 300ms;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-6 selection:bg-black selection:text-white">
+
+  <!-- Main Container -->
+  <main class="w-full max-w-2xl">
+
+    <!-- Header -->
+    <header class="mb-16 animate-enter">
+      <h1 class="text-4xl md:text-5xl font-semibold tracking-tight mb-2 text-black">
+        Blake Byers
+      </h1>
+      <p class="text-lg text-gray-500 font-normal">
+        Engineer & Designer.
+      </p>
+    </header>
+
+    <!-- Projects List -->
+    <div class="space-y-4">
+
+      <!-- Hedzup -->
+      <a href="/hedzup/"
+        class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-100">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xl font-medium text-black group-hover:text-black transition-colors mb-1">
+              Heads Up
+            </h3>
+            <p class="text-gray-500 text-sm leading-relaxed max-w-sm">
+              Reimagined mobile party game with tilt controls.
+            </p>
+          </div>
+          <div
+            class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-white border border-gray-100 flex items-center justify-center transition-all group-hover:scale-105 group-hover:shadow-sm">
+            <i data-lucide="smartphone" class="w-5 h-5 text-gray-400 group-hover:text-black transition-colors"></i>
+          </div>
+        </div>
+      </a>
+
+      <!-- Coffee -->
+      <a href="/coffee/"
+        class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xl font-medium text-black group-hover:text-black transition-colors mb-1">
+              Coffee
+            </h3>
+            <p class="text-gray-500 text-sm leading-relaxed max-w-sm">
+              Precision brewing companion for coffee lovers.
+            </p>
+          </div>
+          <div
+            class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-white border border-gray-100 flex items-center justify-center transition-all group-hover:scale-105 group-hover:shadow-sm">
+            <i data-lucide="coffee" class="w-5 h-5 text-gray-400 group-hover:text-black transition-colors"></i>
+          </div>
+        </div>
+      </a>
+
+      <!-- Dog Kick -->
+      <a href="/dog-kick/"
+        class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xl font-medium text-black group-hover:text-black transition-colors mb-1">
+              Dog Kick
+            </h3>
+            <p class="text-gray-500 text-sm leading-relaxed max-w-sm">
+              Experimental physics-based arcade game.
+            </p>
+          </div>
+          <div
+            class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-white border border-gray-100 flex items-center justify-center transition-all group-hover:scale-105 group-hover:shadow-sm">
+            <i data-lucide="dog" class="w-5 h-5 text-gray-400 group-hover:text-black transition-colors"></i>
+          </div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Footer -->
+    <footer
+      class="mt-20 border-t border-gray-100 pt-8 flex justify-between items-center text-sm animate-enter delay-300">
+      <span class="text-gray-400">© 2025</span>
+      <div class="flex gap-6">
+        <a href="#" class="text-gray-400 hover:text-black transition-colors">GitHub</a>
+        <a href="#" class="text-gray-400 hover:text-black transition-colors">Twitter</a>
+        <a href="#" class="text-gray-400 hover:text-black transition-colors">Email</a>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+
 </html>
