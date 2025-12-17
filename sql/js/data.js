@@ -32,3 +32,4 @@ const LEVELS = [
     { id: 7, title: "Who Ordered What?", desc: "Link orders to customers to write names on cups.", task: "Join customers and orders on customer_id = id.", hint: "SELECT name FROM customers JOIN orders ON customer_id = id", xp: 300, check: (d) => d.length === 5 && d[0].name },
     { id: 8, title: "Menu Audit", desc: "Sort the menu by price, most expensive first.", task: "Select * from menu order by price DESC.", hint: "SELECT * FROM menu ORDER BY price DESC", xp: 350, check: (d) => d[0].price === 6.00 }
 ];
+window.SQL_LEVELS = SQL_LEVELS;

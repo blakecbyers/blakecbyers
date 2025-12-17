@@ -8,7 +8,7 @@ const CoffeeSpill = () => (
     </div>
 );
 
-const TabBar = ({ active, onChange }) => (
+window.TabBar = ({ active, onChange }) => (
     <div className="fixed bottom-0 w-full glass safe-pb flex justify-around items-center h-[83px] z-50 px-2 pb-2">
         {[{ id: 'curriculum', icon: Icons.Map, label: 'Board' }, { id: 'editor', icon: Icons.Code, label: 'Brewer' }, { id: 'profile', icon: Icons.Profile, label: 'Barista' }].map(tab => (
             <button key={tab.id} onClick={() => onChange(tab.id)} className="flex-1 flex flex-col items-center justify-center pt-2 active:scale-95 transition-transform">
@@ -19,7 +19,7 @@ const TabBar = ({ active, onChange }) => (
     </div>
 );
 
-const Header = ({ title, subtitle, rightAction }) => (
+window.Header = ({ title, subtitle, rightAction }) => (
     <div className="sticky top-0 z-40 bg-[rgba(242,242,247,0.85)] backdrop-blur-xl border-b border-gray-200 px-4 pb-3 pt-12 flex justify-between items-end min-h-[110px]">
         <div>
             <div className="text-xs font-bold text-[#A97142] uppercase tracking-wide mb-1 flex items-center gap-1"><Icons.Bean /> {subtitle}</div>
