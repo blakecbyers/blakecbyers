@@ -3,52 +3,166 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Afrikaans - Blake Byers</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Lekker Lingo: Afrikaans 101</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+        :root {
+            --app-bg: #FDF6E3;
+            /* Bone/Sand */
+            --primary: #D35400;
+            /* Burnt Orange/Terracotta */
+            --secondary: #27AE60;
+            /* Bushveld Green */
+            --tab-bar-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: #fff;
-            color: #000;
-            -webkit-font-smoothing: antialiased;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--app-bg);
+            color: #2c3e50;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
+        #root {
+            height: 100%;
+            width: 100%;
         }
 
-        @keyframes float {
+        input,
+        textarea {
+            font-size: 16px !important;
+        }
+
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .page-enter {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .scale-tap:active {
+            transform: scale(0.96);
+            transition: transform 0.1s;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shake {
 
             0%,
             100% {
-                transform: translateY(0);
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        .animate-shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes splatExpand {
+            0% {
+                transform: scale(0);
+                opacity: 0;
             }
 
             50% {
-                transform: translateY(-10px);
+                opacity: 0.8;
             }
+
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+
+        .animate-splat {
+            animation: splatExpand 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            transform-origin: center center;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+        }
+
+        .glass {
+            background: var(--tab-bar-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .bush-gradient {
+            background: linear-gradient(135deg, #D35400 0%, #E67E22 100%);
+        }
+
+        .veld-gradient {
+            background: linear-gradient(135deg, #27AE60 0%, #2ECC71 100%);
+        }
+
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom);
         }
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-    <div class="max-w-md">
-        <div
-            class="w-16 h-16 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-8 animate-float">
-            <i data-lucide="languages" class="w-8 h-8 text-gray-300"></i>
-        </div>
-        <h1 class="text-3xl font-semibold tracking-tight mb-4">Afrikaans</h1>
-        <p class="text-gray-500 mb-12">Explorations in linguistics and language learning. Coming soon.</p>
+<body>
+    <div class="fixed top-6 left-6 z-50">
         <a href="/"
-            class="text-sm font-medium text-black border-b border-black pb-1 hover:opacity-50 transition-opacity">Back
-            to Home</a>
+            class="flex items-center gap-2 text-[#D35400]/50 hover:text-[#D35400] transition-colors group px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-[#D35400]/10">
+            <span class="text-sm font-medium">Home</span>
+        </a>
     </div>
+    <div id="root"></div>
 
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+    <!-- Data & Logic -->
+    <script src="js/icons.js" type="text/babel"></script>
+    <script src="js/data.js" type="text/babel"></script>
+    <script src="js/components.js" type="text/babel"></script>
+    <script src="js/app.js" type="text/babel"></script>
 </body>
 
 </html>
