@@ -11,7 +11,8 @@ export default function CountdownView({ onFinished, motionActive }) {
         window.addEventListener('resize', checkOrientation);
 
         const handleCalibration = (e) => {
-            if (e.beta !== null && e.gamma !== null && calibrationRef.current.beta === 0) {
+            if (e.beta !== null && e.gamma !== null) {
+                // Continuously update to get the latest position before game starts
                 calibrationRef.current = { beta: e.beta, gamma: e.gamma };
             }
         };

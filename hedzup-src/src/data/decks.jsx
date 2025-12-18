@@ -53,7 +53,7 @@ export const DECKS = [
         color: 'bg-cyan-500',
         gradient: 'from-cyan-500 to-blue-500',
         icon: <Scroll size={24} className="text-white" />,
-        data: normalizeDeck(DECK_NOUNS_FULL)
+        data: DECK_NOUNS_FULL
     },
     {
         id: 'countries',

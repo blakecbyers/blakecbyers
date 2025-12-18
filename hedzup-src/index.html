@@ -12,6 +12,47 @@
     <div id="root"></div>
     <script src="../gestures.js"></script>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- DEBUG LOGGER: Remove before production -->
+    <div id="debug-console"
+        style="position:fixed; bottom:0; left:0; right:0; height:150px; background:rgba(0,0,0,0.8); color:#0f0; font-family:monospace; font-size:10px; overflow-y:scroll; z-index:9999; pointer-events:none; display:none;">
+    </div>
+    <script>
+        (function () {
+            const consoleDiv = document.getElementById('debug-console');
+            // Always show for now to debug white screen
+            consoleDiv.style.display = 'block';
+
+            function log(msg, color = 'white') {
+                const line = document.createElement('div');
+                line.style.borderBottom = '1px solid #333';
+                line.style.color = color;
+                line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                consoleDiv.prepend(line);
+            }
+
+            window.onerror = function (msg, url, line, col, error) {
+                log(`ERROR: ${msg} @ ${line}:${col}`, 'red');
+                if (error && error.stack) log(error.stack, 'red');
+                return false;
+            };
+
+            window.onunhandledrejection = function (e) {
+                log(`UNHANDLED: ${e.reason}`, 'orange');
+            };
+
+            // Capture logs
+            const origLog = console.log;
+            console.log = function (...args) {
+                origLog.apply(console, args);
+                log(args.join(' '));
+            };
+            const origErr = console.error;
+            console.error = function (...args) {
+                origErr.apply(console, args);
+                log(args.join(' '), 'red');
+            };
+        })();
+    </script>
 </body>
 
 </html>
