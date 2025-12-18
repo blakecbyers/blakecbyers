@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>The Daily Grind SQL</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        
+        :root {
+            --app-bg: #F2F2F7;
+            --primary: #A97142;
+            --primary-dark: #8B5E3C;
+            --tab-bar-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--app-bg);
+            color: #000;
+            margin: 0;
+            overflow: hidden; /* Prevent body scroll */
+            -webkit-tap-highlight-color: transparent;
+            height: 100dvh; /* Dynamic viewport height for mobile browsers */
+        }
+
+        /* Mobile optimizations */
+        input, textarea { font-size: 16px !important; } /* Prevents iOS zoom on focus */
+        
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .page-enter { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .scale-tap:active { transform: scale(0.96); transition: transform 0.1s; }
+        
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes shake { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-5px); } 
+            75% { transform: translateX(5px); } 
+        }
+        .animate-shake { animation: shake 0.3s ease-in-out; }
+
+        @keyframes spillExpand {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            40% { opacity: 0.9; }
+            100% { transform: scale(4) rotate(20deg); opacity: 0; }
+        }
+        .animate-spill {
+            animation: spillExpand 2.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            transform-origin: center center;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .glass { background: var(--tab-bar-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 0.5px solid rgba(0,0,0,0.1); }
+        .coffee-gradient { background: linear-gradient(135deg, #A97142 0%, #8B5E3C 100%); }
+        
+        /* Safe area padding */
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        .safe-pt { padding-top: env(safe-area-inset-top); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Map: ({active}) => <svg className={`w-6 h-6 ${active ? 'text-[#A97142]' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active?2.5:2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+            Code: ({active}) => <svg className={`w-6 h-6 ${active ? 'text-[#A97142]' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>,
+            Profile: ({active}) => <svg className={`w-6 h-6 ${active ? 'text-[#A97142]' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active?2.5:2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            Play: () => <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>,
+            Check: () => <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>,
+            Lock: () => <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>,
+            Bulb: () => <svg className="w-5 h-5 text-yellow-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+            Bean: () => <svg className="w-4 h-4 text-[#A97142]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>,
+            Clean: () => <svg className="w-6 h-6 text-white animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        };
+
+        // --- SQL ENGINE ---
+        class SQLEngine {
+            constructor(db) { this.db = db; }
+            execute(query) {
+                try {
+                    const q = query.trim().replace(/\s+/g, ' ');
+                    if (!q) throw new Error("The grinder needs beans! Enter a query.");
+                    
+                    const regex = /SELECT\s+(.+?)\s+FROM\s+([a-zA-Z0-9_]+)(?:\s+(?:INNER\s+)?JOIN\s+([a-zA-Z0-9_]+)\s+ON\s+(.+?))?(?:\s+WHERE\s+(.+?))?(?:\s+GROUP\s+BY\s+(.+?))?(?:\s+ORDER\s+BY\s+(.+?))?(?:\s+LIMIT\s+(\d+))?$/i;
+                    const match = q.match(regex);
+                    if (!match) throw new Error("Recipe Invalid. Try: SELECT * FROM menu");
+
+                    const [_, selectStr, table1, joinTable, joinOn, whereStr, groupStr, orderStr, limitStr] = match;
+                    
+                    if (!this.db[table1]) throw new Error(`Stockroom check: Table '${table1}' not found.`);
+                    let data = JSON.parse(JSON.stringify(this.db[table1]));
+
+                    if (joinTable) {
+                        if (!this.db[joinTable]) throw new Error(`Table '${joinTable}' not found.`);
+                        const t2 = this.db[joinTable];
+                        const [left, right] = joinOn.split('=').map(s => s.trim());
+                        if(!left || !right) throw new Error("Connector missing (ON clause invalid).");
+                        const leftKey = left.split('.').pop();
+                        const rightKey = right.split('.').pop();
+                        let joined = [];
+                        data.forEach(r1 => { t2.forEach(r2 => { if (String(r1[leftKey]) == String(r2[rightKey])) joined.push({...r1, ...r2}); }); });
+                        data = joined;
+                    }
+
+                    if (whereStr) data = data.filter(row => this.evalWhere(row, whereStr));
+
+                    const isAgg = /COUNT|SUM|AVG|MIN|MAX/i.test(selectStr);
+                    if (groupStr) {
+                        const gCol = groupStr.trim();
+                        const groups = {};
+                        data.forEach(r => { const k = r[gCol]; if(!groups[k]) groups[k] = []; groups[k].push(r); });
+                        data = Object.keys(groups).map(k => this.processSelect(groups[k], selectStr, k, gCol));
+                    } else if (isAgg) {
+                        data = [this.processSelect(data, selectStr)];
+                    } else {
+                        if (selectStr.trim() !== '*') {
+                            const cols = selectStr.split(',').map(c => c.trim());
+                            data = data.map(r => { const newR = {}; cols.forEach(c => { if(r[c] !== undefined) newR[c] = r[c]; }); return newR; });
+                        }
+                    }
+
+                    if (orderStr) {
+                        const [key, dir] = orderStr.split(/\s+/);
+                        const m = dir?.toUpperCase() === 'DESC' ? -1 : 1;
+                        data.sort((a,b) => (a[key] < b[key] ? -1 : 1) * m);
+                    }
+                    if (limitStr) data = data.slice(0, parseInt(limitStr));
+
+                    return { success: true, data };
+                } catch (e) { return { success: false, error: e.message }; }
+            }
+
+            evalWhere(row, cond) {
+                const m = cond.match(/([a-zA-Z0-9_.]+)\s*(=|!=|>|<|>=|<=|LIKE)\s*(.+)/i);
+                if (!m) return true;
+                let [__, col, op, val] = m;
+                col = col.split('.').pop();
+                val = val.replace(/^['"]|['"]$/g, '');
+                if (!isNaN(val)) val = Number(val);
+                const rVal = row[col];
+                switch(op.toUpperCase()) {
+                    case '=': return rVal == val;
+                    case '>': return rVal > val;
+                    case '<': return rVal < val;
+                    case 'LIKE': return String(rVal).includes(val.replace(/%/g,''));
+                    default: return false;
+                }
+            }
+
+            processSelect(rows, selectStr, groupKey, groupCol) {
+                const res = {};
+                if(groupCol) res[groupCol] = groupKey;
+                selectStr.split(',').map(c => c.trim()).forEach(col => {
+                    if (col === groupCol) return;
+                    if (col.toUpperCase().includes('COUNT')) res['count'] = rows.length;
+                    else if (col.toUpperCase().includes('AVG')) {
+                        const f = col.match(/\((.+?)\)/)[1];
+                        const s = rows.reduce((a,b) => a + (Number(b[f])||0), 0);
+                        res[`avg_${f}`] = rows.length ? parseFloat((s/rows.length).toFixed(2)) : 0;
+                    } else if (col.toUpperCase().includes('SUM')) {
+                        const f = col.match(/\((.+?)\)/)[1];
+                        res[`sum_${f}`] = rows.reduce((a,b) => a + (Number(b[f])||0), 0);
+                    } else { if (rows[0] && rows[0][col] !== undefined) res[col] = rows[0][col]; }
+                });
+                return res;
+            }
+        }
+
+        // --- DATA ---
+        const DB = {
+            menu: [
+                { id: 1, name: "Espresso", type: "Hot", price: 3.50, caffeine: 65 },
+                { id: 2, name: "Cold Brew", type: "Cold", price: 5.00, caffeine: 200 },
+                { id: 3, name: "Latte", type: "Hot", price: 4.50, caffeine: 75 },
+                { id: 4, name: "Frappe", type: "Cold", price: 6.00, caffeine: 40 },
+                { id: 5, name: "Drip", type: "Hot", price: 2.50, caffeine: 120 },
+                { id: 6, name: "Matcha", type: "Hot", price: 5.50, caffeine: 30 }
+            ],
+            customers: [
+                { id: 101, name: "Sarah", loyalty_pts: 150, fav_drink: "Latte" },
+                { id: 102, name: "Mike", loyalty_pts: 20, fav_drink: "Drip" },
+                { id: 103, name: "Jessica", loyalty_pts: 500, fav_drink: "Cold Brew" },
+                { id: 104, name: "David", loyalty_pts: 0, fav_drink: "Espresso" }
+            ],
+            orders: [
+                { id: 901, customer_id: 101, item_id: 3, qty: 1 },
+                { id: 902, customer_id: 103, item_id: 2, qty: 2 },
+                { id: 903, customer_id: 102, item_id: 5, qty: 1 },
+                { id: 904, customer_id: 103, item_id: 1, qty: 1 },
+                { id: 905, customer_id: 104, item_id: 1, qty: 3 }
+            ]
+        };
+
+        const LEVELS = [
+            { id: 1, title: "Opening Shift", desc: "Open the menu to see what we are serving today.", task: "Select all columns from the 'menu' table.", hint: "SELECT * FROM menu", xp: 100, check: (d) => d.length === 6 },
+            { id: 2, title: "Budget Brews", desc: "The college students are here. Find items under $4.00.", task: "Select from menu where price < 4.", hint: "SELECT * FROM menu WHERE price < 4", xp: 125, check: (d) => d.length === 2 && d.every(r => r.price < 4) },
+            { id: 3, title: "The Caffeine Fix", desc: "A customer needs to stay awake for 3 days. Find the strong stuff.", task: "Select name from menu where caffeine > 150.", hint: "SELECT name FROM menu WHERE caffeine > 150", xp: 150, check: (d) => d.length === 1 && d[0].name === "Cold Brew" },
+            { id: 4, title: "VIP List", desc: "Find our most loyal customers (over 100 points).", task: "Select name from customers where loyalty_pts > 100.", hint: "SELECT name FROM customers WHERE loyalty_pts > 100", xp: 175, check: (d) => d.length === 2 },
+            { id: 5, title: "Inventory Check", desc: "How many different drinks do we serve?", task: "Get the COUNT(*) from menu.", hint: "SELECT COUNT(*) FROM menu", xp: 200, check: (d) => d[0].count === 6 },
+            { id: 6, title: "Daily Revenue", desc: "Calculate the average price of our drinks.", task: "Calculate AVG(price) from menu.", hint: "SELECT AVG(price) FROM menu", xp: 250, check: (d) => Math.floor(d[0].avg_price) === 4 },
+            { id: 7, title: "Who Ordered What?", desc: "Link orders to customers to write names on cups.", task: "Join customers and orders on customer_id = id.", hint: "SELECT name FROM customers JOIN orders ON customer_id = id", xp: 300, check: (d) => d.length === 5 && d[0].name },
+            { id: 8, title: "Menu Audit", desc: "Sort the menu by price, most expensive first.", task: "Select * from menu order by price DESC.", hint: "SELECT * FROM menu ORDER BY price DESC", xp: 350, check: (d) => d[0].price === 6.00 }
+        ];
+
+        const engine = new SQLEngine(DB);
+
+        // --- VISUALS ---
+        const CoffeeSpill = () => (
+            <div className="absolute inset-0 z-[60] flex items-center justify-center overflow-hidden pointer-events-none">
+                <svg viewBox="0 0 200 200" className="w-[150vmin] h-[150vmin] animate-spill fill-[#3E2723] opacity-95 drop-shadow-2xl">
+                    <path d="M44.7,-76.4C58.9,-69.2,71.8,-59.1,79.6,-46.3C87.4,-33.5,90.1,-17.9,89.3,-2.6C88.5,12.7,84.2,27.7,75.6,40.6C67,53.5,54.1,64.2,40.3,71.3C26.5,78.4,11.8,81.8,-1.8,84.9C-15.4,88,-29.4,90.8,-41.8,84.6C-54.2,78.4,-65,63.2,-73.4,48.2C-81.8,33.2,-87.8,18.4,-86.9,4.1C-86,-10.2,-78.2,-24,-68.6,-36.2C-59,-48.4,-47.6,-59,-35.3,-67.2C-23,-75.4,-9.8,-81.2,4.1,-88.3C18,-95.4,30.5,-103.8,44.7,-76.4Z" transform="translate(100 100)" />
+                </svg>
+            </div>
+        );
+
+        // --- COMPONENTS ---
+        const TabBar = ({ active, onChange }) => (
+            <div className="fixed bottom-0 w-full glass safe-pb flex justify-around items-center h-[83px] z-50 px-2 pb-2">
+                {[{ id: 'curriculum', icon: Icons.Map, label: 'Board' }, { id: 'editor', icon: Icons.Code, label: 'Brewer' }, { id: 'profile', icon: Icons.Profile, label: 'Barista' }].map(tab => (
+                    <button key={tab.id} onClick={() => onChange(tab.id)} className="flex-1 flex flex-col items-center justify-center pt-2 active:scale-95 transition-transform">
+                        <tab.icon active={active === tab.id} />
+                        <span className={`text-[10px] font-bold mt-1 ${active === tab.id ? 'text-[#A97142]' : 'text-gray-400'}`}>{tab.label}</span>
+                    </button>
+                ))}
+            </div>
+        );
+
+        const Header = ({ title, subtitle, rightAction }) => (
+            <div className="sticky top-0 z-40 bg-[rgba(242,242,247,0.85)] backdrop-blur-xl border-b border-gray-200 px-4 pb-3 pt-12 flex justify-between items-end min-h-[110px]">
+                <div>
+                    <div className="text-xs font-bold text-[#A97142] uppercase tracking-wide mb-1 flex items-center gap-1"><Icons.Bean /> {subtitle}</div>
+                    <h1 className="text-3xl font-extrabold text-black tracking-tight">{title}</h1>
+                </div>
+                {rightAction}
+            </div>
+        );
+
+        const LevelCard = ({ level, status, onClick }) => {
+            const isLocked = status === 'locked';
+            const isDone = status === 'completed';
+            return (
+                <button onClick={() => !isLocked && onClick()} disabled={isLocked} className={`w-full text-left mb-4 p-5 rounded-2xl relative overflow-hidden transition-all scale-tap shadow-sm border ${isLocked ? 'bg-gray-100 border-transparent opacity-60' : 'bg-white border-gray-200'} ${isDone ? 'border-green-500/30 bg-green-50/50' : ''}`}>
+                    <div className="flex justify-between items-start mb-2">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider py-1 px-2 rounded-md ${isDone ? 'bg-green-100 text-green-700' : (isLocked ? 'bg-gray-200 text-gray-500' : 'bg-[#EAD7C7] text-[#8B5E3C]')}`}>Order #{level.id}</span>
+                        {isDone && <div className="bg-green-500 rounded-full p-1"><Icons.Check /></div>}
+                        {isLocked && <Icons.Lock />}
+                    </div>
+                    <h3 className={`text-xl font-bold mb-1 ${isLocked ? 'text-gray-400' : 'text-gray-900'}`}>{level.title}</h3>
+                    <p className="text-sm text-gray-500 leading-snug">{level.desc}</p>
+                    {!isLocked && <div className="mt-4 flex items-center gap-2 text-xs font-bold text-[#A97142]">{isDone ? 'RE-BREW' : 'START BREWING'} <Icons.Play /></div>}
+                </button>
+            );
+        };
+
+        const Editor = ({ level, onNext }) => {
+            const [input, setInput] = useState('');
+            const [result, setResult] = useState(null);
+            const [error, setError] = useState(null);
+            const [isCleaning, setIsCleaning] = useState(false);
+            const [showHint, setShowHint] = useState(false);
+            const [success, setSuccess] = useState(false);
+            const textareaRef = useRef(null);
+
+            useEffect(() => { setInput(''); setResult(null); setError(null); setSuccess(false); setShowHint(false); setIsCleaning(false); }, [level]);
+
+            const run = () => {
+                if (isCleaning) return;
+                // Dismiss keyboard on mobile
+                if (textareaRef.current) textareaRef.current.blur();
+                
+                setError(null);
+                const res = engine.execute(input);
+                if (res.success) {
+                    setResult(res.data);
+                    if (res.data.length > 0 && level.check(res.data)) {
+                        setSuccess(true);
+                        confetti({ colors: ['#A97142', '#D4A373', '#FFFFFF'], particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    } else {
+                        triggerSpill("Order incorrect! Taste is awful.");
+                    }
+                } else {
+                    triggerSpill(res.error);
+                }
+            };
+
+            const triggerSpill = (msg) => {
+                setResult(null);
+                setError(msg);
+                setIsCleaning(true);
+                setTimeout(() => setIsCleaning(false), 3000);
+            };
+
+            const insert = (txt) => {
+                if (!isCleaning) setInput(prev => prev + txt + " ");
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-gray-50 pb-[85px] relative overflow-hidden">
+                    {isCleaning && <CoffeeSpill />}
+                    
+                    {/* Task Bar */}
+                    <div className="bg-white p-4 shadow-sm z-10 shrink-0">
+                        <div className="flex justify-between items-start mb-2">
+                            <h2 className="font-bold text-gray-900">{level.title}</h2>
+                            <button onClick={() => setShowHint(!showHint)} className="text-yellow-500 p-1 bg-yellow-50 rounded-full"><Icons.Bulb /></button>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">{level.task}</p>
+                        {showHint && <div className="text-xs font-mono bg-yellow-50 text-yellow-800 p-2 rounded border border-yellow-200 mb-2 animate-enter">Hint: {level.hint}</div>}
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                            {["SELECT", "*", "FROM", "WHERE", "price", "caffeine", "menu", "customers"].map(t => (
+                                <button key={t} onClick={() => insert(t)} disabled={isCleaning} className="px-3 py-1 bg-[#F2F2F7] border border-gray-200 active:bg-gray-200 rounded-full text-xs font-semibold text-gray-700 whitespace-nowrap transition-colors disabled:opacity-50">{t}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Code Area */}
+                    <div className="flex-1 relative bg-[#1E1E1E] min-h-[150px]">
+                        <textarea 
+                            ref={textareaRef}
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            disabled={isCleaning}
+                            placeholder={isCleaning ? "Cleaning up the mess..." : "Pour your SQL here..."}
+                            className="w-full h-full bg-transparent text-[#D4D4D4] font-mono p-4 text-base resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            spellCheck="false"
+                        />
+                        <button onClick={run} disabled={isCleaning} className={`absolute bottom-4 right-4 coffee-gradient text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-transform z-20 ${isCleaning ? 'scale-90 opacity-80' : 'active:scale-90'}`}>
+                            {isCleaning ? <Icons.Clean /> : <Icons.Play />}
+                        </button>
+                    </div>
+
+                    {/* Results / Error Area */}
+                    <div className={`shrink-0 h-1/3 bg-white border-t border-gray-200 overflow-y-auto p-4 transition-all safe-pb`}>
+                        {error && (
+                            <div className="text-red-500 text-sm font-semibold flex items-center gap-2 animate-shake">
+                                <span className="text-lg">☕️</span> <span>Spilled! {isCleaning ? "Wait for cleanup..." : error}</span>
+                            </div>
+                        )}
+                        {success && (
+                            <div className="flex flex-col items-center justify-center h-full text-center">
+                                <h3 className="text-2xl font-bold text-[#A97142] mb-1">Delicious!</h3>
+                                <p className="text-gray-500 mb-4 text-sm">Order served. +{level.xp} XP</p>
+                                <button onClick={onNext} className="coffee-gradient text-white px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition-transform">Next Order</button>
+                            </div>
+                        )}
+                        {!error && !success && result && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead><tr className="border-b">{Object.keys(result[0]).map(k => <th key={k} className="py-2 px-3 text-gray-400 font-bold text-[10px] uppercase">{k}</th>)}</tr></thead>
+                                    <tbody>{result.map((r, i) => <tr key={i} className="border-b last:border-0 border-gray-100">{Object.values(r).map((v, j) => <td key={j} className="py-2 px-3 font-mono text-gray-800 text-xs">{v}</td>)}</tr>)}</tbody>
+                                </table>
+                            </div>
+                        )}
+                        {!result && !error && !success && (
+                            <div className="text-center text-gray-400 mt-8 text-sm flex flex-col items-center gap-2"><span className="text-2xl opacity-50">🍵</span>Waiting for the brew...</div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const Profile = ({ xp, completed }) => (
+            <div className="p-4 pb-[100px]">
+                <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 text-center border border-gray-100">
+                    <div className="w-24 h-24 coffee-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl shadow-xl shadow-[#A97142]/20">👨‍🍳</div>
+                    <h2 className="text-2xl font-bold mb-1">Head Barista</h2>
+                    <p className="text-gray-500 text-sm">Level {Math.floor(xp/500) + 1} Roaster</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100"><div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Experience</div><div className="text-3xl font-black text-[#A97142]">{xp}</div></div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100"><div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Orders Filled</div><div className="text-3xl font-black text-green-600">{completed.length} <span className="text-sm text-gray-300 font-normal">/ {LEVELS.length}</span></div></div>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-3 ml-1">Certifications</h3>
+                <div className="space-y-3">
+                    <div className={`bg-white p-4 rounded-xl flex items-center gap-4 border border-gray-100 ${completed.length >= 1 ? 'opacity-100' : 'opacity-50 grayscale'}`}><div className="text-2xl">🍼</div><div><div className="font-bold text-sm">Milk Steamer</div><div className="text-xs text-gray-500">Completed the first order</div></div></div>
+                    <div className={`bg-white p-4 rounded-xl flex items-center gap-4 border border-gray-100 ${completed.length >= 4 ? 'opacity-100' : 'opacity-50 grayscale'}`}><div className="text-2xl">☕️</div><div><div className="font-bold text-sm">Latte Artist</div><div className="text-xs text-gray-500">Completed 4 orders</div></div></div>
+                    <div className={`bg-white p-4 rounded-xl flex items-center gap-4 border border-gray-100 ${completed.length >= 8 ? 'opacity-100' : 'opacity-50 grayscale'}`}><div className="text-2xl">👑</div><div><div className="font-bold text-sm">Coffee King</div><div className="text-xs text-gray-500">Mastered the menu (All Levels)</div></div></div>
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            const [tab, setTab] = useState('curriculum');
+            const [completed, setCompleted] = useState([]);
+            const [currentLevelId, setCurrentLevelId] = useState(1);
+            const [xp, setXp] = useState(0);
+
+            useEffect(() => { const save = JSON.parse(localStorage.getItem('sql_coffee_v3') || '{}'); if (save.completed) setCompleted(save.completed); if (save.xp) setXp(save.xp); if (save.current) setCurrentLevelId(save.current); }, []);
+            useEffect(() => { localStorage.setItem('sql_coffee_v3', JSON.stringify({ completed, xp, current: currentLevelId })); }, [completed, xp, currentLevelId]);
+
+            const handleLevelSelect = (id) => { setCurrentLevelId(id); setTab('editor'); };
+            const handleNextLevel = () => { if (!completed.includes(currentLevelId)) { setCompleted(p => [...p, currentLevelId]); setXp(p => p + LEVELS.find(l=>l.id===currentLevelId).xp); } if (currentLevelId < LEVELS.length) { setCurrentLevelId(p => p + 1); } else { setTab('profile'); } };
+
+            return (
+                <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto no-scrollbar bg-[#F2F2F7]">
+                        {tab === 'curriculum' && <div className="page-enter pb-[100px]"><Header title="Orders" subtitle="Daily Grind" rightAction={<div className="bg-[#EAD7C7] text-[#8B5E3C] font-bold px-3 py-1 rounded-full text-xs">{xp} XP</div>} /><div className="px-4 mt-2">{LEVELS.map(l => <LevelCard key={l.id} level={l} status={completed.includes(l.id) ? 'completed' : (l.id === currentLevelId ? 'active' : (l.id < currentLevelId ? 'completed' : 'locked'))} onClick={() => handleLevelSelect(l.id)} />)}</div></div>}
+                        {tab === 'editor' && <Editor level={LEVELS.find(l => l.id === currentLevelId)} onNext={handleNextLevel} />}
+                        {tab === 'profile' && <div className="page-enter"><Header title="My Career" subtitle="Barista Stats" /><Profile xp={xp} completed={completed} /></div>}
+                    </div>
+                    <TabBar active={tab} onChange={setTab} />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
