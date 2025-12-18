@@ -1,64 +1,53 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function CountdownView({ onFinished, motionActive, isPortrait }) {
     const [count, setCount] = useState(3);
-    const samplesRef = useRef([]);
+    const [samples, setSamples] = useState([]);
 
     useEffect(() => {
+        if (!motionActive) return;
+
         const handleCalibration = (e) => {
-            if (e.beta !== null && e.gamma !== null) {
-                samplesRef.current.push({ beta: e.beta, gamma: e.gamma });
-                if (samplesRef.current.length > 50) samplesRef.current.shift();
+            // Collect gamma samples (Landscape tilt axis)
+            if (e.gamma !== null) {
+                setSamples(prev => [...prev, e.gamma]);
             }
         };
 
-        if (motionActive) {
-            window.addEventListener('deviceorientation', handleCalibration);
-        }
+        window.addEventListener('deviceorientation', handleCalibration);
 
+        // Timer Logic
         if (count > 0) {
             const timer = setTimeout(() => setCount(count - 1), 1000);
-            return () => {
-                clearTimeout(timer);
-                window.removeEventListener('deviceorientation', handleCalibration);
-            };
+            return () => { clearTimeout(timer); window.removeEventListener('deviceorientation', handleCalibration); };
         } else {
-            // Wait 1.2 seconds on "GO!"
+            // "GO!" Phase
             const timer = setTimeout(() => {
                 window.removeEventListener('deviceorientation', handleCalibration);
 
-                // Calculate average
-                let avg = { beta: 0, gamma: 0 };
-                if (samplesRef.current.length > 0) {
-                    avg = samplesRef.current.reduce(
-                        (acc, val) => ({
-                            beta: acc.beta + val.beta / samplesRef.current.length,
-                            gamma: acc.gamma + val.gamma / samplesRef.current.length
-                        }),
-                        { beta: 0, gamma: 0 }
-                    );
+                // Calculate average gamma
+                let avgGamma = 0;
+                if (samples.length > 0) {
+                    avgGamma = samples.reduce((a, b) => a + b, 0) / samples.length;
+                } else {
+                    // Fallback if no samples (e.g. desktop)
+                    avgGamma = 90; // Assume landscape left upright
                 }
 
-                // Safety fallback to 0s if something went wrong
-                onFinished(avg);
-            }, 1200);
+                onFinished({ gamma: avgGamma });
+            }, 1000);
+
             return () => clearTimeout(timer);
         }
-    }, [count, onFinished, motionActive]);
-
-    const containerStyle = isPortrait
-        ? "fixed inset-0 z-50 w-[100dvh] h-[100dvw] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90"
-        : "fixed inset-0 z-50 w-full h-full landscape:p-safe";
+    }, [count, motionActive, onFinished]);
 
     return (
-        <div className={`flex items-center justify-center bg-zinc-900 text-white transition-all duration-500 overflow-hidden ${containerStyle}`}>
-            <div className="flex flex-col items-center transition-transform duration-500">
-                <div className="text-[10rem] font-bold leading-none tracking-tighter animate-pulse text-white">
-                    {count > 0 ? count : "GO!"}
-                </div>
-                <p className="mt-8 text-white/50 font-medium text-xl uppercase tracking-widest text-center px-8">
-                    Place on Forehead
-                </p>
+        <div className="fixed inset-0 bg-blue-600 flex items-center justify-center">
+            <div className="text-[12rem] font-black text-white animate-bounce">
+                {count > 0 ? count : "GO!"}
+            </div>
+            <div className="absolute bottom-10 text-white/50 font-bold uppercase tracking-widest text-center px-4">
+                Place on forehead • Screen facing out
             </div>
         </div>
     );
