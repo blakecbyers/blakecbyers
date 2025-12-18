@@ -34,7 +34,7 @@ export default function CountdownView({ onFinished, motionActive }) {
         }
     }, [count, onFinished, motionActive]);
 
-    const rotateStyle = isPortrait ? { transform: 'rotate(90deg)' } : {};
+    const rotateStyle = isPortrait ? { transform: 'rotate(-90deg)' } : {};
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900 text-white transition-all duration-500">

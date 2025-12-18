@@ -4,7 +4,6 @@ import { Check, RotateCcw, X } from 'lucide-react';
 export default function GameView({ deck, cards, currentIndex, setCurrentIndex, timer, setTimer, setResults, onFinish, playSound, motionActive, calibration }) {
     const [status, setStatus] = useState('active');
     const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
-    const [debugInfo, setDebugInfo] = useState({ raw: 0, smoothed: 0, state: 'NEUTRAL' });
 
     // Safety check: if cards array is empty or index is out of bounds, avoid crashing
     const currentCard = (cards && cards.length > 0 && currentIndex < cards.length) ? cards[currentIndex] : null;
@@ -79,11 +78,11 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
     }, [status, cards, currentIndex, setResults, setCurrentIndex, onFinish, playSound, currentCard]);
 
     // Configuration - When phone is on forehead:
-    // Tilting DOWN (to see answer) = beta becomes MORE NEGATIVE
-    // Tilting UP (to pass) = beta becomes MORE POSITIVE
-    const THRESHOLD_CORRECT = -45; // Degrees tilted down (negative)
-    const THRESHOLD_PASS = 45;     // Degrees tilted up (positive)
-    const NEUTRAL_ZONE = 15;       // Degrees to return to neutral
+    // Tilting DOWN (to see answer) = delta increases (positive)
+    // Tilting UP (to pass) = delta decreases (negative)
+    const THRESHOLD_CORRECT = 45; // Degrees tilted down (positive)
+    const THRESHOLD_PASS = -45;    // Degrees tilted up (negative)
+    const NEUTRAL_ZONE = 20;       // Degrees to return to neutral
     const SMOOTHING_ALPHA = 0.2;   // Low-pass filter (0-1)
 
     // --- TILT LOGIC ---
@@ -95,35 +94,29 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (beta === null || gamma === null) return;
 
             // 1. Determine Raw Tilt based on portrait/landscape
-            let rawTilt = 0;
-            if (isPortrait) {
-                // In portrait, tilt forward/back is still beta on most devices
-                // but gamma can also shift. We'll stick to a robust delta.
-                rawTilt = beta - (calibration.beta || 0);
-            } else {
-                rawTilt = beta - (calibration.beta || 0);
-            }
+            // Use beta but normalize the delta from calibration to handle 180 wrap-around
+            let rawDelta = beta - (calibration.beta || 0);
+            if (rawDelta > 180) rawDelta -= 360;
+            if (rawDelta < -180) rawDelta += 360;
+
+            // In some orientations/devices, tilting down might decrease the value.
+            // We want tilting DOWN (top toward audience/floor) to be POSITIVE.
+            // Based on user feedback, we'll use rawDelta and see if we need to negate.
+            // However, the standard is usually that forward tilt increases beta.
+            let rawTilt = rawDelta;
 
             // 2. Low-Pass Filter (always update so it follows the user)
             physicsState.current.currentTilt = physicsState.current.currentTilt + SMOOTHING_ALPHA * (rawTilt - physicsState.current.currentTilt);
             const smoothedTilt = physicsState.current.currentTilt;
 
-            // Update debug info
-            setDebugInfo({
-                raw: rawTilt.toFixed(1),
-                smoothed: smoothedTilt.toFixed(1),
-                state: physicsState.current.gameState,
-                calibration: `β:${(calibration.beta || 0).toFixed(1)} γ:${(calibration.gamma || 0).toFixed(1)}`
-            });
-
             // 3. Trigger Logic (only trigger if status is active)
             if (status !== 'active') return;
 
             if (physicsState.current.gameState === "NEUTRAL") {
-                if (smoothedTilt < THRESHOLD_CORRECT) {
+                if (smoothedTilt > THRESHOLD_CORRECT) {
                     physicsState.current.gameState = "TRIGGERED";
                     handleCorrect();
-                } else if (smoothedTilt > THRESHOLD_PASS) {
+                } else if (smoothedTilt < THRESHOLD_PASS) {
                     physicsState.current.gameState = "TRIGGERED";
                     handlePass();
                 }
@@ -182,9 +175,10 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
     // Only rotate if screen is portrait AND narrow (mobile forehead mode)
     const shouldRotate = isPortrait && window.innerWidth < 768;
 
+    const rotateStyle = isPortrait ? { transform: 'rotate(-90deg)' } : {};
     const containerStyle = shouldRotate
         ? {
-            transform: 'rotate(90deg)', transformOrigin: 'center center',
+            ...rotateStyle, transformOrigin: 'center center',
             width: '100vh', height: '100vw',
             position: 'absolute', top: '50%', left: '50%',
             marginLeft: '-50vh', marginTop: '-50vw',
@@ -217,15 +211,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                     <div className="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/10">
                         <span className="font-mono text-3xl font-bold text-white/90 tracking-widest">{timer}</span>
                     </div>
-                </div>
-
-                {/* Debug Overlay */}
-                <div className="absolute top-20 left-4 z-30 bg-black/80 text-white p-3 rounded-lg font-mono text-xs">
-                    <div>Raw: {debugInfo.raw}°</div>
-                    <div>Smooth: {debugInfo.smoothed}°</div>
-                    <div>State: {debugInfo.state}</div>
-                    <div>Cal: {debugInfo.calibration}</div>
-                    <div>Thresh: {`${THRESHOLD_CORRECT}° / ${THRESHOLD_PASS}°`}</div>
                 </div>
 
                 {/* Card */}
