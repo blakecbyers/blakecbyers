@@ -12,6 +12,8 @@ let lastDetectionTime = 0;
 let lastFireTime = 0;
 const DETECTION_INTERVAL = 30;
 const FIRE_RATE = 150;
+let combo = 0;
+let maxCombo = 0;
 
 const DOG_EMOJIS = ['🐕', '🦮', '🐩', '🐶'];
 const BALL_EMOJI = '⚾';
@@ -213,10 +215,10 @@ function spawnTarget(randomPosition = false) {
     targets.push(sprite);
 }
 
-function throwBall(origin, targetPos) {
+function throwBall(origin, targetPos, speedMultiplier = 1.0) {
     shots++;
-    // Synth whoosh sound
-    playSfx(450, 'sine', 0.1, 0.08);
+    // Synth whoosh sound freq higher for faster shots
+    playSfx(450 + (speedMultiplier * 100), 'sine', 0.1, 0.08);
 
     const ballTex = createTextTexture(BALL_EMOJI, 256, "black");
     const ballMat = new THREE.SpriteMaterial({ map: ballTex });
@@ -224,8 +226,10 @@ function throwBall(origin, targetPos) {
     ball.scale.set(1.5, 1.5, 1);
     ball.position.copy(origin);
     const dir = new THREE.Vector3().subVectors(targetPos, origin).normalize();
-    ball.userData.velocity = dir.multiplyScalar(1.5);
-    ball.userData.gravity = -0.015;
+
+    // Apply speed multiplier
+    ball.userData.velocity = dir.multiplyScalar(1.5 * speedMultiplier);
+    ball.userData.gravity = -0.015; // Gravity constant
     scene.add(ball);
     balls.push(ball);
 }
@@ -275,14 +279,36 @@ function onResults(results) {
 
     crosshair.position.copy(aimPoint);
 
-    const pinchDist = Math.hypot(thumb.x - index.x, thumb.y - index.y);
-    const isPinching = pinchDist < 0.045;
+    // SWIPE LOGIC EXTENSION
+    // Instead of just pinch, we track wrist velocity or index finger velocity to determine "Throw".
+    // Or we keep pinch for "grabbing" and release for "throwing" with velocity?
+    // Let's stick to the user request: "throw harder".
+    // We can track the index finger velocity.
 
+    const now = performance.now();
+    const dt = now - lastDetectionTime;
+
+    // Calculate index finger velocity
+    if (!crosshair.userData.lastPos) crosshair.userData.lastPos = new THREE.Vector3();
+    const velocity = new THREE.Vector3().subVectors(aimPoint, crosshair.userData.lastPos).divideScalar(dt / 1000); // units per second
+    crosshair.userData.lastPos.copy(aimPoint);
+
+    // THROW TRIGGER
+    // 1. Pinching = Holding ball (optional visual)
+    // 2. Release while moving fast = Throw?
+    // User requested "throw harder".
+
+    // Let's use current pinch logic but add velocity multiplier.
     if (isPinching) {
-        const now = performance.now();
         if (now - lastFireTime > FIRE_RATE) {
+            // Calculate throw strength based on forward velocity or just "noise" velocity?
+            // Since 2D cam, Z is fake. We use X/Y movement speed.
+            const speed = Math.min(velocity.length() / 50, 2.5); // Cap multiplier
+            const baseSpeed = 1.5;
+            const finalSpeed = baseSpeed * (1 + speed);
+
             const throwOrigin = new THREE.Vector3((1 - wrist.x - 0.5) * 60, (0.5 - wrist.y) * 45, -5);
-            throwBall(throwOrigin, aimPoint);
+            throwBall(throwOrigin, aimPoint, finalSpeed);
             lastFireTime = now;
         }
     }
@@ -292,6 +318,13 @@ function updateGameUI() {
     document.getElementById('score-val').innerText = score;
     const acc = shots > 0 ? Math.round((hits / shots) * 100) : 100;
     document.getElementById('accuracy-val').innerText = acc + "%";
+
+    // Update Combo UI (we'll add this element to index.html next)
+    const comboEl = document.getElementById('combo-val');
+    if (comboEl) {
+        comboEl.innerText = combo > 1 ? `${combo}x` : '';
+        comboEl.style.transform = `scale(${1 + Math.min(combo * 0.1, 1)})`;
+    }
 }
 
 function animate() {
@@ -320,12 +353,20 @@ function animate() {
             if (b.position.distanceTo(t.position) < 4.5) {
                 hitFound = true;
                 hits++;
-                score += 500;
+                combo++;
+                maxCombo = Math.max(maxCombo, combo);
+
+                // Score Calculation with Combo
+                const points = 500 * combo;
+                score += points;
 
                 // Play custom MP3 bark
                 playBark();
 
                 createVFX(EXPLOSION_EMOJI, t.position);
+                // Combo text popup
+                if (combo > 1) createVFX(`${combo}x!`, new THREE.Vector3(t.position.x, t.position.y + 5, t.position.z));
+
                 scene.remove(t);
                 targets.splice(j, 1);
                 spawnTarget();
@@ -333,9 +374,14 @@ function animate() {
             }
         }
         if (hitFound || b.position.z < -75 || b.position.y < -20 || Math.abs(b.position.x) > 60) {
+            if (!hitFound && b.position.z < -75) {
+                // Missed (went too far)
+                combo = 0; // Reset combo on miss
+                updateGameUI();
+            }
             scene.remove(b);
             balls.splice(i, 1);
-            updateGameUI();
+            if (hitFound) updateGameUI();
         }
     }
     renderer.render(scene, camera);
