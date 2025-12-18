@@ -10,7 +10,12 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
     const touchStartX = useRef(null);
     const touchStartY = useRef(null);
-    const hasTriggeredRef = useRef(false); // New: prevent multi-trigger without return to neutral
+
+    // Refs for physics state to persist across renders
+    const physicsState = useRef({
+        currentTilt: 0,
+        gameState: "NEUTRAL" // NEUTRAL or TRIGGERED
+    });
 
     // Track orientation robustly
     useEffect(() => {
@@ -49,7 +54,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (currentIndex < cards.length - 1) {
                 setCurrentIndex(c => c + 1);
                 setStatus('active');
-                hasTriggeredRef.current = false; // Reset trigger lock
+                // Removed hasTriggeredRef.current reset as it's now physicsState
             } else {
                 onFinish();
             }
@@ -65,7 +70,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (currentIndex < cards.length - 1) {
                 setCurrentIndex(c => c + 1);
                 setStatus('active');
-                hasTriggeredRef.current = false; // Reset trigger lock
+                // Removed hasTriggeredRef.current reset as it's now physicsState
             } else {
                 onFinish();
             }
@@ -76,56 +81,47 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
     useEffect(() => {
         if (!motionActive) return;
 
-        let lastActionTime = 0;
-        const ACTION_COOLDOWN = 500; // Shorter cooldown, rely on "Neutral" reset
+        // Configuration from user spec
+        const THRESHOLD_CORRECT = 45; // Degrees tilted down
+        const THRESHOLD_PASS = -45;   // Degrees tilted up
+        const NEUTRAL_ZONE = 15;      // Degrees to return to neutral
+        const SMOOTHING_ALPHA = 0.2;  // Low-pass filter (0-1)
 
         const handleOrientation = (event) => {
             if (status !== 'active') return;
 
-            const now = performance.now();
-            // Basic debounce
-            if (now - lastActionTime < ACTION_COOLDOWN) return;
-
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            // Robust Orientation Check
-            let tiltValue = 0;
-            let calibrationValue = 0;
-
+            // 1. Determine Raw Tilt based on portrait/landscape
+            // In landscape (home right), Beta is tilt.
+            // We subtract calibration to treat the starting position as 0.
+            let rawTilt = 0;
             if (isPortrait) {
-                tiltValue = gamma;
-                calibrationValue = calibration.gamma || 0;
+                rawTilt = gamma - (calibration.gamma || 0);
             } else {
-                tiltValue = beta;
-                calibrationValue = calibration.beta || 0;
+                rawTilt = beta - (calibration.beta || 0);
             }
 
-            // Calculate Delta
-            const delta = tiltValue - calibrationValue;
+            // 2. Low-Pass Filter
+            // y[n] = y[n-1] + alpha * (x[n] - y[n-1])
+            physicsState.current.currentTilt = physicsState.current.currentTilt + SMOOTHING_ALPHA * (rawTilt - physicsState.current.currentTilt);
+            const smoothedTilt = physicsState.current.currentTilt;
 
-            // THRESHOLDS
-            const TRIGGER_THRESHOLD = 35;
-            const NEUTRAL_THRESHOLD = 10; // Reduced from 15 for faster reset
-
-            // RESET LOGIC:
-            if (hasTriggeredRef.current) {
-                // If we are locked, we only unlock if we return to neutral
-                if (Math.abs(delta) < NEUTRAL_THRESHOLD) {
-                    hasTriggeredRef.current = false;
+            // 3. State Machine
+            if (physicsState.current.gameState === "NEUTRAL") {
+                if (smoothedTilt > THRESHOLD_CORRECT) {
+                    physicsState.current.gameState = "TRIGGERED";
+                    handleCorrect();
+                } else if (smoothedTilt < THRESHOLD_PASS) {
+                    physicsState.current.gameState = "TRIGGERED";
+                    handlePass();
                 }
-                return; // Stop here if locked
-            }
-
-            // TRIGGER LOGIC:
-            if (delta > TRIGGER_THRESHOLD) {
-                lastActionTime = now;
-                hasTriggeredRef.current = true;
-                handleCorrect();
-            } else if (delta < -TRIGGER_THRESHOLD) {
-                lastActionTime = now;
-                hasTriggeredRef.current = true;
-                handlePass();
+            } else if (physicsState.current.gameState === "TRIGGERED") {
+                // Hysteresis: Must return to center
+                if (Math.abs(smoothedTilt) < NEUTRAL_ZONE) {
+                    physicsState.current.gameState = "NEUTRAL";
+                }
             }
         };
 
