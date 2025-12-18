@@ -2,8 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-    .safe-area-inset-bottom {
-        padding-bottom: env(safe-area-inset-bottom);
-    }
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
 }
