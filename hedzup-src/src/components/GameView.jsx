@@ -5,12 +5,8 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
     const [status, setStatus] = useState('active');
     const [isPortrait, setIsPortrait] = useState(false);
     const currentCard = cards[currentIndex];
-    // Logic for swipe
     const touchStartX = useRef(null);
     const touchStartY = useRef(null);
-
-    // Logic for tilt debounce
-    const lastTilt = useRef(0);
 
     useEffect(() => {
         const checkOrientation = () => setIsPortrait(window.innerHeight > window.innerWidth);
@@ -41,7 +37,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (currentIndex < cards.length - 1) {
                 setCurrentIndex(c => c + 1);
                 setStatus('active');
-                lastTilt.current = 0; // Reset tilt debounce
             } else {
                 onFinish();
             }
@@ -57,7 +52,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (currentIndex < cards.length - 1) {
                 setCurrentIndex(c => c + 1);
                 setStatus('active');
-                lastTilt.current = 0; // Reset tilt debounce
             } else {
                 onFinish();
             }
@@ -73,26 +67,19 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (beta === null || gamma === null) return;
 
             const deltaGamma = gamma - calibration.gamma;
-            const THRESHOLD = 35; // Increased threshold to avoid accidental triggers
+            const THRESHOLD = 40; // Strict threshold
 
-            // When held on forehead in landscape:
-            // Gamma is usually pitch (looking up/down).
-            // If we tilt DOWN (face to floor), Gamma usually INCREASES (or decreases depending on browser).
-            // If we tilt UP (face to ceiling), it goes the other way.
-            // logic: We separate them clearly.
+            // LOGIC:
+            // Tilt DOWN (Face to Floor) -> Correct
+            // Tilt UP (Face to Ceiling) -> Pass
 
             if (deltaGamma > THRESHOLD) {
-                // Tilt Direction A
-                // User reported "Correct" for both directions. Simplest fix: Just allow one to trigger Correct.
+                // Positive Gamma Delta -> Down -> Correct
                 handleCorrect();
-                // We don't verify if it's strictly "Down" vs "Up" because sensors vary, 
-                // but we ensure only ONE branch is taken based on sign.
             } else if (deltaGamma < -THRESHOLD) {
-                // Tilt Direction B
+                // Negative Gamma Delta -> Up -> Pass
                 handlePass();
             }
-
-            // We ignore Beta for now to avoid confusion, as Gamma is the primary axis in landscape forehead mode.
         };
         window.addEventListener('deviceorientation', handleOrientation);
         return () => window.removeEventListener('deviceorientation', handleOrientation);
@@ -125,22 +112,17 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         touchStartY.current = null;
     };
 
-    // --- STYLES ---
     let bgClass = "bg-zinc-900";
     let cardClass = "opacity-100 scale-100 translate-y-0";
 
     if (status === 'correct') {
-        bgClass = "bg-[#34C759]"; // iOS Green
+        bgClass = "bg-[#34C759]";
         cardClass = "opacity-0 translate-y-[120%] rotate-6";
     } else if (status === 'pass') {
-        bgClass = "bg-[#FF9500]"; // iOS Orange
+        bgClass = "bg-[#FF9500]";
         cardClass = "opacity-0 translate-y-[-120%] -rotate-6";
     }
 
-    // SIZING FIX:
-    // When rotated 90deg, the "width" of the container is the height of the screen.
-    // We want the card to fill most of the view but leave space.
-    // We use `w-[85vh]` (85% of physical height, which is container width) and `h-[60vw]`.
     const containerStyle = isPortrait
         ? {
             transform: 'rotate(90deg)', transformOrigin: 'center center',
@@ -150,9 +132,9 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         }
         : { width: '100%', height: '100%' };
 
-    // Adjust card size: Bigger but with padding.
+    // Large Card Size
     const cardStyle = isPortrait
-        ? "w-[85vh] h-[80vw]" // Large in portrait-turned-landscape
+        ? "w-[85vh] h-[80vw]"
         : "w-[80vw] h-[70vh]";
 
     return (
@@ -163,12 +145,26 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEnd}
             >
-                {/* Removed Header with Timer as requested */}
+                {/* TIMER RESTORED (Top Center, Rotated safe) */}
+                {!isPortrait && (
+                    <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20">
+                        <div className="bg-white/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/20">
+                            <span className="font-mono text-3xl font-bold text-white tracking-widest">{timer}</span>
+                        </div>
+                    </div>
+                )}
+                {isPortrait && (
+                    // In rotated mode, "top" is actually left of screen physically, so we position relative to container
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20">
+                        <div className="bg-white/20 backdrop-blur-md px-6 py-2 rounded-full border border-white/20">
+                            <span className="font-mono text-3xl font-bold text-white tracking-widest">{timer}</span>
+                        </div>
+                    </div>
+                )}
 
                 <div className={`transform transition-all duration-500 ease-out ${cardClass} ${cardStyle} bg-white rounded-[3rem] shadow-2xl flex items-center justify-center p-8 text-center relative mx-auto my-auto`}>
                     {status === 'active' ? (
                         <div className="flex flex-col items-center justify-center h-full w-full">
-                            {/* Country Shape Logic */}
                             {currentCard.type === 'country' && (
                                 <img
                                     src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${currentCard.code}/vector.svg`}
@@ -179,7 +175,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                             )}
 
                             <div className="flex flex-col items-center">
-                                {/* Auto-scale text based on length */}
                                 <h2 className={`font-black tracking-tighter text-zinc-900 leading-none break-words max-w-full 
                             ${currentCard.text.length > 12 ? 'text-5xl md:text-7xl' : 'text-7xl md:text-9xl'}`}
                                 >
@@ -188,12 +183,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                                 {currentCard.type === 'country' && (
                                     <p className="mt-4 text-zinc-400 text-xl font-bold uppercase tracking-widest">Country</p>
                                 )}
-                            </div>
-
-                            {/* Hints at bottom of card */}
-                            <div className="absolute bottom-10 w-full px-12 flex justify-between text-zinc-300 text-xs font-bold uppercase tracking-widest opacity-40">
-                                <span>Pass (Tilt Up)</span>
-                                <span>Correct (Tilt Down)</span>
                             </div>
                         </div>
                     ) : <div />}
@@ -207,7 +196,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                     )}
                 </div>
 
-                {/* Background Icons */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                     {status === 'correct' && <Check size={200} className="text-white/20 animate-ping duration-700" />}
                     {status === 'pass' && <RotateCcw size={200} className="text-white/20 animate-ping duration-700" />}
