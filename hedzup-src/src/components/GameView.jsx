@@ -108,8 +108,8 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             // So this logic holds for both.
 
             // TUNED THRESHOLDS
-            const THRESHOLD = 35;
-            const NEUTRAL_THRESHOLD = 20;
+            const THRESHOLD = 50; // Was 35 - made less sensitive
+            const NEUTRAL_THRESHOLD = 30; // Was 20
 
             if (Math.abs(normalizedDelta) < NEUTRAL_THRESHOLD) {
                 isLocked.current = false;

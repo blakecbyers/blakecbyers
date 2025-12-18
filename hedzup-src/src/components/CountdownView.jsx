@@ -24,8 +24,12 @@ export default function CountdownView({ onFinished, motionActive, isPortrait }) 
                 window.removeEventListener('deviceorientation', handleCalibration);
             };
         } else {
-            window.removeEventListener('deviceorientation', handleCalibration);
-            onFinished(calibrationRef.current);
+            // Wait 1 second on "GO!" before starting
+            const timer = setTimeout(() => {
+                window.removeEventListener('deviceorientation', handleCalibration);
+                onFinished(calibrationRef.current);
+            }, 1000);
+            return () => clearTimeout(timer);
         }
     }, [count, onFinished, motionActive]);
 
