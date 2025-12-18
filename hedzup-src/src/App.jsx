@@ -15,13 +15,6 @@ export default function App() {
     const [timer, setTimer] = useState(60);
     const [motionActive, setMotionActive] = useState(false);
     const [calibration, setCalibration] = useState({ beta: null, gamma: null });
-    const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
-
-    React.useEffect(() => {
-        const handleResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     const playSound = (type) => {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -82,21 +75,6 @@ export default function App() {
 
     return (
         <div className="fixed inset-0 bg-zinc-50 overflow-hidden touch-none select-none font-sans text-zinc-900">
-            {isPortrait && (
-                <div className="fixed inset-0 z-[100] bg-zinc-900 flex flex-col items-center justify-center p-8 text-center text-white">
-                    <div className="w-24 h-24 mb-6 animate-bounce">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full opacity-80">
-                            <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
-                            <path d="M12 18h.01" />
-                            <path d="M17 10l3-3-3-3" />
-                            <path d="M20 7H13" />
-                        </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold mb-2">Rotate Your Device</h2>
-                    <p className="opacity-60 max-w-xs mx-auto">Heads Up is designed to be played in landscape mode.</p>
-                </div>
-            )}
-
             {view === 'menu' && (
                 <MenuView decks={DECKS} onSelect={selectDeck} />
             )}
