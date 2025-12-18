@@ -3,7 +3,7 @@ import { Play, Smartphone } from 'lucide-react';
 
 export default function MenuView({ decks, onSelect }) {
     return (
-        <div className="flex flex-col h-full safe-area-inset-bottom max-w-md mx-auto w-full bg-zinc-50">
+        <div className="flex flex-col h-[100dvh] safe-area-inset-bottom max-w-md mx-auto w-full bg-zinc-50 pt-safe-top">
             <div className="flex-none px-6 pt-12 pb-6">
                 <h1 className="text-4xl font-bold tracking-tight text-zinc-900">
                     Heads Up

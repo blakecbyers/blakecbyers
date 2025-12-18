@@ -129,15 +129,7 @@ function AppContent() {
     }, []);
 
     return (
-        <div
-            className="fixed inset-0 bg-zinc-50 overflow-hidden touch-none select-none font-sans text-zinc-900 flex items-center justify-center"
-            style={isPortrait ? {
-                width: '100vh',
-                height: '100vw',
-                transform: 'rotate(90deg)',
-                transformOrigin: 'center'
-            } : {}}
-        >
+        <div className="fixed inset-0 bg-zinc-50 overflow-hidden touch-none select-none font-sans text-zinc-900 w-full h-[100dvh]">
             {view === 'menu' && (
                 <MenuView decks={DECKS} onSelect={selectDeck} />
             )}
@@ -159,6 +151,7 @@ function AppContent() {
                         setView('game');
                     }}
                     motionActive={motionActive}
+                    isPortrait={isPortrait}
                 />
             )}
 

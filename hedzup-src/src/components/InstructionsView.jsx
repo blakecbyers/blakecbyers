@@ -38,6 +38,10 @@ export default function InstructionsView({ deck, onStart }) {
                         <span className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold mr-3">X</span>
                         <span>Pass: <b>Tilt Up</b></span>
                     </div>
+                    <div className="flex items-center text-zinc-600">
+                        <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold mr-3">i</span>
+                        <span>Hold phone <b>Landscape</b></span>
+                    </div>
                 </div>
 
                 <button

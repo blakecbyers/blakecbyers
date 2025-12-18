@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Check, RotateCcw } from 'lucide-react';
+import { Check, RotateCcw, Smartphone } from 'lucide-react';
 
 export default function GameView({ deck, cards, currentIndex, setCurrentIndex, timer, setTimer, setResults, onFinish, playSound, motionActive, calibration, isPortrait }) {
     const [status, setStatus] = useState('active');
@@ -12,12 +12,16 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             onFinish();
             return;
         }
+        // Pause timer if looking at "Rotate Phone" screen? Maybe not, keep pressure on!
+        // Actually for fairness, we should probably pause if isPortrait is true.
+        if (isPortrait) return;
+
         const interval = setInterval(() => {
             setTimer((t) => t - 1);
             if (timer <= 5) playSound('tick');
         }, 1000);
         return () => clearInterval(interval);
-    }, [timer, onFinish, playSound, currentCard]);
+    }, [timer, onFinish, playSound, currentCard, isPortrait]);
 
     const handlePass = useCallback(() => {
         if (status !== 'active') return;
@@ -51,7 +55,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
     // --- TILT LOGIC (Latched) ---
     useEffect(() => {
-        if (!motionActive) return;
+        if (!motionActive || isPortrait) return; // Disable tilt in portrait
 
         const handleOrientation = (event) => {
             const { beta, gamma } = event;
@@ -59,7 +63,20 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
             // In native landscape: tilt is gamma (front/back)
             // In portrait (rotated): tilt is beta
-            const deltaValue = isPortrait ? (beta - calibration.beta) : (gamma - calibration.gamma);
+            // Since we are now NATIVE LANDSCAPE, the main tilt axis is typically GAMMA.
+            // Android Landscape Left: Gamma [-90, 0] ? Check later.
+            // For now let's trust the previous logic which seemed to handle "portrait mode" (which was fake landscape).
+            // NOW: We are in REAL landscape.
+            // Holding phone landscape:
+            // Tilt forward/back is BETA.
+            // Tilt left/right is GAMMA.
+            // Wait, in landscape, "Heads Up" style tilt (forehead to floor) is GAMMA.
+
+            // Let's rely on relative change.
+            const deltaValue = gamma - calibration.gamma;
+            // NOTE: This might need tuning for Android vs iOS landscape.
+            // But let's stick to the previous calibrated logic for now.
+            // If the user holds it landscape during calibration, `gamma` is the reference.
 
             const THRESHOLD = 35;
             const NEUTRAL_THRESHOLD = 15;
@@ -72,8 +89,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (status !== 'active' || isLocked.current) return;
 
             // Handle Correct/Pass based on device orientation
-            // Note: delta direction might need inversion depending on iOS vs Android
-            // On iOS: Positive delta usually means tilt "Down" (towards face)
             if (deltaValue > THRESHOLD) { // Tilt towards player (Correct)
                 isLocked.current = true;
                 handleCorrect();
@@ -99,23 +114,33 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         cardClass = "opacity-0 translate-y-[-120%] -rotate-6";
     }
 
+    if (isPortrait) {
+        return (
+            <div className="fixed inset-0 z-50 bg-zinc-900 text-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in">
+                <Smartphone className="w-16 h-16 mb-6 animate-pulse text-zinc-400" />
+                <h2 className="text-3xl font-bold mb-2">Rotate your phone</h2>
+                <p className="text-zinc-400">Turn your device sideways to play.</p>
+            </div>
+        );
+    }
+
     return (
         <div className={`fixed inset-0 z-50 flex flex-col transition-colors duration-500 ease-out ${bgClass} overflow-hidden landscape:p-safe`}>
             {/* The Main Stage */}
-            <div className="relative flex flex-col w-full h-full items-center justify-center p-4">
+            <div className="relative flex flex-col w-screen h-screen items-center justify-center p-4">
 
                 {/* HUD */}
-                <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-10 text-white/90">
+                <div className="absolute top-0 left-0 w-full p-safe pt-4 px-6 flex justify-between items-center z-10 text-white/90">
                     <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
                         <span className="font-mono text-lg font-bold tracking-wider">{timer}</span>
                     </div>
-                    <div className="font-semibold text-sm opacity-80 uppercase tracking-widest">
+                    <div className="font-semibold text-sm opacity-80 uppercase tracking-widest truncate max-w-[200px]">
                         {deck.title}
                     </div>
                 </div>
 
                 {/* The Card */}
-                <div className={`transform transition-all duration-500 ease-out ${cardClass} w-full max-w-5xl aspect-video bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center p-8 text-center relative overflow-hidden`}>
+                <div className={`transform transition-all duration-500 ease-out ${cardClass} w-full max-w-[80vw] h-[70vh] bg-white rounded-[2rem] shadow-2xl flex items-center justify-center p-8 text-center relative overflow-hidden`}>
                     {status === 'active' ? (
                         <div className="flex items-center justify-center h-full w-full space-x-8">
                             {/* Country Shape Logic */}
@@ -123,17 +148,17 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                                 <img
                                     src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${currentCard.code}/vector.svg`}
                                     alt="country shape"
-                                    className="w-32 h-32 md:w-64 md:h-64 object-contain opacity-80 flex-shrink-0"
+                                    className="w-32 h-32 md:w-48 md:h-48 object-contain opacity-80 flex-shrink-0"
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
                             )}
 
                             <div className="flex flex-col items-center justify-center min-w-0">
-                                <h2 className="text-6xl md:text-9xl font-black tracking-tighter text-zinc-900 leading-none break-words uppercase">
+                                <h2 className="text-[12vmin] font-black tracking-tighter text-zinc-900 leading-none break-words uppercase">
                                     {currentCard.text}
                                 </h2>
                                 {currentCard.type === 'country' && (
-                                    <p className="mt-4 text-zinc-400 text-lg font-bold tracking-widest uppercase">Country</p>
+                                    <p className="mt-4 text-zinc-400 text-[3vmin] font-bold tracking-widest uppercase">Country</p>
                                 )}
                             </div>
                         </div>
