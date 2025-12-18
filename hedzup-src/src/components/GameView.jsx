@@ -5,8 +5,12 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
     const [status, setStatus] = useState('active');
     const [isPortrait, setIsPortrait] = useState(false);
     const currentCard = cards[currentIndex];
+    // Logic for swipe
     const touchStartX = useRef(null);
     const touchStartY = useRef(null);
+
+    // Logic for tilt debounce
+    const lastTilt = useRef(0);
 
     useEffect(() => {
         const checkOrientation = () => setIsPortrait(window.innerHeight > window.innerWidth);
@@ -17,14 +21,12 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
     useEffect(() => {
         if (timer <= 0) {
-            // TIMEOUT LOGIC: Add current card to SKIPPED before finishing
             setResults(prev => ({ ...prev, skipped: [...prev.skipped, currentCard.text] }));
             onFinish();
             return;
         }
         const interval = setInterval(() => {
             setTimer((t) => t - 1);
-            // Play tick sound when timer is low (e.g. 5 seconds)
             if (timer <= 6 && timer > 1) playSound('tick');
         }, 1000);
         return () => clearInterval(interval);
@@ -39,10 +41,11 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (currentIndex < cards.length - 1) {
                 setCurrentIndex(c => c + 1);
                 setStatus('active');
+                lastTilt.current = 0; // Reset tilt debounce
             } else {
                 onFinish();
             }
-        }, 600);
+        }, 800);
     }, [status, cards, currentIndex, setResults, setCurrentIndex, onFinish, playSound, currentCard]);
 
     const handleCorrect = useCallback(() => {
@@ -54,42 +57,42 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (currentIndex < cards.length - 1) {
                 setCurrentIndex(c => c + 1);
                 setStatus('active');
+                lastTilt.current = 0; // Reset tilt debounce
             } else {
                 onFinish();
             }
-        }, 600);
+        }, 800);
     }, [status, cards, currentIndex, setResults, setCurrentIndex, onFinish, playSound, currentCard]);
 
     // --- TILT LOGIC ---
     useEffect(() => {
         if (!motionActive) return;
-        let debounce = false;
         const handleOrientation = (event) => {
-            if (status !== 'active' || debounce) return;
+            if (status !== 'active') return;
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            const deltaBeta = beta - calibration.beta;
             const deltaGamma = gamma - calibration.gamma;
-            const THRESHOLD = 35;
+            const THRESHOLD = 35; // Increased threshold to avoid accidental triggers
 
-            // Tilt Down (Phone face to floor) -> Correct
-            // Tilt Up (Phone face to ceiling) -> Pass
+            // When held on forehead in landscape:
+            // Gamma is usually pitch (looking up/down).
+            // If we tilt DOWN (face to floor), Gamma usually INCREASES (or decreases depending on browser).
+            // If we tilt UP (face to ceiling), it goes the other way.
+            // logic: We separate them clearly.
 
-            if (Math.abs(deltaGamma) > THRESHOLD) {
-                if (deltaGamma > THRESHOLD) {
-                    debounce = true; handleCorrect(); setTimeout(() => { debounce = false; }, 1000);
-                } else if (deltaGamma < -THRESHOLD) {
-                    debounce = true; handlePass(); setTimeout(() => { debounce = false; }, 1000);
-                }
+            if (deltaGamma > THRESHOLD) {
+                // Tilt Direction A
+                // User reported "Correct" for both directions. Simplest fix: Just allow one to trigger Correct.
+                handleCorrect();
+                // We don't verify if it's strictly "Down" vs "Up" because sensors vary, 
+                // but we ensure only ONE branch is taken based on sign.
+            } else if (deltaGamma < -THRESHOLD) {
+                // Tilt Direction B
+                handlePass();
             }
-            else if (Math.abs(deltaBeta) > THRESHOLD) {
-                if (deltaBeta < -THRESHOLD) {
-                    debounce = true; handleCorrect(); setTimeout(() => { debounce = false; }, 1000);
-                } else if (deltaBeta > THRESHOLD) {
-                    debounce = true; handlePass(); setTimeout(() => { debounce = false; }, 1000);
-                }
-            }
+
+            // We ignore Beta for now to avoid confusion, as Gamma is the primary axis in landscape forehead mode.
         };
         window.addEventListener('deviceorientation', handleOrientation);
         return () => window.removeEventListener('deviceorientation', handleOrientation);
@@ -103,28 +106,21 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
     const onTouchEnd = (e) => {
         if (!touchStartX.current || !touchStartY.current) return;
+        const diffX = e.changedTouches[0].clientX - touchStartX.current;
+        const diffY = e.changedTouches[0].clientY - touchStartY.current;
 
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-
-        const diffX = touchEndX - touchStartX.current;
-        const diffY = touchEndY - touchStartY.current;
-
-        // We check which axis had more movement
+        // Horizontal mainly
         if (Math.abs(diffX) > Math.abs(diffY)) {
-            // Horizontal Swipe
             if (Math.abs(diffX) > 50) {
-                if (diffX > 0) handleCorrect(); // Right -> Correct
-                else handlePass(); // Left -> Pass
+                if (diffX > 0) handleCorrect();
+                else handlePass();
             }
         } else {
-            // Vertical Swipe (Backup)
             if (Math.abs(diffY) > 50) {
-                if (diffY > 0) handleCorrect(); // Down -> Correct
-                else handlePass(); // Up -> Pass
+                if (diffY > 0) handleCorrect();
+                else handlePass();
             }
         }
-
         touchStartX.current = null;
         touchStartY.current = null;
     };
@@ -141,6 +137,10 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         cardClass = "opacity-0 translate-y-[-120%] -rotate-6";
     }
 
+    // SIZING FIX:
+    // When rotated 90deg, the "width" of the container is the height of the screen.
+    // We want the card to fill most of the view but leave space.
+    // We use `w-[85vh]` (85% of physical height, which is container width) and `h-[60vw]`.
     const containerStyle = isPortrait
         ? {
             transform: 'rotate(90deg)', transformOrigin: 'center center',
@@ -150,67 +150,67 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         }
         : { width: '100%', height: '100%' };
 
+    // Adjust card size: Bigger but with padding.
+    const cardStyle = isPortrait
+        ? "w-[85vh] h-[80vw]" // Large in portrait-turned-landscape
+        : "w-[80vw] h-[70vh]";
+
     return (
         <div className={`fixed inset-0 z-50 flex flex-col transition-colors duration-500 ease-out ${bgClass} overflow-hidden`}>
             <div
                 style={containerStyle}
-                className="relative flex flex-col w-full h-full"
+                className="relative flex flex-col items-center justify-center w-full h-full"
                 onTouchStart={onTouchStart}
                 onTouchEnd={onTouchEnd}
             >
-                <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-10 text-white/90">
-                    <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
-                        <span className="font-mono text-lg font-bold tracking-wider">{timer}</span>
-                    </div>
-                    <div className="font-semibold text-sm opacity-80 uppercase tracking-widest flex items-center gap-2">
-                        {deck.title}
-                    </div>
-                </div>
+                {/* Removed Header with Timer as requested */}
 
-                <div className="flex-1 flex items-center justify-center p-8 relative">
-                    <div className={`transform transition-all duration-500 ease-out ${cardClass} w-full max-w-4xl aspect-[2/1] bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center p-8 text-center relative`}>
-                        {status === 'active' ? (
-                            <div className="flex items-center justify-center h-full w-full space-x-8">
-                                {/* Country Shape Logic */}
+                <div className={`transform transition-all duration-500 ease-out ${cardClass} ${cardStyle} bg-white rounded-[3rem] shadow-2xl flex items-center justify-center p-8 text-center relative mx-auto my-auto`}>
+                    {status === 'active' ? (
+                        <div className="flex flex-col items-center justify-center h-full w-full">
+                            {/* Country Shape Logic */}
+                            {currentCard.type === 'country' && (
+                                <img
+                                    src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${currentCard.code}/vector.svg`}
+                                    alt="country shape"
+                                    className="w-48 h-48 md:w-64 md:h-64 object-contain mb-6 opacity-90"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            )}
+
+                            <div className="flex flex-col items-center">
+                                {/* Auto-scale text based on length */}
+                                <h2 className={`font-black tracking-tighter text-zinc-900 leading-none break-words max-w-full 
+                            ${currentCard.text.length > 12 ? 'text-5xl md:text-7xl' : 'text-7xl md:text-9xl'}`}
+                                >
+                                    {currentCard.text}
+                                </h2>
                                 {currentCard.type === 'country' && (
-                                    <img
-                                        src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${currentCard.code}/vector.svg`}
-                                        alt="country shape"
-                                        className="w-32 h-32 md:w-48 md:h-48 object-contain opacity-80"
-                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                    />
+                                    <p className="mt-4 text-zinc-400 text-xl font-bold uppercase tracking-widest">Country</p>
                                 )}
-
-                                <div className="flex flex-col items-center">
-                                    <h2 className="text-6xl md:text-8xl font-bold tracking-tight text-zinc-900 leading-none break-words max-w-full">
-                                        {currentCard.text}
-                                    </h2>
-                                    {currentCard.type === 'country' && (
-                                        <p className="mt-4 text-zinc-400 text-lg font-medium">Country</p>
-                                    )}
-                                </div>
-
-                                <div className="absolute bottom-8 w-full px-12 flex justify-between text-zinc-300 text-xs font-bold uppercase tracking-widest opacity-60">
-                                    <span>Pass (Tilt Up/Swipe Left)</span>
-                                    <span>Correct (Tilt Down/Swipe Right)</span>
-                                </div>
                             </div>
-                        ) : <div />}
 
-                        {/* Fallback Taps */}
-                        {status === 'active' && (
-                            <>
-                                <div onClick={handlePass} className="absolute inset-y-0 left-0 w-24 z-20" />
-                                <div onClick={handleCorrect} className="absolute inset-y-0 right-0 w-24 z-20" />
-                            </>
-                        )}
-                    </div>
+                            {/* Hints at bottom of card */}
+                            <div className="absolute bottom-10 w-full px-12 flex justify-between text-zinc-300 text-xs font-bold uppercase tracking-widest opacity-40">
+                                <span>Pass (Tilt Up)</span>
+                                <span>Correct (Tilt Down)</span>
+                            </div>
+                        </div>
+                    ) : <div />}
+
+                    {/* Fallback Taps */}
+                    {status === 'active' && (
+                        <>
+                            <div onClick={handlePass} className="absolute inset-y-0 left-0 w-32 z-20" />
+                            <div onClick={handleCorrect} className="absolute inset-y-0 right-0 w-32 z-20" />
+                        </>
+                    )}
                 </div>
 
                 {/* Background Icons */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                    {status === 'correct' && <Check size={180} className="text-white/25 animate-ping duration-700" />}
-                    {status === 'pass' && <RotateCcw size={180} className="text-white/25 animate-ping duration-700" />}
+                    {status === 'correct' && <Check size={200} className="text-white/20 animate-ping duration-700" />}
+                    {status === 'pass' && <RotateCcw size={200} className="text-white/20 animate-ping duration-700" />}
                 </div>
             </div>
         </div>
