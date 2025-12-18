@@ -61,85 +61,49 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            // --- UNIVERSAL LANDSCAPE TILT LOGIC ---
-            // Whether "Native Landscape" or "Forced Portrait", the user is holding the phone
-            // such that the Long Edge is horizontal.
-            // In this position, "Bowing Head" (Tilt Down) is ROTATION AROUND THE LONG AXIS.
-            // This is ALWAYS GAMMA.
+            // Determines handedness based on the calibration state (how user held it at start)
+            // In Landscape:
+            // - Home Button Right: Beta is approx +90 (or positive).
+            // - Home Button Left: Beta is approx -90 (or negative).
+            const startBeta = calibration.beta || 0;
+            const isHomeButtonRight = startBeta > 0;
 
-            // The only variable is the SIGN of Gamma, which depends on handedness (Home Button Left vs Right).
-            // obtaining 'beta' (Gravity on Short Axis) tells us which way is "Down" for the short edge.
+            const startGamma = calibration.gamma || 0;
+            const currentGamma = gamma;
 
-            // IF phone is vertical (on forehead):
-            // - Home Button Right: X-axis points DOWN. Gravity is +90 on Beta.
-            // - Home Button Left: X-axis points UP. Gravity is -90 on Beta.
+            // Raw change from starting position
+            const rawDelta = currentGamma - startGamma;
 
-            // We can detect handedness from Beta.
-
-            const isHomeButtonRight = beta > 0; // Approx +90
-
-            // IF Home Button RIGHT:
-            // - Y-axis points LEFT.
-            // - Tilt Down (Screen to floor): Right side of phone (Bottom) goes UP? Top goes DOWN.
-            // - "Right" (Bottom) Up = Negative Gamma? (Usually Right Down is Positive).
-            // - So Tilt Down is NEGATIVE Gamma?
-            // Let's rely on relative change from calibration.
-
-            // Calibrated Delta
-            const rawDelta = gamma - (calibration.gamma || 0);
-
-            // We need to flip the sign if Home Button is LEFT (Beta < 0).
-            // Hypothesis:
-            // Home Right (Beta > 0): Tilt Down is -Delta?
-            // Home Left (Beta < 0): Tilt Down is +Delta?
-
-            // Let's normalize Delta so POSITIVE means TILT DOWN.
-            // If Beta > 0 (Home Right), we invert?
-            // Let's assume standard right-hand rule.
-            // Actually, let's just reverse one.
+            // Normalize so "Tilted Down" (Screen to floor) is POSITIVE Delta
+            // Based on standard orientation:
+            // Home Right (Beta > 0): Down decreases Gamma (towards 0 from 90?) -> So we invert.
+            // Let's rely on the previous empirical tuning: Home Right -> Invert.
 
             let normalizedDelta = rawDelta;
-            if (!isHomeButtonRight) {
+            if (isHomeButtonRight) {
                 normalizedDelta = -rawDelta;
+            } else {
+                normalizedDelta = rawDelta;
             }
 
-            // WAIT. If I am in "Native Landscape", browser might have already flipped Gamma?
-            // No, deviceorientation is raw (usually).
-            // So this logic holds for both.
+            // TUNED THRESHOLDS (Requested 45 degrees)
+            const TRIGGER_ANGLE = 45;
+            const RESET_ANGLE = 30; // Must return to within 30 deg of center to unlock
 
-            // TUNED THRESHOLDS
-            const THRESHOLD = 50; // Was 35 - made less sensitive
-            const NEUTRAL_THRESHOLD = 30; // Was 20
-
-            if (Math.abs(normalizedDelta) < NEUTRAL_THRESHOLD) {
+            // Unlock if back near neutral
+            if (Math.abs(normalizedDelta) < RESET_ANGLE) {
                 isLocked.current = false;
             }
 
             if (status !== 'active' || isLocked.current) return;
 
             // Logic:
-            // Delta > THRESHOLD => DOWN => CORRECT
-            // Delta < -THRESHOLD => UP => SKIP
-            // Note: I might have the sign flip wrong, but based on "Home Right = Negative",
-            // if I flip Home Left, then "Home Right" path is default.
-            // Let's try:
-            // If Beta > 0 (Home Right), Tilt Down = Negative Gamma.
-            // So we want normalizedDelta to be Positive for Correct.
-            // So normalizedDelta = -rawDelta.
-
-            let finalDelta = 0;
-            if (beta > 0) {
-                // Home Right
-                finalDelta = -rawDelta;
-            } else {
-                // Home Left
-                finalDelta = rawDelta;
-            }
-
-            if (finalDelta > THRESHOLD) {
+            // > 45 deg = Down = Correct
+            // < -45 deg = Up = Pass
+            if (normalizedDelta > TRIGGER_ANGLE) {
                 isLocked.current = true;
                 handleCorrect();
-            } else if (finalDelta < -THRESHOLD) {
+            } else if (normalizedDelta < -TRIGGER_ANGLE) {
                 isLocked.current = true;
                 handlePass();
             }
