@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function CountdownView({ onFinished, motionActive }) {
+export default function CountdownView({ onFinished, motionActive, isPortrait }) {
     const [count, setCount] = useState(3);
-    const [isPortrait, setIsPortrait] = useState(false);
     const calibrationRef = useRef({ beta: 0, gamma: 0 });
 
     useEffect(() => {
-        const checkOrientation = () => setIsPortrait(window.innerHeight > window.innerWidth);
-        checkOrientation();
-        window.addEventListener('resize', checkOrientation);
+        // Removed internal orientation listeners
 
         const handleCalibration = (e) => {
             if (e.beta !== null && e.gamma !== null) {
@@ -24,7 +21,6 @@ export default function CountdownView({ onFinished, motionActive }) {
             const timer = setTimeout(() => setCount(count - 1), 1000);
             return () => {
                 clearTimeout(timer);
-                window.removeEventListener('resize', checkOrientation);
                 window.removeEventListener('deviceorientation', handleCalibration);
             };
         } else {

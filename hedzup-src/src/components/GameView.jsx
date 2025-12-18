@@ -61,31 +61,56 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            // Always assume PHYSICAL LANDSCAPE.
-            const deltaValue = gamma - calibration.gamma;
+            // AXIS SELECTION
+            // Native Landscape (!isPortrait): Tilt is BETA (Front/Back)
+            // Forced Portrait (isPortrait): Tilt is GAMMA (Long axis)
+            let delta = 0;
+
+            if (isPortrait) {
+                // Forced Portrait (Sideways)
+                // Assuming Button Right: Upright = -90. Flat = 0.
+                // Tilt Down (Flat) = Positive Change.
+                delta = gamma - calibration.gamma;
+            } else {
+                // Native Landscape
+                // Button Right: Upright = 90. Flat = 0.
+                // Tilt Down (Flat) = Negative Change.
+                delta = beta - calibration.beta;
+            }
 
             // TUNED THRESHOLDS
-            // Neutral: 30deg (must return close to vertical to reset)
-            // Trigger: 45deg (must really tilt to fire)
-            const THRESHOLD = 45;
-            const NEUTRAL_THRESHOLD = 30;
+            const THRESHOLD = 35;
+            const NEUTRAL_THRESHOLD = 20;
 
             // Check if we are in neutral position to unlock
-            if (Math.abs(deltaValue) < NEUTRAL_THRESHOLD) {
+            if (Math.abs(delta) < NEUTRAL_THRESHOLD) {
                 isLocked.current = false;
             }
 
             if (status !== 'active' || isLocked.current) return;
 
-            // Logic:
-            // Delta > 45 => Tilted DOWN (Screen towards floor) => CORRECT
-            // Delta < -45 => Tilted UP (Screen towards sky/forehead) => PASS
-            if (deltaValue > THRESHOLD) {
-                isLocked.current = true;
-                handleCorrect();
-            } else if (deltaValue < -THRESHOLD) {
-                isLocked.current = true;
-                handlePass();
+            if (isPortrait) {
+                // Forced Portrait (Gamma)
+                // +Delta (towards 0) -> Down -> Correct
+                // -Delta (towards -180) -> Up -> Skip
+                if (delta > THRESHOLD) {
+                    isLocked.current = true;
+                    handleCorrect();
+                } else if (delta < -THRESHOLD) {
+                    isLocked.current = true;
+                    handlePass();
+                }
+            } else {
+                // Native Landscape (Beta)
+                // -Delta (90->0) -> Down -> Correct
+                // +Delta (90->180) -> Up -> Skip
+                if (delta < -THRESHOLD) {
+                    isLocked.current = true;
+                    handleCorrect();
+                } else if (delta > THRESHOLD) {
+                    isLocked.current = true;
+                    handlePass();
+                }
             }
         };
 
