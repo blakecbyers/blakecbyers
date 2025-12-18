@@ -63,23 +63,56 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
     // --- TILT LOGIC ---
     useEffect(() => {
         if (!motionActive) return;
+
+        let lastActionTime = 0;
+        const ACTION_COOLDOWN = 1500; // 1.5s between tilts to prevent double-trigger
+
         const handleOrientation = (event) => {
             if (status !== 'active') return;
+
+            const now = performance.now();
+            if (now - lastActionTime < ACTION_COOLDOWN) return;
+
+            // Beta is front-to-back tilt (-180 to 180)
+            // Gamma is left-to-right tilt (-90 to 90)
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            const deltaGamma = gamma - calibration.gamma;
-            const THRESHOLD = 40; // Strict threshold
+            // In Hedzup, the phone is typically held on the forehead.
+            // Screen facing OUT. 
+            // Landscape-Left: Beta is tilt, Gamma is tilt
+            // We'll use a robust check:
+
+            // Normalize for orientation
+            // If phone is flat against forehead, gamma is roughly 90 or -90 depending on orientation
+            // We want to detect if the TOP of the phone tilts AWAY from the face (DOWN) 
+            // or TOWARDS the face (UP)
+
+            const isLandscape = Math.abs(window.orientation) === 90;
+            let tilt = 0;
+
+            if (isLandscape) {
+                // In landscape, beta is the primary tilt axis for "down/up"
+                // if held on forehead.
+                tilt = beta;
+            } else {
+                tilt = gamma;
+            }
+
+            const THRESHOLD = 35; // Sensitivity
+
+            // Assuming calibration.beta is the "resting" position
+            const delta = tilt - (isLandscape ? (calibration.beta || 0) : (calibration.gamma || 0));
 
             // LOGIC:
-            // Tilt DOWN (Face to Floor) -> Correct
-            // Tilt UP (Face to Ceiling) -> Pass
+            // Tilt DOWN (Top away from forehead) -> Correct
+            // Tilt UP (Top towards/over forehead) -> Skip
 
-            if (deltaGamma > THRESHOLD) {
-                // Positive Gamma Delta -> Down -> Correct
+            if (delta > THRESHOLD) {
+                lastActionTime = now;
                 handleCorrect();
-            } else if (deltaGamma < -THRESHOLD) {
-                // Negative Gamma Delta -> Up -> Pass
+            } else if (delta < -THRESHOLD) {
+                lastActionTime = now;
                 handlePass();
             }
         };
@@ -167,7 +200,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                 <div className={`transform transition-all duration-500 ease-out ${cardClass} ${cardStyle} bg-white rounded-[3rem] shadow-2xl flex items-center justify-center p-8 text-center relative mx-auto my-auto`}>
                     {status === 'active' && currentCard ? (
                         <div className="flex flex-col items-center justify-center h-full w-full">
-                            {currentCard.type === 'country' && (
+                            {currentCard?.type === 'country' && currentCard?.code && (
                                 <img
                                     src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${currentCard.code}/vector.svg`}
                                     alt="country shape"
@@ -178,16 +211,18 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
                             <div className="flex flex-col items-center">
                                 <h2 className={`font-black tracking-tighter text-zinc-900 leading-none break-words max-w-full 
-                            ${currentCard.text.length > 12 ? 'text-5xl md:text-7xl' : 'text-7xl md:text-9xl'}`}
+                            ${(currentCard?.text?.length || 0) > 12 ? 'text-5xl md:text-7xl' : 'text-7xl md:text-9xl'}`}
                                 >
-                                    {currentCard.text}
+                                    {currentCard?.text || "..."}
                                 </h2>
-                                {currentCard.type === 'country' && (
+                                {currentCard?.type === 'country' && (
                                     <p className="mt-4 text-zinc-400 text-xl font-bold uppercase tracking-widest">Country</p>
                                 )}
                             </div>
                         </div>
-                    ) : <div />}
+                    ) : (
+                        <div className="text-zinc-300 font-black text-4xl uppercase italic">Ready?</div>
+                    )}
 
                     {/* Fallback Taps */}
                     {status === 'active' && (

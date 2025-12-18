@@ -11,7 +11,7 @@ export default function CountdownView({ onFinished, motionActive }) {
         window.addEventListener('resize', checkOrientation);
 
         const handleCalibration = (e) => {
-            if (e.beta !== null && e.gamma !== null) {
+            if (e.beta !== null && e.gamma !== null && calibrationRef.current.beta === 0) {
                 calibrationRef.current = { beta: e.beta, gamma: e.gamma };
             }
         };

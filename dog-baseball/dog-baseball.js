@@ -163,13 +163,14 @@ async function init() {
                     try { await hands.send({ image: video }); lastDetectionTime = now; } catch (e) { }
                 }
             },
-            width: 720, height: 1280 // Standard vertical mobile ratio
+            width: 720, height: 1280,
+            facingMode: 'user' // Force front camera for mobile
         });
 
         // Add a timeout for camera start on mobile
         const cameraStartPromise = cam.start();
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Camera initialization timed out (30s). Try refreshing or check permissions.")), 30000)
+            setTimeout(() => reject(new Error("Camera timed out. Check permissions or try another browser.")), 15000)
         );
 
         await Promise.race([cameraStartPromise, timeoutPromise]);
@@ -177,10 +178,17 @@ async function init() {
         document.getElementById('loading').style.display = 'none';
         animate();
     } catch (err) {
-        console.error(err);
+        console.error("Init Error:", err);
         const log = document.getElementById('error-log');
-        if (log) log.innerText = `Camera Error: ${err.message}`;
+        if (log) {
+            log.innerHTML = `
+                <div class="mb-4">Camera Error: ${err.message}</div>
+                <button onclick="location.reload()" class="bg-red-500/20 px-4 py-2 rounded-full border border-red-500 text-red-500 font-bold uppercase text-[10px]">Retry</button>
+            `;
+            log.style.opacity = "1";
+        }
         document.getElementById('loading').style.display = 'none';
+        document.getElementById('tap-to-start').style.display = 'flex'; // Show start screen again
     }
 }
 

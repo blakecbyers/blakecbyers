@@ -6,6 +6,33 @@ import CountdownView from './components/CountdownView';
 import GameView from './components/GameView';
 import ResultsView from './components/ResultsView';
 
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false };
+    }
+    static getDerivedStateFromError() { return { hasError: true }; }
+    componentDidCatch(error, errorInfo) { console.error("Game Crash:", error, errorInfo); }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="fixed inset-0 bg-zinc-900 flex flex-col items-center justify-center p-8 text-white text-center">
+                    <h1 className="text-4xl font-black mb-4">Ouch! Something broke.</h1>
+                    <p className="opacity-70 mb-8 max-w-md">The game encountered an unexpected error. This usually happens if sensors go wonky.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="bg-white text-black px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+                    >
+                        Restart Game
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
 export default function App() {
     const [view, setView] = useState('menu');
     const [selectedDeck, setSelectedDeck] = useState(null);
@@ -74,56 +101,58 @@ export default function App() {
     }, []);
 
     return (
-        <div className="fixed inset-0 bg-zinc-50 overflow-hidden touch-none select-none font-sans text-zinc-900">
-            {view === 'menu' && (
-                <MenuView decks={DECKS} onSelect={selectDeck} />
-            )}
+        <ErrorBoundary>
+            <div className="fixed inset-0 bg-zinc-50 overflow-hidden touch-none select-none font-sans text-zinc-900">
+                {view === 'menu' && (
+                    <MenuView decks={DECKS} onSelect={selectDeck} />
+                )}
 
-            {view === 'instructions' && (
-                <InstructionsView
-                    deck={selectedDeck}
-                    onStart={(granted) => {
-                        setMotionActive(granted);
-                        setView('countdown');
-                    }}
-                />
-            )}
+                {view === 'instructions' && (
+                    <InstructionsView
+                        deck={selectedDeck}
+                        onStart={(granted) => {
+                            setMotionActive(granted);
+                            setView('countdown');
+                        }}
+                    />
+                )}
 
-            {view === 'countdown' && (
-                <CountdownView
-                    onFinished={(cal) => {
-                        setCalibration(cal);
-                        setView('game');
-                    }}
-                    motionActive={motionActive}
-                />
-            )}
+                {view === 'countdown' && (
+                    <CountdownView
+                        onFinished={(cal) => {
+                            setCalibration(cal);
+                            setView('game');
+                        }}
+                        motionActive={motionActive}
+                    />
+                )}
 
-            {view === 'game' && (
-                <GameView
-                    deck={selectedDeck}
-                    cards={shuffledCards}
-                    currentIndex={currentIndex}
-                    setCurrentIndex={setCurrentIndex}
-                    timer={timer}
-                    setTimer={setTimer}
-                    results={results}
-                    setResults={setResults}
-                    onFinish={finishGame}
-                    playSound={playSound}
-                    motionActive={motionActive}
-                    calibration={calibration}
-                />
-            )}
+                {view === 'game' && (
+                    <GameView
+                        deck={selectedDeck}
+                        cards={shuffledCards}
+                        currentIndex={currentIndex}
+                        setCurrentIndex={setCurrentIndex}
+                        timer={timer}
+                        setTimer={setTimer}
+                        results={results}
+                        setResults={setResults}
+                        onFinish={finishGame}
+                        playSound={playSound}
+                        motionActive={motionActive}
+                        calibration={calibration}
+                    />
+                )}
 
-            {view === 'results' && (
-                <ResultsView
-                    results={results}
-                    deck={selectedDeck}
-                    onHome={() => setView('menu')}
-                    onRestart={() => selectDeck(selectedDeck)}
-                />
-            )}
-        </div>
+                {view === 'results' && (
+                    <ResultsView
+                        results={results}
+                        deck={selectedDeck}
+                        onHome={() => setView('menu')}
+                        onRestart={() => selectDeck(selectedDeck)}
+                    />
+                )}
+            </div>
+        </ErrorBoundary>
     );
 }

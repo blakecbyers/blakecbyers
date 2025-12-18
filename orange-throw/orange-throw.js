@@ -21,6 +21,7 @@ class OrangeThrowEngine {
         this.DOG_COUNT = 3;
 
         this.init();
+        this.initMotion();
         this.loop = this.loop.bind(this);
     }
 
@@ -118,32 +119,101 @@ class OrangeThrowEngine {
     }
 
     handleGamepad(dt) {
-        const gp = navigator.getGamepads()[0];
+        const gamepads = navigator.getGamepads();
+        const gp = gamepads[0];
         if (!gp) return;
 
         // Move
         const stickX = gp.axes[0];
         if (Math.abs(stickX) > 0.1) this.player.x += stickX * this.PLAYER_SPEED * dt;
 
-        // Aim (Right Stick or Gyro simulation)
+        // Aim
+        // Standard mapping for Pro Controller / Joy-Cons:
+        // Left Stick (0, 1), Right Stick (2, 3)
         const aimX = gp.axes[2];
         const aimY = gp.axes[3];
+
         if (Math.hypot(aimX, aimY) > 0.2) {
             this.player.angle = Math.atan2(aimY, aimX);
         } else {
-            // Try common gyro axes (4, 5)
-            const gyroX = gp.axes[4] || 0;
-            if (Math.abs(gyroX) > 0.05) this.player.angle += gyroX * 2 * dt;
+            // Try gyro/tilt axes (Nintendo Pro Controller often maps gyro to extra axes)
+            // Or use the DPAD for fine-tuning
+            const dpadUp = gp.buttons[12]?.pressed;
+            const dpadDown = gp.buttons[13]?.pressed;
+            const dpadLeft = gp.buttons[14]?.pressed;
+            const dpadRight = gp.buttons[15]?.pressed;
+
+            if (dpadUp) this.player.angle -= 1.5 * dt;
+            if (dpadDown) this.player.angle += 1.5 * dt;
+            if (dpadLeft) this.player.x -= this.PLAYER_SPEED * dt;
+            if (dpadRight) this.player.x += this.PLAYER_SPEED * dt;
         }
 
-        // Throw
-        const pressed = gp.buttons.some((b, i) => b.pressed && (i < 4 || i === 7));
+        // Throw - Buttons A(1), B(0), X(3), Y(2) or Triggers(6, 7)
+        const pressed = gp.buttons.some((b, i) => b.pressed && (i < 4 || i === 7 || i === 6));
         if (pressed && !this.wasPressed) {
             this.throwOrange();
             this.wasPressed = true;
         } else if (!pressed) {
             this.wasPressed = false;
         }
+    }
+
+    initMotion() {
+        // Request Permission for iOS 13+
+        const requestPermission = () => {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            this.bindMotionEvents();
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                this.bindMotionEvents();
+            }
+        };
+
+        window.addEventListener('click', requestPermission, { once: true });
+        window.addEventListener('touchstart', requestPermission, { once: true });
+    }
+
+    bindMotionEvents() {
+        // Gyro Aiming
+        window.addEventListener('deviceorientation', (e) => {
+            if (e.beta !== null && e.gamma !== null) {
+                // Map phone tilt to aiming angle
+                // In landscape, beta/gamma swap roles or behavior
+                const isLandscape = window.innerWidth > window.innerHeight;
+                if (isLandscape) {
+                    // Gamma is typically the tilt when held sideways
+                    const tilt = e.gamma; // -90 to 90
+                    this.player.angle = (tilt / 90) * Math.PI;
+                } else {
+                    const tilt = e.beta;
+                    this.player.angle = -(tilt / 180) * Math.PI;
+                }
+            }
+        });
+
+        // Flick to Throw
+        let lastAccel = 0;
+        window.addEventListener('devicemotion', (e) => {
+            const acc = e.accelerationIncludingGravity;
+            if (!acc) return;
+            const total = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+            const delta = Math.abs(total - lastAccel);
+            lastAccel = total;
+
+            if (delta > 25) { // Threshold for a "flick"
+                const now = performance.now();
+                if (now - (this.lastFlickTime || 0) > 500) {
+                    this.throwOrange(this.THROW_STRENGTH * 1.2);
+                    this.lastFlickTime = now;
+                }
+            }
+        });
     }
 
     createSplat(x, y) {
