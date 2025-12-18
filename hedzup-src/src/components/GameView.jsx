@@ -57,42 +57,35 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            const deltaBeta = beta - calibration.beta;
-            const deltaGamma = gamma - calibration.gamma;
+            // In native landscape: tilt is gamma (front/back)
+            // In portrait (rotated): tilt is beta
+            const deltaValue = isPortrait ? (beta - calibration.beta) : (gamma - calibration.gamma);
+
             const THRESHOLD = 35;
-            const NEUTRAL_THRESHOLD = 10;
+            const NEUTRAL_THRESHOLD = 15;
 
             // Check if we are in neutral position to unlock
-            if (Math.abs(deltaGamma) < NEUTRAL_THRESHOLD && Math.abs(deltaBeta) < NEUTRAL_THRESHOLD) {
+            if (Math.abs(deltaValue) < NEUTRAL_THRESHOLD) {
                 isLocked.current = false;
             }
 
             if (status !== 'active' || isLocked.current) return;
 
-            // Priority Tilt: Down (Correct) or Up (Pass)
-            if (Math.abs(deltaGamma) > THRESHOLD) {
-                if (deltaGamma > THRESHOLD) { // Tilt Down
-                    isLocked.current = true;
-                    handleCorrect();
-                } else if (deltaGamma < -THRESHOLD) { // Tilt Up
-                    isLocked.current = true;
-                    handlePass();
-                }
-            }
-            else if (Math.abs(deltaBeta) > THRESHOLD) {
-                if (deltaBeta < -THRESHOLD) { // Side Tilt L
-                    isLocked.current = true;
-                    handleCorrect();
-                } else if (deltaBeta > THRESHOLD) { // Side Tilt R
-                    isLocked.current = true;
-                    handlePass();
-                }
+            // Handle Correct/Pass based on device orientation
+            // Note: delta direction might need inversion depending on iOS vs Android
+            // On iOS: Positive delta usually means tilt "Down" (towards face)
+            if (deltaValue > THRESHOLD) { // Tilt towards player (Correct)
+                isLocked.current = true;
+                handleCorrect();
+            } else if (deltaValue < -THRESHOLD) { // Tilt away from player (Pass)
+                isLocked.current = true;
+                handlePass();
             }
         };
 
         window.addEventListener('deviceorientation', handleOrientation);
         return () => window.removeEventListener('deviceorientation', handleOrientation);
-    }, [motionActive, status, handleCorrect, handlePass, calibration]);
+    }, [motionActive, status, handleCorrect, handlePass, calibration, isPortrait]);
 
     // --- STYLES ---
     let bgClass = "bg-zinc-900";
@@ -142,11 +135,6 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                                 {currentCard.type === 'country' && (
                                     <p className="mt-4 text-zinc-400 text-lg font-bold tracking-widest uppercase">Country</p>
                                 )}
-                            </div>
-
-                            <div className="absolute bottom-8 w-full px-12 flex justify-between text-zinc-300 text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
-                                <span>Tilt Up to Pass</span>
-                                <span>Tilt Down for Correct</span>
                             </div>
                         </div>
                     ) : (

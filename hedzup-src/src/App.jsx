@@ -15,6 +15,13 @@ export default function App() {
     const [timer, setTimer] = useState(60);
     const [motionActive, setMotionActive] = useState(false);
     const [calibration, setCalibration] = useState({ beta: null, gamma: null });
+    const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const playSound = (type) => {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -74,7 +81,15 @@ export default function App() {
     }, []);
 
     return (
-        <div className="fixed inset-0 bg-zinc-50 overflow-hidden touch-none select-none font-sans text-zinc-900">
+        <div
+            className="fixed inset-0 bg-zinc-50 overflow-hidden touch-none select-none font-sans text-zinc-900 flex items-center justify-center"
+            style={isPortrait ? {
+                width: '100vh',
+                height: '100vw',
+                transform: 'rotate(90deg)',
+                transformOrigin: 'center'
+            } : {}}
+        >
             {view === 'menu' && (
                 <MenuView decks={DECKS} onSelect={selectDeck} />
             )}
@@ -113,6 +128,7 @@ export default function App() {
                     playSound={playSound}
                     motionActive={motionActive}
                     calibration={calibration}
+                    isPortrait={isPortrait}
                 />
             )}
 
