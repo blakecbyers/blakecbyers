@@ -163,14 +163,24 @@ async function init() {
                     try { await hands.send({ image: video }); lastDetectionTime = now; } catch (e) { }
                 }
             },
-            width: 1280, height: 720
+            width: 720, height: 1280 // Standard vertical mobile ratio
         });
 
-        await cam.start();
+        // Add a timeout for camera start on mobile
+        const cameraStartPromise = cam.start();
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Camera initialization timed out (30s). Try refreshing or check permissions.")), 30000)
+        );
+
+        await Promise.race([cameraStartPromise, timeoutPromise]);
+
         document.getElementById('loading').style.display = 'none';
         animate();
     } catch (err) {
         console.error(err);
+        const log = document.getElementById('error-log');
+        if (log) log.innerText = `Camera Error: ${err.message}`;
+        document.getElementById('loading').style.display = 'none';
     }
 }
 
