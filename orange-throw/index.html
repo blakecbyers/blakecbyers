@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Orange Throw - Blake Byers</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+        :root {
+            --app-bg: #FFF9F0;
+            /* Cream/Orange hint */
+            --primary: #FF8C00;
+            /* Dark Orange */
+            --secondary: #8B4513;
+            /* Saddle Brown */
+            --tab-bar-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--app-bg);
+            color: #2D3436;
+            margin: 0;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            height: 100dvh;
+        }
+
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .page-enter {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .scale-tap:active {
+            transform: scale(0.96);
+            transition: transform 0.1s;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .glass {
+            background: var(--tab-bar-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .orange-gradient {
+            background: linear-gradient(135deg, #FF8C00 0%, #FF4500 100%);
+        }
+
+        .safe-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .ghost-home {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            z-index: 9999;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 9999px;
+            color: #FF8C00;
+            opacity: 0.2;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .ghost-home:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.08);
+            transform: scale(1.05);
+        }
+
+        canvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../" class="ghost-home">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+    </a>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Dogs: ({ active }) => <svg className={`w-6 h-6 ${active ? 'text-[#FF8C00]' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>,
+            Garden: ({ active }) => <svg className={`w-6 h-6 ${active ? 'text-[#FF8C00]' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2}><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>,
+            Stats: ({ active }) => <svg className={`w-6 h-6 ${active ? 'text-[#FF8C00]' : 'text-gray-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 2}><path d="M18 20V10M12 20V4M6 20v-6" /></svg>,
+            Play: () => <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>,
+            Gamepad: () => <svg className="w-4 h-4 text-[#FF8C00]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="8" cy="12" r="2" /><path d="M16 12h2M17 11v2" /></svg>
+        };
+
+        // --- COMPONENTS ---
+        const TabBar = ({ active, onChange }) => (
+            <div className="fixed bottom-0 w-full glass safe-pb flex justify-around items-center h-[83px] z-50 px-2 pb-2">
+                {[
+                    { id: 'menu', icon: Icons.Dogs, label: 'Kennel' },
+                    { id: 'game', icon: Icons.Garden, label: 'Garden' },
+                    { id: 'stats', icon: Icons.Stats, label: 'Food Log' }
+                ].map(tab => (
+                    <button key={tab.id} onClick={() => onChange(tab.id)} className="flex-1 flex flex-col items-center justify-center pt-2 active:scale-95 transition-transform">
+                        <tab.icon active={active === tab.id} />
+                        <span className={`text-[10px] font-bold mt-1 ${active === tab.id ? 'text-[#FF8C00]' : 'text-gray-400'}`}>{tab.label}</span>
+                    </button>
+                ))}
+            </div>
+        );
+
+        const Header = ({ title, subtitle, rightAction }) => (
+            <div className="sticky top-0 z-40 bg-[rgba(255,249,240,0.85)] backdrop-blur-xl border-b border-orange-100 px-4 pb-3 pt-12 flex justify-between items-end min-h-[110px]">
+                <div>
+                    <div className="text-xs font-bold text-[#FF8C00] uppercase tracking-wide mb-1 flex items-center gap-1"><Icons.Gamepad /> {subtitle}</div>
+                    <h1 className="text-4xl font-extrabold text-black tracking-tight font-display">{title}</h1>
+                </div>
+                {rightAction}
+            </div>
+        );
+
+        const Game = ({ onFinish }) => {
+            const canvasRef = useRef(null);
+            const engineRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current) return;
+
+                // Initialize Game Engine
+                const ctx = canvasRef.current.getContext('2d');
+                canvasRef.current.width = window.innerWidth;
+                canvasRef.current.height = window.innerHeight - 83;
+
+                // Pass the canvas and onFinish callback to the engine
+                engineRef.current = new OrangeThrowEngine(canvasRef.current, onFinish);
+                engineRef.current.start();
+
+                return () => engineRef.current.stop();
+            }, []);
+
+            return (
+                <div className="relative w-full h-full bg-sky-200 overflow-hidden">
+                    <canvas ref={canvasRef} className="w-full h-full" />
+                    <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-md p-3 rounded-2xl border border-white/30 text-xs font-bold pointer-events-none">
+                        PRO CONTROLLER: {engineRef.current?.gamepadConnected ? 'READY' : 'WAITING...'}
+                    </div>
+                    {/* UI Overlay for controls */}
+                    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/10 backdrop-blur-sm px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest text-black/40 pointer-events-none">
+                        Stick: Move • Button A: Throw • Click: Throw
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [tab, setTab] = useState('menu');
+            const [stats, setStats] = useState({ fed: 0, oranges: 0 });
+
+            useEffect(() => {
+                const saved = JSON.parse(localStorage.getItem('orange_throw_stats') || '{"fed":0, "oranges":0}');
+                setStats(saved);
+            }, []);
+
+            const updateStats = (newFed, newOranges) => {
+                const updated = { fed: stats.fed + newFed, oranges: stats.oranges + newOranges };
+                setStats(updated);
+                localStorage.setItem('orange_throw_stats', JSON.stringify(updated));
+            };
+
+            return (
+                <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                        {tab === 'menu' && (
+                            <div className="page-enter p-4 pt-12">
+                                <Header title="Orange Throw" subtitle="Nintendo Switch Pro" />
+                                <div className="mt-8 space-y-6">
+                                    <div className="bg-white p-8 rounded-[32px] shadow-xl shadow-orange-500/5 border border-orange-100 text-center">
+                                        <div className="text-6xl mb-4">🐕 🍊</div>
+                                        <h2 className="text-2xl font-black mb-2">Feed the Puppies!</h2>
+                                        <p className="text-gray-500 text-sm mb-8">Connect your Switch Pro Controller and take the garden by storm. Each puppy needs 10 oranges to be full!</p>
+                                        <button onClick={() => setTab('game')} className="w-full orange-gradient p-5 rounded-2xl text-white font-black text-lg shadow-lg shadow-orange-500/30 scale-tap">
+                                            GO TO GARDEN
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-orange-100 p-6 rounded-3xl">
+                                            <div className="text-[10px] font-black text-orange-600 uppercase mb-1">TOTAL SATIATED</div>
+                                            <div className="text-4xl font-black">{stats.fed}</div>
+                                        </div>
+                                        <div className="bg-blue-100 p-6 rounded-3xl">
+                                            <div className="text-[10px] font-black text-blue-600 uppercase mb-1">ORANGES THROWN</div>
+                                            <div className="text-4xl font-black">{stats.oranges}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {tab === 'game' && <Game onFinish={updateStats} />}
+                        {tab === 'stats' && (
+                            <div className="page-enter p-4 pt-12">
+                                <Header title="Food Log" subtitle="Harvest Stats" />
+                                <div className="mt-8 space-y-4">
+                                    {/* Add more stats here */}
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100">
+                                        <h3 className="font-bold mb-4">Milestones</h3>
+                                        <div className="space-y-3">
+                                            <div className={`flex items-center gap-3 p-3 rounded-2xl ${stats.fed >= 1 ? 'bg-orange-50' : 'opacity-30'}`}>
+                                                <div className="text-2xl">🦴</div>
+                                                <div>
+                                                    <div className="font-bold text-sm">First Friend</div>
+                                                    <div className="text-[10px] text-gray-500">Fed 1 dog fully</div>
+                                                </div>
+                                            </div>
+                                            <div className={`flex items-center gap-3 p-3 rounded-2xl ${stats.fed >= 10 ? 'bg-orange-50' : 'opacity-30'}`}>
+                                                <div className="text-2xl">🏆</div>
+                                                <div>
+                                                    <div className="font-bold text-sm">Pack Leader</div>
+                                                    <div className="text-[10px] text-gray-500">Fed 10 dogs fully</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <TabBar active={tab} onChange={setTab} />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+    <script src="orange-throw.js"></script>
+</body>
+
+</html>

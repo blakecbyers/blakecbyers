@@ -1,73 +1,112 @@
-// Matter.js engine initialization
+// Matter.js engine wrapper for React integration
 const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint, Events } = Matter;
 
-// Create engine
-const engine = Engine.create();
-const world = engine.world;
+class GravityEngine {
+    constructor(container, options = {}) {
+        this.container = container;
+        this.options = {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            gravity: 1,
+            friction: 0.1,
+            restitution: 0.5,
+            ...options
+        };
 
-// Create renderer
-const render = Render.create({
-    element: document.body,
-    engine: engine,
-    options: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        wireframes: false,
-        background: '#ffffff',
-        pixelRatio: window.devicePixelRatio
+        this.engine = Engine.create();
+        this.world = this.engine.world;
+        this.engine.gravity.y = this.options.gravity;
+
+        this.render = Render.create({
+            element: container,
+            engine: this.engine,
+            options: {
+                width: this.options.width,
+                height: this.options.height,
+                wireframes: false,
+                background: 'transparent',
+                pixelRatio: window.devicePixelRatio
+            }
+        });
+
+        this.runner = Runner.create();
+        this.boundaries = [];
+        this.shapes = [];
+
+        this.init();
     }
-});
 
-Render.run(render);
+    init() {
+        Render.run(this.render);
+        Runner.run(this.runner, this.engine);
+        this.createBoundaries();
+        this.addMouseControl();
 
-// Create runner
-const runner = Runner.create();
-Runner.run(runner, engine);
+        // Window resize
+        this.resizeHandler = () => {
+            this.render.canvas.width = window.innerWidth;
+            this.render.canvas.height = window.innerHeight;
+            this.createBoundaries();
+        };
+        window.addEventListener('resize', this.resizeHandler);
+    }
 
-// Function to create boundaries
-function createBoundaries() {
-    Composite.clear(world, true);
-    const thickness = 100;
-    const wallOptions = {
-        isStatic: true,
-        render: { fillStyle: 'transparent' },
-        friction: 0.1,
-        restitution: 0.5
-    };
+    destroy() {
+        Render.stop(this.render);
+        Runner.stop(this.runner);
+        Engine.clear(this.engine);
+        this.render.canvas.remove();
+        this.render.canvas = null;
+        this.render.context = null;
+        this.render.textures = {};
+        window.removeEventListener('resize', this.resizeHandler);
+    }
 
-    const ground = Bodies.rectangle(window.innerWidth / 2, window.innerHeight + thickness / 2, window.innerWidth, thickness, wallOptions);
-    const ceiling = Bodies.rectangle(window.innerWidth / 2, -thickness / 2, window.innerWidth, thickness, wallOptions);
-    const leftWall = Bodies.rectangle(-thickness / 2, window.innerHeight / 2, thickness, window.innerHeight, wallOptions);
-    const rightWall = Bodies.rectangle(window.innerWidth + thickness / 2, window.innerHeight / 2, thickness, window.innerHeight, wallOptions);
+    createBoundaries() {
+        if (this.boundaries.length) {
+            Composite.remove(this.world, this.boundaries);
+        }
 
-    Composite.add(world, [ground, ceiling, leftWall, rightWall]);
-}
+        const thickness = 100;
+        const wallOptions = {
+            isStatic: true,
+            render: { fillStyle: 'transparent' },
+            friction: this.options.friction,
+            restitution: this.options.restitution
+        };
 
-createBoundaries();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
 
-// Helper to get random Apple-styled colors
-const colors = [
-    '#F2F2F7', // System Gray 6
-    '#E5E5EA', // System Gray 5
-    '#D1D1D6', // System Gray 4
-    '#007AFF', // System Blue
-    '#5856D6', // System Purple
-    '#FF2D55', // System Pink
-    '#FF9500', // System Orange
-    '#AF52DE'  // System Purple (alt)
-];
+        this.boundaries = [
+            Bodies.rectangle(w / 2, h + thickness / 2, w, thickness, wallOptions),
+            Bodies.rectangle(w / 2, -thickness / 2, w, thickness, wallOptions),
+            Bodies.rectangle(-thickness / 2, h / 2, thickness, h, wallOptions),
+            Bodies.rectangle(w + thickness / 2, h / 2, thickness, h, wallOptions)
+        ];
 
-const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
+        Composite.add(this.world, this.boundaries);
+    }
 
-// Add shapes
-function addShapes() {
-    const shapes = [];
-    const size = Math.min(window.innerWidth, window.innerHeight) * 0.15;
+    addMouseControl() {
+        const mouse = Mouse.create(this.render.canvas);
+        const mouseConstraint = MouseConstraint.create(this.engine, {
+            mouse: mouse,
+            constraint: {
+                stiffness: 0.2,
+                render: { visible: false }
+            }
+        });
 
-    for (let i = 0; i < 15; i++) {
+        Composite.add(this.world, mouseConstraint);
+        this.render.mouse = mouse;
+    }
+
+    addRandomShape() {
+        const size = Math.min(window.innerWidth, window.innerHeight) * (0.05 + Math.random() * 0.1);
         const x = Math.random() * window.innerWidth;
-        const y = Math.random() * (window.innerHeight / 2);
-        const color = getRandomColor();
+        const y = -size;
+        const color = this.getRandomColor();
 
         let body;
         if (Math.random() > 0.5) {
@@ -84,31 +123,23 @@ function addShapes() {
                 render: { fillStyle: color }
             });
         }
-        shapes.push(body);
+
+        this.shapes.push(body);
+        Composite.add(this.world, body);
+        return body;
     }
-    Composite.add(world, shapes);
+
+    setGravity(g) {
+        this.engine.gravity.y = g;
+    }
+
+    clear() {
+        Composite.remove(this.world, this.shapes);
+        this.shapes = [];
+    }
+
+    getRandomColor() {
+        const colors = ['#F2F2F7', '#E5E5EA', '#D1D1D6', '#007AFF', '#5856D6', '#FF2D55', '#FF9500', '#AF52DE'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
 }
-
-addShapes();
-
-// Add mouse control
-const mouse = Mouse.create(render.canvas);
-const mouseConstraint = MouseConstraint.create(engine, {
-    mouse: mouse,
-    constraint: {
-        stiffness: 0.2,
-        render: { visible: false }
-    }
-});
-
-Composite.add(world, mouseConstraint);
-
-// Keep mouse in sync with rendering
-render.mouse = mouse;
-
-// Handle window resize
-window.addEventListener('resize', () => {
-    render.canvas.width = window.innerWidth;
-    render.canvas.height = window.innerHeight;
-    createBoundaries();
-});
