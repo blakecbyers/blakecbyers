@@ -2,6 +2,9 @@ import React from 'react';
 import { Play, Smartphone } from 'lucide-react';
 
 export default function MenuView({ decks, onSelect }) {
+    if (!decks || decks.length === 0) {
+        return <div className="p-20 text-center text-zinc-400">Loading decks...</div>;
+    }
     return (
         <div className="flex flex-col h-full safe-area-inset-bottom max-w-md mx-auto w-full bg-zinc-50">
             <div className="flex-none px-6 pt-12 pb-6">

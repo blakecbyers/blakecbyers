@@ -2,6 +2,9 @@ import React from 'react';
 import { ChevronLeft, Check, X } from 'lucide-react';
 
 export default function ResultsView({ results, deck, onHome, onRestart }) {
+    if (!results || !deck) {
+        return <div className="p-20 text-center">Loading results...</div>;
+    }
     return (
         <div className="h-full w-full flex flex-col bg-zinc-50 safe-area-inset-bottom">
             <div className="flex-none px-6 py-6 bg-white border-b border-zinc-200 shadow-sm z-10 flex justify-between items-center sticky top-0">

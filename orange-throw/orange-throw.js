@@ -1,56 +1,42 @@
 class OrangeThrowEngine {
-    constructor(canvas, onFinish) {
+    constructor(canvas, onUpdateFed) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.onFinish = onFinish;
+        this.onUpdateFed = onUpdateFed;
 
         this.dogs = [];
         this.oranges = [];
-        this.player = { x: canvas.width / 2, y: canvas.height - 60, angle: -Math.PI / 2 };
+        this.splats = [];
         this.particles = [];
+        this.player = { x: canvas.width / 2, y: canvas.height - 80, angle: -Math.PI / 2 };
 
+        this.totalFed = 0;
         this.lastTime = 0;
         this.running = false;
-        this.gamepadConnected = false;
-
-        // Stats
-        this.sessionFed = 0;
-        this.sessionOranges = 0;
 
         // Constants
-        this.MAX_SATURATION = 5;
-        this.GRAVITY = 600; // Pixels per second squared
-        this.THROW_STRENGTH = 800;
-        this.PLAYER_SPEED = 400;
-        this.DOG_COUNT = 4;
-
-        this.handleGamepad = this.handleGamepad.bind(this);
-        this.loop = this.loop.bind(this);
+        this.GRAVITY = 1200;
+        this.THROW_STRENGTH = 1000;
+        this.PLAYER_SPEED = 600;
+        this.DOG_COUNT = 3;
 
         this.init();
+        this.loop = this.loop.bind(this);
     }
 
     init() {
-        // Create initial dogs
         for (let i = 0; i < this.DOG_COUNT; i++) {
-            this.dogs.push(new Dog(this.canvas.width, this.canvas.height, this.MAX_SATURATION));
+            this.dogs.push(new Dog(this.canvas.width, this.canvas.height));
         }
 
-        window.addEventListener("gamepadconnected", (e) => {
-            console.log("Gamepad connected:", e.gamepad.id);
-            this.gamepadConnected = true;
-        });
-
-        window.addEventListener("gamepaddisconnected", () => {
-            this.gamepadConnected = false;
-        });
-
-        // Fallback Mouse click to throw
         this.canvas.addEventListener('mousedown', (e) => this.throwAt(e.clientX, e.clientY));
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (e.touches[0]) this.throwAt(e.touches[0].clientX, e.touches[0].clientY);
+        });
 
-        this.keys = {};
-        window.addEventListener('keydown', (e) => this.keys[e.code] = true);
-        window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') this.throwOrange();
+        });
     }
 
     start() {
@@ -59,184 +45,148 @@ class OrangeThrowEngine {
         requestAnimationFrame(this.loop);
     }
 
-    stop() {
-        this.running = false;
-        if (this.sessionFed > 0 || this.sessionOranges > 0) {
-            this.onFinish(this.sessionFed, this.sessionOranges);
-        }
-    }
-
     throwOrange(strength = this.THROW_STRENGTH) {
-        // Calculate velocity based on aiming angle
         const vx = Math.cos(this.player.angle) * strength;
         const vy = Math.sin(this.player.angle) * strength;
 
         this.oranges.push({
             x: this.player.x,
             y: this.player.y - 20,
-            vx: vx,
-            vy: vy,
+            vx, vy,
             rotation: 0,
-            rotationSpeed: (Math.random() - 0.5) * 10,
+            rotationSpeed: (Math.random() - 0.5) * 15,
             active: true
         });
-        this.sessionOranges++;
         this.playSfx('throw');
-
-        // Vibration feedback
-        this.vibrate(100, 0.5);
+        this.vibrate(100, 0.4);
     }
 
-    throwAt(targetX, targetY) {
-        const dx = targetX - this.player.x;
-        const dy = targetY - this.player.y;
+    throwAt(tx, ty) {
+        const dx = tx - this.player.x;
+        const dy = ty - this.player.y;
         this.player.angle = Math.atan2(dy, dx);
         this.throwOrange();
     }
 
-    handleGamepad() {
-        const gamepads = navigator.getGamepads();
-        const gp = gamepads[0];
-        if (!gp) return;
-
-        // --- MOVEMENT ---
-        // Left Stick Horizontal or D-Pad
-        const axisX = gp.axes[0];
-        const dpadLeft = gp.buttons[14]?.pressed;
-        const dpadRight = gp.buttons[15]?.pressed;
-
-        if (Math.abs(axisX) > 0.1) {
-            this.player.x += axisX * this.PLAYER_SPEED * 0.016;
-        } else if (dpadLeft) {
-            this.player.x -= this.PLAYER_SPEED * 0.016;
-        } else if (dpadRight) {
-            this.player.x += this.PLAYER_SPEED * 0.016;
-        }
-
-        // --- AIMING (Gyro / Tilt Simulation) ---
-        // Many browsers map Gyro to axes 2 & 3 or 4 & 5.
-        // We'll prioritize Right Stick for "Manual Aim" and check for Gyro-like axes.
-        const aimX = gp.axes[2] || 0;
-        const aimY = gp.axes[3] || 0;
-
-        // If movement is detected on second stick, update angle
-        if (Math.abs(aimX) > 0.1 || Math.abs(aimY) > 0.1) {
-            this.player.angle = Math.atan2(aimY, aimX);
-        } else {
-            // Check for Tilt/Gyro (Axes 4, 5 are often tilt on some HID drivers)
-            const tiltX = gp.axes[4] || 0;
-            const tiltY = gp.axes[5] || 0;
-            if (Math.abs(tiltX) > 0.1 || Math.abs(tiltY) > 0.1) {
-                this.player.angle += tiltX * 0.1; // Rotates aiming
-            }
-        }
-
-        // --- ACTION (Throw) ---
-        // Any face button (A:1, B:0, X:3, Y:2) or Trigger (7: ZR)
-        const throwPressed = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed ||
-            gp.buttons[2]?.pressed || gp.buttons[3]?.pressed ||
-            gp.buttons[7]?.pressed;
-
-        if (throwPressed && !this.buttonWasPressed) {
-            this.throwOrange();
-            this.buttonWasPressed = true;
-        } else if (!throwPressed) {
-            this.buttonWasPressed = false;
-        }
-    }
-
-    vibrate(duration, intensity) {
-        const gp = navigator.getGamepads()[0];
-        if (gp && gp.vibrationActuator) {
-            gp.vibrationActuator.playEffect("dual-rumble", {
-                startDelay: 0,
-                duration: duration,
-                weakMagnitude: intensity,
-                strongMagnitude: intensity,
-            });
-        }
-    }
-
-    loop(now) {
-        if (!this.running) return;
-        const dt = Math.min((now - this.lastTime) / 1000, 0.1);
-        this.lastTime = now;
-
-        this.update(dt);
-        this.draw();
-
-        requestAnimationFrame(this.loop);
-    }
-
     update(dt) {
-        this.handleGamepad();
-
-        // Keyboard Movement
-        if (this.keys['ArrowLeft'] || this.keys['KeyA']) this.player.x -= this.PLAYER_SPEED * dt;
-        if (this.keys['ArrowRight'] || this.keys['KeyD']) this.player.x += this.PLAYER_SPEED * dt;
-        if (this.keys['Space'] && !this.spaceWasPressed) {
-            this.throwOrange();
-            this.spaceWasPressed = true;
-        } else if (!this.keys['Space']) {
-            this.spaceWasPressed = false;
-        }
-
-        this.player.x = Math.max(40, Math.min(this.canvas.width - 40, this.player.x));
+        this.handleGamepad(dt);
 
         // Update Dogs
         this.dogs.forEach(dog => {
             dog.update(dt, this.canvas.width, this.canvas.height, this.oranges);
             if (dog.done && !dog.counted) {
-                this.sessionFed++;
+                this.totalFed++;
                 dog.counted = true;
-                this.vibrate(300, 0.8);
+                this.onUpdateFed(this.totalFed);
+                this.vibrate(400, 0.7);
             }
         });
 
-        // Update Oranges with Projectile Physics
-        this.oranges.forEach(orange => {
-            orange.vy += this.GRAVITY * dt;
-            orange.x += orange.vx * dt;
-            orange.y += orange.vy * dt;
-            orange.rotation += orange.rotationSpeed * dt;
+        // Update Oranges
+        this.oranges.forEach(o => {
+            o.vy += this.GRAVITY * dt;
+            o.x += o.vx * dt;
+            o.y += o.vy * dt;
+            o.rotation += o.rotationSpeed * dt;
 
-            // Bounds check
-            if (orange.y > this.canvas.height + 50 || orange.x < -50 || orange.x > this.canvas.width + 50) {
-                orange.active = false;
-            }
+            if (o.y > this.canvas.height + 100) o.active = false;
 
             // Collision
             this.dogs.forEach(dog => {
-                if (!dog.isFull && dog.checkCatch(orange)) {
-                    orange.active = false;
-                    this.playSfx('eat');
-                    this.createParticles(dog.x, dog.y, '#FF8C00');
+                if (dog.checkCatch(o)) {
+                    o.active = false;
+                    this.createSplat(dog.x, dog.y);
+                    this.playSfx('splat');
                 }
             });
         });
 
         this.oranges = this.oranges.filter(o => o.active);
 
-        // Particles
+        // Update Splats (decay)
+        this.splats.forEach(s => s.life -= dt);
+        this.splats = this.splats.filter(s => s.life > 0);
+
+        // Update Particles
         this.particles.forEach(p => {
-            p.vx *= 0.95;
-            p.vy += 200 * dt; // Tiny gravity for juice
             p.x += p.vx * dt;
             p.y += p.vy * dt;
+            p.vy += 800 * dt;
             p.life -= dt;
         });
         this.particles = this.particles.filter(p => p.life > 0);
+    }
+
+    handleGamepad(dt) {
+        const gp = navigator.getGamepads()[0];
+        if (!gp) return;
+
+        // Move
+        const stickX = gp.axes[0];
+        if (Math.abs(stickX) > 0.1) this.player.x += stickX * this.PLAYER_SPEED * dt;
+
+        // Aim (Right Stick or Gyro simulation)
+        const aimX = gp.axes[2];
+        const aimY = gp.axes[3];
+        if (Math.hypot(aimX, aimY) > 0.2) {
+            this.player.angle = Math.atan2(aimY, aimX);
+        } else {
+            // Try common gyro axes (4, 5)
+            const gyroX = gp.axes[4] || 0;
+            if (Math.abs(gyroX) > 0.05) this.player.angle += gyroX * 2 * dt;
+        }
+
+        // Throw
+        const pressed = gp.buttons.some((b, i) => b.pressed && (i < 4 || i === 7));
+        if (pressed && !this.wasPressed) {
+            this.throwOrange();
+            this.wasPressed = true;
+        } else if (!pressed) {
+            this.wasPressed = false;
+        }
+    }
+
+    createSplat(x, y) {
+        // Splat blob
+        this.splats.push({ x, y, life: 1.0, scale: 0.8 + Math.random() * 0.5 });
+        // Splat drops
+        for (let i = 0; i < 15; i++) {
+            this.particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 600,
+                vy: (Math.random() - 0.8) * 600,
+                life: 0.5 + Math.random() * 0.5,
+                color: '#FF8C00',
+                size: 2 + Math.random() * 5
+            });
+        }
     }
 
     draw() {
         const { ctx, canvas } = this;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Ground
-        ctx.fillStyle = '#27ae60';
-        ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+        // Horizon/Sun
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(canvas.width - 100, 100, 60, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Trajectory Preview (Subtle)
+        // Floor
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+
+        // Splats on ground/face
+        this.splats.forEach(s => {
+            ctx.globalAlpha = s.life;
+            ctx.fillStyle = '#FF8C00';
+            ctx.beginPath();
+            ctx.ellipse(s.x, s.y, 40 * s.scale, 25 * s.scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+
+        // Trajectory
         this.drawTrajectory();
 
         this.dogs.forEach(dog => dog.draw(ctx));
@@ -246,18 +196,18 @@ class OrangeThrowEngine {
             ctx.save();
             ctx.translate(o.x, o.y);
             ctx.rotate(o.rotation);
-            ctx.font = '36px serif';
+            ctx.font = '40px serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('🍊', 0, 0);
             ctx.restore();
         });
 
-        // Player (Hand/Basket)
+        // Player
         ctx.save();
         ctx.translate(this.player.x, this.player.y);
         ctx.rotate(this.player.angle + Math.PI / 2);
-        ctx.font = '50px serif';
+        ctx.font = '60px serif';
         ctx.textAlign = 'center';
         ctx.fillText('🧺', 0, 0);
         ctx.restore();
@@ -277,35 +227,32 @@ class OrangeThrowEngine {
         const ctx = this.ctx;
         ctx.beginPath();
         ctx.setLineDash([5, 10]);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-
-        let tx = this.player.x;
-        let ty = this.player.y - 20;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        let tx = this.player.x, ty = this.player.y;
         let tvx = Math.cos(this.player.angle) * this.THROW_STRENGTH;
         let tvy = Math.sin(this.player.angle) * this.THROW_STRENGTH;
-
         ctx.moveTo(tx, ty);
-        for (let i = 0; i < 20; i++) {
-            tvy += this.GRAVITY * 0.05;
-            tx += tvx * 0.05;
-            ty += tvy * 0.05;
+        for (let i = 0; i < 15; i++) {
+            tvy += this.GRAVITY * 0.06;
+            tx += tvx * 0.06; ty += tvy * 0.06;
             ctx.lineTo(tx, ty);
         }
         ctx.stroke();
         ctx.setLineDash([]);
     }
 
-    createParticles(x, y, color, count = 12) {
-        for (let i = 0; i < count; i++) {
-            this.particles.push({
-                x, y,
-                vx: (Math.random() - 0.5) * 400,
-                vy: (Math.random() - 0.5) * 400 - 100,
-                life: 0.6 + Math.random() * 0.4,
-                color,
-                size: 2 + Math.random() * 4
-            });
-        }
+    loop(now) {
+        if (!this.running) return;
+        const dt = Math.min((now - this.lastTime) / 1000, 0.1);
+        this.lastTime = now;
+        this.update(dt);
+        this.draw();
+        requestAnimationFrame(this.loop);
+    }
+
+    vibrate(d, i) {
+        const gp = navigator.getGamepads()[0];
+        if (gp?.vibrationActuator) gp.vibrationActuator.playEffect("dual-rumble", { duration: d, weakMagnitude: i, strongMagnitude: i });
     }
 
     playSfx(type) {
@@ -317,124 +264,70 @@ class OrangeThrowEngine {
         osc.connect(gain); gain.connect(ctx.destination);
         const now = ctx.currentTime;
         if (type === 'throw') {
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
             gain.gain.setValueAtTime(0.1, now);
             osc.start(); osc.stop(now + 0.1);
-        } else if (type === 'eat') {
-            osc.className = 'triangle';
-            osc.frequency.setValueAtTime(200, now);
-            gain.gain.setValueAtTime(0.1, now);
+        } else if (type === 'splat') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, now);
+            gain.gain.setValueAtTime(0.2, now);
             osc.start(); osc.stop(now + 0.05);
-        } else if (type === 'success') {
-            osc.frequency.setValueAtTime(600, now);
-            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
-            gain.gain.setValueAtTime(0.15, now);
-            osc.start(); osc.stop(now + 0.4);
         }
     }
 }
 
 class Dog {
-    constructor(w, h, maxSat) {
-        this.maxSaturation = maxSat;
+    constructor(w, h) {
         this.reset(w, h);
     }
-
     reset(w, h) {
         this.x = Math.random() * (w - 100) + 50;
-        this.y = h - 150;
-        this.vx = (Math.random() - 0.5) * 150;
-        this.saturation = 0;
-        this.isFull = false;
+        this.y = h - 160;
+        this.vx = (Math.random() - 0.5) * 200;
+        this.emoji = ['🐶', '🐕', '🐩', '🦮', '🐕‍🦺'][Math.floor(Math.random() * 5)];
         this.done = false;
         this.counted = false;
-        this.emoji = ['🐶', '🐕', '🐩', '🦮', '🐕‍🦺'][Math.floor(Math.random() * 5)];
-        this.state = 'idle'; // idle, tracking, eating
-        this.stateTimer = 0;
-        this.scale = 1;
+        this.fed = 0;
+        this.state = 'idle';
+        this.timer = 0;
     }
-
     update(dt, w, h, oranges) {
-        if (this.done) {
-            this.y += 200 * dt; // Exit
-            return;
-        }
-
-        this.stateTimer -= dt;
-
-        // Find nearest orange
-        let nearest = null;
-        let minDist = 300;
-        oranges.forEach(o => {
-            const d = Math.hypot(o.x - this.x, o.y - this.y);
-            if (d < minDist) {
-                minDist = d;
-                nearest = o;
-            }
-        });
-
-        if (this.state === 'eating') {
-            if (this.stateTimer <= 0) this.state = 'idle';
+        if (this.done) { this.y += 300 * dt; return; }
+        this.timer -= dt;
+        let nearest = oranges.find(o => Math.hypot(o.x - this.x, o.y - this.y) < 400);
+        if (this.state === 'splat') {
+            if (this.timer <= 0) this.state = 'idle';
         } else if (nearest) {
             this.state = 'tracking';
-            // Move toward orange horizontally
-            const dx = nearest.x - this.x;
-            this.x += dx * 2 * dt;
+            this.x += (nearest.x - this.x) * 4 * dt;
         } else {
             this.state = 'idle';
             this.x += this.vx * dt;
             if (this.x < 50 || this.x > w - 50) this.vx *= -1;
         }
     }
-
-    checkCatch(orange) {
-        const dist = Math.hypot(orange.x - this.x, orange.y - (this.y - 10));
-        if (dist < 40) {
-            this.saturation++;
-            this.state = 'eating';
-            this.stateTimer = 0.5;
-            if (this.saturation >= this.maxSaturation) {
-                this.isFull = true;
-                this.stateTimer = 1.0;
-                setTimeout(() => { this.done = true; }, 1000);
+    checkCatch(o) {
+        if (Math.hypot(o.x - this.x, o.y - (this.y - 10)) < 50) {
+            this.fed++;
+            this.state = 'splat';
+            this.timer = 0.5;
+            if (this.fed >= 3) {
+                this.done = true;
+                setTimeout(() => this.reset(window.innerWidth, window.innerHeight), 2000);
             }
             return true;
         }
         return false;
     }
-
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
-
-        // Bounce animation
-        const bounce = this.state === 'tracking' ? Math.sin(Date.now() / 50) * 5 : 0;
-
-        ctx.font = '60px serif';
+        ctx.font = '80px serif';
         ctx.textAlign = 'center';
-
-        let displayEmoji = this.emoji;
-        if (this.state === 'eating') displayEmoji = '😋';
-        if (this.isFull) displayEmoji = '🥰';
-
-        ctx.fillText(displayEmoji, 0, bounce);
-
-        if (!this.isFull) {
-            // Heart/Sat bar
-            const barW = 60;
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.roundRect(-barW / 2, -80, barW, 8, 4);
-            ctx.fill();
-
-            ctx.fillStyle = '#f39c12';
-            ctx.roundRect(-barW / 2, -80, (this.saturation / this.maxSaturation) * barW, 8, 4);
-            ctx.fill();
-        } else {
-            ctx.font = '24px serif';
-            ctx.fillText('✨', 0, -80);
-        }
-
+        let e = this.state === 'splat' ? '😋' : this.emoji;
+        if (this.done) e = '🥰';
+        ctx.fillText(e, 0, 0);
         ctx.restore();
     }
 }
