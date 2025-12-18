@@ -1,53 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function CountdownView({ onFinished, motionActive, isPortrait }) {
+export default function CountdownView({ onFinished, motionActive }) {
     const [count, setCount] = useState(3);
-    const [samples, setSamples] = useState([]);
+    const [isPortrait, setIsPortrait] = useState(false);
+    const calibrationRef = useRef({ beta: 0, gamma: 0 });
 
     useEffect(() => {
-        if (!motionActive) return;
+        const checkOrientation = () => setIsPortrait(window.innerHeight > window.innerWidth);
+        checkOrientation();
+        window.addEventListener('resize', checkOrientation);
 
         const handleCalibration = (e) => {
-            // Collect gamma samples (Landscape tilt axis)
-            if (e.gamma !== null) {
-                setSamples(prev => [...prev, e.gamma]);
+            if (e.beta !== null && e.gamma !== null) {
+                calibrationRef.current = { beta: e.beta, gamma: e.gamma };
             }
         };
 
-        window.addEventListener('deviceorientation', handleCalibration);
+        if (motionActive) {
+            window.addEventListener('deviceorientation', handleCalibration);
+        }
 
-        // Timer Logic
         if (count > 0) {
             const timer = setTimeout(() => setCount(count - 1), 1000);
-            return () => { clearTimeout(timer); window.removeEventListener('deviceorientation', handleCalibration); };
-        } else {
-            // "GO!" Phase
-            const timer = setTimeout(() => {
+            return () => {
+                clearTimeout(timer);
+                window.removeEventListener('resize', checkOrientation);
                 window.removeEventListener('deviceorientation', handleCalibration);
-
-                // Calculate average gamma
-                let avgGamma = 0;
-                if (samples.length > 0) {
-                    avgGamma = samples.reduce((a, b) => a + b, 0) / samples.length;
-                } else {
-                    // Fallback if no samples (e.g. desktop)
-                    avgGamma = 90; // Assume landscape left upright
-                }
-
-                onFinished({ gamma: avgGamma });
-            }, 1000);
-
-            return () => clearTimeout(timer);
+            };
+        } else {
+            window.removeEventListener('deviceorientation', handleCalibration);
+            onFinished(calibrationRef.current);
         }
-    }, [count, motionActive, onFinished]);
+    }, [count, onFinished, motionActive]);
+
+    const rotateStyle = isPortrait ? { transform: 'rotate(90deg)' } : {};
 
     return (
-        <div className="fixed inset-0 bg-blue-600 flex items-center justify-center">
-            <div className="text-[12rem] font-black text-white animate-bounce">
-                {count > 0 ? count : "GO!"}
-            </div>
-            <div className="absolute bottom-10 text-white/50 font-bold uppercase tracking-widest text-center px-4">
-                Place on forehead • Screen facing out
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900 text-white transition-all duration-500">
+            <div style={rotateStyle} className="flex flex-col items-center transition-transform duration-500">
+                <div className="text-[10rem] font-bold leading-none tracking-tighter animate-pulse text-white">
+                    {count > 0 ? count : "GO!"}
+                </div>
+                <p className="mt-8 text-white/50 font-medium text-xl uppercase tracking-widest text-center px-8">
+                    Place on Forehead
+                </p>
             </div>
         </div>
     );
