@@ -88,41 +88,38 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         const SMOOTHING_ALPHA = 0.2;  // Low-pass filter (0-1)
 
         const handleOrientation = (event) => {
-            if (status !== 'active') return;
-
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
             // 1. Determine Raw Tilt based on portrait/landscape
-            // In landscape (home right), Beta is tilt.
-            // We subtract calibration to treat the starting position as 0.
             let rawTilt = 0;
             if (isPortrait) {
-                rawTilt = gamma - (calibration.gamma || 0);
+                // In portrait, tilt forward/back is still beta on most devices
+                // but gamma can also shift. We'll stick to a robust delta.
+                rawTilt = beta - (calibration.beta || 0);
             } else {
                 rawTilt = beta - (calibration.beta || 0);
             }
 
-            // 2. Low-Pass Filter
-            // y[n] = y[n-1] + alpha * (x[n] - y[n-1])
+            // 2. Low-Pass Filter (always update so it follows the user)
             physicsState.current.currentTilt = physicsState.current.currentTilt + SMOOTHING_ALPHA * (rawTilt - physicsState.current.currentTilt);
             const smoothedTilt = physicsState.current.currentTilt;
 
-            // 3. State Machine
+            // 3. Trigger Logic (only trigger if status is active)
+            if (status !== 'active') return;
+
             if (physicsState.current.gameState === "NEUTRAL") {
                 if (smoothedTilt > THRESHOLD_CORRECT) {
-                    console.log("EVENT: Correct! (Tilted Down)");
                     physicsState.current.gameState = "TRIGGERED";
                     handleCorrect();
                 } else if (smoothedTilt < THRESHOLD_PASS) {
-                    console.log("EVENT: Pass! (Tilted Up)");
                     physicsState.current.gameState = "TRIGGERED";
                     handlePass();
                 }
             } else if (physicsState.current.gameState === "TRIGGERED") {
                 // Hysteresis: Must return to center before another word can be triggered
-                if (Math.abs(smoothedTilt) < NEUTRAL_ZONE) {
-                    console.log("Ready for next word");
+                // Increased zone slightly for reliability
+                if (Math.abs(smoothedTilt) < NEUTRAL_ZONE + 5) {
                     physicsState.current.gameState = "NEUTRAL";
                 }
             }
