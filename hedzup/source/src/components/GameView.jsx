@@ -81,9 +81,11 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
     useEffect(() => {
         if (!motionActive) return;
 
-        // Configuration from user spec
-        const THRESHOLD_CORRECT = 45; // Degrees tilted down
-        const THRESHOLD_PASS = -45;   // Degrees tilted up
+        // Configuration - When phone is on forehead:
+        // Tilting DOWN (to see answer) = beta becomes MORE NEGATIVE
+        // Tilting UP (to pass) = beta becomes MORE POSITIVE
+        const THRESHOLD_CORRECT = -45; // Degrees tilted down (negative)
+        const THRESHOLD_PASS = 45;   // Degrees tilted up (positive)
         const NEUTRAL_ZONE = 15;      // Degrees to return to neutral
         const SMOOTHING_ALPHA = 0.2;  // Low-pass filter (0-1)
 
@@ -109,10 +111,10 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             if (status !== 'active') return;
 
             if (physicsState.current.gameState === "NEUTRAL") {
-                if (smoothedTilt > THRESHOLD_CORRECT) {
+                if (smoothedTilt < THRESHOLD_CORRECT) {
                     physicsState.current.gameState = "TRIGGERED";
                     handleCorrect();
-                } else if (smoothedTilt < THRESHOLD_PASS) {
+                } else if (smoothedTilt > THRESHOLD_PASS) {
                     physicsState.current.gameState = "TRIGGERED";
                     handlePass();
                 }
@@ -217,7 +219,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                                 <img
                                     src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${currentCard.code}/vector.svg`}
                                     alt="country shape"
-                                    className="w-48 h-48 md:w-64 md:h-64 object-contain mb-6 opacity-90 flex-shrink-0"
+                                    className="w-32 h-32 md:w-40 md:h-40 object-contain mb-4 opacity-90 flex-shrink-0"
                                     onError={(e) => { e.target.style.display = 'none'; }}
                                 />
                             )}
