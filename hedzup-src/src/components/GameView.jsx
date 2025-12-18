@@ -55,7 +55,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
     // --- TILT LOGIC (Latched) ---
     useEffect(() => {
-        if (!motionActive || isPortrait) return; // Disable tilt in portrait
+        if (!motionActive) return;
 
         const handleOrientation = (event) => {
             const { beta, gamma } = event;
@@ -114,20 +114,17 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         cardClass = "opacity-0 translate-y-[-120%] -rotate-6";
     }
 
-    if (isPortrait) {
-        return (
-            <div className="fixed inset-0 z-50 bg-zinc-900 text-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in">
-                <Smartphone className="w-16 h-16 mb-6 animate-pulse text-zinc-400" />
-                <h2 className="text-3xl font-bold mb-2">Rotate your phone</h2>
-                <p className="text-zinc-400">Turn your device sideways to play.</p>
-            </div>
-        );
-    }
+
+
+    // Force Landscape Layout
+    const containerStyle = isPortrait
+        ? "fixed inset-0 z-50 w-[100dvh] h-[100dvw] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90"
+        : "fixed inset-0 z-50 w-full h-full landscape:p-safe";
 
     return (
-        <div className={`fixed inset-0 z-50 flex flex-col transition-colors duration-500 ease-out ${bgClass} overflow-hidden landscape:p-safe`}>
+        <div className={`flex flex-col transition-colors duration-500 ease-out ${bgClass} overflow-hidden ${containerStyle}`}>
             {/* The Main Stage */}
-            <div className="relative flex flex-col w-screen h-screen items-center justify-center p-4">
+            <div className="relative flex flex-col w-full h-full items-center justify-center p-4">
 
                 {/* HUD */}
                 <div className="absolute top-0 left-0 w-full p-safe pt-4 px-6 flex justify-between items-center z-10 text-white/90">
