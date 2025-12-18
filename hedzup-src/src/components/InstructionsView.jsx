@@ -32,11 +32,11 @@ export default function InstructionsView({ deck, onStart }) {
                     </div>
                     <div className="flex items-center text-zinc-600">
                         <span className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold mr-3">✓</span>
-                        <span>Correct: <b>Tilt Down</b> or <b>Swipe Right</b></span>
+                        <span>Correct: <b>Tilt Down</b></span>
                     </div>
                     <div className="flex items-center text-zinc-600">
                         <span className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold mr-3">X</span>
-                        <span>Pass: <b>Tilt Up</b> or <b>Swipe Left</b></span>
+                        <span>Pass: <b>Tilt Up</b></span>
                     </div>
                 </div>
 
