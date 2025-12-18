@@ -61,25 +61,14 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            // In native landscape: tilt is gamma (front/back)
-            // In portrait (rotated): tilt is beta
-            // Since we are now NATIVE LANDSCAPE, the main tilt axis is typically GAMMA.
-            // Android Landscape Left: Gamma [-90, 0] ? Check later.
-            // For now let's trust the previous logic which seemed to handle "portrait mode" (which was fake landscape).
-            // NOW: We are in REAL landscape.
-            // Holding phone landscape:
-            // Tilt forward/back is BETA.
-            // Tilt left/right is GAMMA.
-            // Wait, in landscape, "Heads Up" style tilt (forehead to floor) is GAMMA.
-
-            // Let's rely on relative change.
+            // Always assume PHYSICAL LANDSCAPE.
             const deltaValue = gamma - calibration.gamma;
-            // NOTE: This might need tuning for Android vs iOS landscape.
-            // But let's stick to the previous calibrated logic for now.
-            // If the user holds it landscape during calibration, `gamma` is the reference.
 
-            const THRESHOLD = 35;
-            const NEUTRAL_THRESHOLD = 15;
+            // TUNED THRESHOLDS
+            // Neutral: 30deg (must return close to vertical to reset)
+            // Trigger: 45deg (must really tilt to fire)
+            const THRESHOLD = 45;
+            const NEUTRAL_THRESHOLD = 30;
 
             // Check if we are in neutral position to unlock
             if (Math.abs(deltaValue) < NEUTRAL_THRESHOLD) {
@@ -88,11 +77,13 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
             if (status !== 'active' || isLocked.current) return;
 
-            // Handle Correct/Pass based on device orientation
-            if (deltaValue > THRESHOLD) { // Tilt towards player (Correct)
+            // Logic:
+            // Delta > 45 => Tilted DOWN (Screen towards floor) => CORRECT
+            // Delta < -45 => Tilted UP (Screen towards sky/forehead) => PASS
+            if (deltaValue > THRESHOLD) {
                 isLocked.current = true;
                 handleCorrect();
-            } else if (deltaValue < -THRESHOLD) { // Tilt away from player (Pass)
+            } else if (deltaValue < -THRESHOLD) {
                 isLocked.current = true;
                 handlePass();
             }
@@ -137,7 +128,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                 </div>
 
                 {/* The Card */}
-                <div className={`transform transition-all duration-500 ease-out ${cardClass} w-full max-w-[80vw] h-[70vh] bg-white rounded-[2rem] shadow-2xl flex items-center justify-center p-8 text-center relative overflow-hidden`}>
+                <div className={`transform transition-all duration-500 ease-out ${cardClass} w-full max-w-[80%] h-[70%] bg-white rounded-[2rem] shadow-2xl flex items-center justify-center p-8 text-center relative overflow-hidden`}>
                     {status === 'active' ? (
                         <div className="flex items-center justify-center h-full w-full space-x-8">
                             {/* Country Shape Logic */}

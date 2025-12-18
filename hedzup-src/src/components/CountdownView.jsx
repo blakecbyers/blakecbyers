@@ -33,11 +33,13 @@ export default function CountdownView({ onFinished, motionActive }) {
         }
     }, [count, onFinished, motionActive]);
 
-    const rotateStyle = isPortrait ? { transform: 'rotate(90deg)' } : {};
+    const containerStyle = isPortrait
+        ? "fixed inset-0 z-50 w-[100dvh] h-[100dvw] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90"
+        : "fixed inset-0 z-50 w-full h-full landscape:p-safe";
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900 text-white transition-all duration-500">
-            <div style={rotateStyle} className="flex flex-col items-center transition-transform duration-500">
+        <div className={`flex items-center justify-center bg-zinc-900 text-white transition-all duration-500 overflow-hidden ${containerStyle}`}>
+            <div className="flex flex-col items-center transition-transform duration-500">
                 <div className="text-[10rem] font-bold leading-none tracking-tighter animate-pulse text-white">
                     {count > 0 ? count : "GO!"}
                 </div>
