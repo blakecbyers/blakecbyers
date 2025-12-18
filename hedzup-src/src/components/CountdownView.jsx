@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 
 export default function CountdownView({ onFinished, motionActive, isPortrait }) {
     const [count, setCount] = useState(3);
-    const calibrationRef = useRef({ beta: 0, gamma: 0 });
+    const samplesRef = useRef([]);
 
     useEffect(() => {
-        // Removed internal orientation listeners
-
         const handleCalibration = (e) => {
             if (e.beta !== null && e.gamma !== null) {
-                calibrationRef.current = { beta: e.beta, gamma: e.gamma };
+                // Collect samples to average out noise
+                samplesRef.current.push({ beta: e.beta, gamma: e.gamma });
+                // Keep only last 50 samples (~1 second at 50Hz)
+                if (samplesRef.current.length > 50) samplesRef.current.shift();
             }
         };
 
@@ -24,11 +25,22 @@ export default function CountdownView({ onFinished, motionActive, isPortrait }) 
                 window.removeEventListener('deviceorientation', handleCalibration);
             };
         } else {
-            // Wait 1 second on "GO!" before starting
+            // Calculate average calibration from collected samples
+            const avgCalibration = samplesRef.current.length > 0
+                ? samplesRef.current.reduce(
+                    (acc, val) => ({
+                        beta: acc.beta + val.beta / samplesRef.current.length,
+                        gamma: acc.gamma + val.gamma / samplesRef.current.length
+                    }),
+                    { beta: 0, gamma: 0 }
+                )
+                : { beta: 0, gamma: 0 };
+
+            // Wait 1.2 seconds on "GO!" before starting (more breathing room)
             const timer = setTimeout(() => {
                 window.removeEventListener('deviceorientation', handleCalibration);
-                onFinished(calibrationRef.current);
-            }, 1000);
+                onFinished(avgCalibration.beta === 0 ? samplesRef.current[samplesRef.current.length - 1] || { beta: 0, gamma: 0 } : avgCalibration);
+            }, 1200);
             return () => clearTimeout(timer);
         }
     }, [count, onFinished, motionActive]);

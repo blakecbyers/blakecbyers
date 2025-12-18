@@ -53,7 +53,9 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         }, 600);
     }, [status, cards, currentIndex, setResults, setCurrentIndex, onFinish, playSound, currentCard]);
 
-    // --- TILT LOGIC (Latched) ---
+    // --- ROBUST TILT LOGIC (Rethink) ---
+    const lastTiltType = useRef('neutral'); // 'neutral', 'correct', or 'pass'
+
     useEffect(() => {
         if (!motionActive) return;
 
@@ -61,50 +63,48 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
             const { beta, gamma } = event;
             if (beta === null || gamma === null) return;
 
-            // Determines handedness based on the calibration state (how user held it at start)
-            // In Landscape:
-            // - Home Button Right: Beta is approx +90 (or positive).
-            // - Home Button Left: Beta is approx -90 (or negative).
+            // 1. Determine Handedness & Base Orientation from Calibration
             const startBeta = calibration.beta || 0;
             const isHomeButtonRight = startBeta > 0;
 
-            const startGamma = calibration.gamma || 0;
-            const currentGamma = gamma;
+            // 2. Calculate Stable Pitch
+            // When held in Landscape, "Nodding" (Tilt Down/Up) is usually gamma-dominant.
+            // BUT near vertical (90 deg), gamma flips or gets erratic.
+            // We use a blend or conditional logic.
 
-            // Raw change from starting position
-            const rawDelta = currentGamma - startGamma;
-
-            // Normalize so "Tilted Down" (Screen to floor) is POSITIVE Delta
-            // Based on standard orientation:
-            // Home Right (Beta > 0): Down decreases Gamma (towards 0 from 90?) -> So we invert.
-            // Let's rely on the previous empirical tuning: Home Right -> Invert.
-
-            let normalizedDelta = rawDelta;
+            let currentTilt = 0;
             if (isHomeButtonRight) {
-                normalizedDelta = -rawDelta;
+                // Home Button Right: beta ~ 90. Gamma runs from -90 to 90.
+                // Tilting DOWN (chin to chest) usually makes the top of the phone move forward.
+                currentTilt = -(gamma - (calibration.gamma || 0));
             } else {
-                normalizedDelta = rawDelta;
+                // Home Button Left: beta ~ -90.
+                currentTilt = (gamma - (calibration.gamma || 0));
             }
 
-            // TUNED THRESHOLDS (Requested 45 degrees)
-            const TRIGGER_ANGLE = 45;
-            const RESET_ANGLE = 30; // Must return to within 30 deg of center to unlock
+            // 3. Thresholds & Hysteresis (State Machine)
+            const TRIGGER_THRESHOLD = 40;
+            const NEUTRAL_ZONE = 15; // Must return to < 15 deg to reset
 
-            // Unlock if back near neutral
-            if (Math.abs(normalizedDelta) < RESET_ANGLE) {
-                isLocked.current = false;
+            // State Machine Logic
+            if (Math.abs(currentTilt) < NEUTRAL_ZONE) {
+                if (lastTiltType.current !== 'neutral') {
+                    lastTiltType.current = 'neutral';
+                    isLocked.current = false;
+                }
             }
 
             if (status !== 'active' || isLocked.current) return;
 
-            // Logic:
-            // > 45 deg = Down = Correct
-            // < -45 deg = Up = Pass
-            if (normalizedDelta > TRIGGER_ANGLE) {
+            if (currentTilt > TRIGGER_THRESHOLD) {
+                // TILT DOWN -> CORRECT
                 isLocked.current = true;
+                lastTiltType.current = 'correct';
                 handleCorrect();
-            } else if (normalizedDelta < -TRIGGER_ANGLE) {
+            } else if (currentTilt < -TRIGGER_THRESHOLD) {
+                // TILT UP -> PASS
                 isLocked.current = true;
+                lastTiltType.current = 'pass';
                 handlePass();
             }
         };
