@@ -113,6 +113,46 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         return () => window.removeEventListener('deviceorientation', handleOrientation);
     }, [motionActive, status, handleCorrect, handlePass, calibration, isPortrait]);
 
+    // --- SWIPE LOGIC ---
+    const touchStartX = useRef(null);
+    const touchStartY = useRef(null);
+
+    const onTouchStart = (e) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+    };
+
+    const onTouchEnd = (e) => {
+        if (!touchStartX.current || !touchStartY.current) return;
+        const diffX = e.changedTouches[0].clientX - touchStartX.current;
+        const diffY = e.changedTouches[0].clientY - touchStartY.current;
+
+        if (Math.max(Math.abs(diffX), Math.abs(diffY)) > 50) {
+            if (isPortrait) {
+                // In Portrait (which is rotated 90deg), X and Y are flipped relative to visual up/down
+                // Actually, since we rotate the container, local swipes might be easier.
+                // Let's use the same logic as the legacy code provided.
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (diffX > 0) handleCorrect(); // Right -> Correct
+                    else handlePass(); // Left -> Pass
+                } else {
+                    if (diffY > 0) handleCorrect(); // Down -> Correct
+                    else handlePass(); // Up -> Pass
+                }
+            } else {
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (diffX > 0) handleCorrect();
+                    else handlePass();
+                } else {
+                    if (diffY > 0) handleCorrect();
+                    else handlePass();
+                }
+            }
+        }
+        touchStartX.current = null;
+        touchStartY.current = null;
+    };
+
     // --- STYLES ---
     let bgClass = "bg-zinc-900";
     let cardClass = "opacity-100 scale-100 translate-y-0";
@@ -125,15 +165,15 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
         cardClass = "opacity-0 translate-y-[-120%] -rotate-6";
     }
 
-
-
     // Force Landscape Layout
     const containerStyle = isPortrait
         ? "fixed inset-0 z-50 w-[100dvh] h-[100dvw] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90"
         : "fixed inset-0 z-50 w-full h-full landscape:p-safe";
 
     return (
-        <div className={`flex flex-col transition-colors duration-500 ease-out ${bgClass} overflow-hidden ${containerStyle}`}>
+        <div className={`flex flex-col transition-colors duration-500 ease-out ${bgClass} overflow-hidden ${containerStyle}`}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}>
             {/* The Main Stage */}
             <div className="relative flex flex-col w-full h-full items-center justify-center p-4">
 
@@ -176,9 +216,15 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                             {status === 'pass' && <RotateCcw size={120} className="text-[#FF9500] animate-in zoom-in duration-300" />}
                         </div>
                     )}
+
+                    {/* Hint labels matching legacy look */}
+                    <div className="absolute bottom-8 w-full px-12 flex justify-between text-zinc-300 text-[1.5vmin] font-bold uppercase tracking-widest opacity-40">
+                        <span>Pass (Tilt Up/Swipe)</span>
+                        <span>Correct (Tilt Down/Swipe)</span>
+                    </div>
                 </div>
 
-                {/* Touch Overrides for Debugging/Accessibility */}
+                {/* Fallback Taps */}
                 {status === 'active' && (
                     <div className="absolute inset-0 flex pointer-events-none">
                         <div onClick={handlePass} className="w-1/4 h-full pointer-events-auto" />
@@ -187,10 +233,10 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                     </div>
                 )}
 
-                {/* Background Visual Feedback */}
+                {/* Background Visual Feedback (Legacy Pings) */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                    {status === 'correct' && <div className="absolute inset-0 bg-white/10 animate-pulse" />}
-                    {status === 'pass' && <div className="absolute inset-0 bg-white/10 animate-pulse" />}
+                    {status === 'correct' && <Check size={180} className="text-white/20 animate-ping" />}
+                    {status === 'pass' && <RotateCcw size={180} className="text-white/20 animate-ping" />}
                 </div>
             </div>
         </div>

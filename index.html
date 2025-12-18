@@ -317,6 +317,7 @@
     }
 
     function playTick() {
+      if (navigator.vibrate) navigator.vibrate(2);
       if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
