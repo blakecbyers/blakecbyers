@@ -36,6 +36,7 @@
 
         input[type=number] {
             -moz-appearance: textfield;
+            appearance: textfield;
         }
 
         /* Prevent iOS zoom on focus */
@@ -99,12 +100,11 @@
         </svg>
     </a>
 
-    <!-- WRAPPER: Centers the app like a mobile screen -->
     <div id="coffee-companion-root"
-        class="relative w-full min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+        class="relative w-full min-h-screen flex flex-col items-center justify-center p-4 font-sans bg-[#12100e]">
         <!-- APP CARD -->
         <div
-            class="max-w-md w-full bg-stone-900 rounded-2xl shadow-2xl overflow-hidden border border-stone-800 animate-enter">
+            class="max-w-md w-full bg-stone-900 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden border border-stone-800/50 animate-enter">
             <!-- Header -->
             <div class="bg-stone-800 p-6 text-center">
                 <h2 class="text-2xl font-bold text-amber-500 tracking-tight m-0">Coffee Companion</h2>

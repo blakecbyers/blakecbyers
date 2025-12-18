@@ -265,6 +265,11 @@ function onResults(results) {
     const index = pts[8];
     const wrist = pts[0];
 
+    // SWIPE LOGIC EXTENSION
+    const now = performance.now();
+    const dt = now - lastDetectionTime;
+    if (dt <= 0) return;
+
     const x = (1 - index.x - 0.5) * 60;
     const y = (0.5 - index.y) * 45;
     const aimPoint = new THREE.Vector3(x, y, -35);
@@ -279,36 +284,28 @@ function onResults(results) {
 
     crosshair.position.copy(aimPoint);
 
-    // SWIPE LOGIC EXTENSION
-    // Instead of just pinch, we track wrist velocity or index finger velocity to determine "Throw".
-    // Or we keep pinch for "grabbing" and release for "throwing" with velocity?
-    // Let's stick to the user request: "throw harder".
-    // We can track the index finger velocity.
-
-    const now = performance.now();
-    const dt = now - lastDetectionTime;
-
     // Calculate index finger velocity
-    if (!crosshair.userData.lastPos) crosshair.userData.lastPos = new THREE.Vector3();
-    const velocity = new THREE.Vector3().subVectors(aimPoint, crosshair.userData.lastPos).divideScalar(dt / 1000); // units per second
+    if (!crosshair.userData.lastPos) crosshair.userData.lastPos = new THREE.Vector3().copy(aimPoint);
+    const v = new THREE.Vector3().subVectors(aimPoint, crosshair.userData.lastPos).divideScalar(dt / 1000);
     crosshair.userData.lastPos.copy(aimPoint);
 
-    // THROW TRIGGER
-    // 1. Pinching = Holding ball (optional visual)
-    // 2. Release while moving fast = Throw?
-    // User requested "throw harder".
+    // Pinch Detection
+    const dist = Math.sqrt(Math.pow(thumb.x - index.x, 2) + Math.pow(thumb.y - index.y, 2));
+    const isPinching = dist < 0.08; // Adjusted threshold for better sensitivity
 
-    // Let's use current pinch logic but add velocity multiplier.
+    // Visual feedback for pinch
+    crosshair.scale.set(isPinching ? 1.2 : 2, isPinching ? 1.2 : 2, 1);
+    crosshair.material.color.set(isPinching ? "#fbbf24" : "#ef4444");
+
+    // THROW TRIGGER
     if (isPinching) {
         if (now - lastFireTime > FIRE_RATE) {
-            // Calculate throw strength based on forward velocity or just "noise" velocity?
-            // Since 2D cam, Z is fake. We use X/Y movement speed.
-            const speed = Math.min(velocity.length() / 50, 2.5); // Cap multiplier
-            const baseSpeed = 1.5;
-            const finalSpeed = baseSpeed * (1 + speed);
+            // Velocity magnitude for "throw harder"
+            const speedMagnitude = v.length();
+            const multiplier = 1.0 + Math.min(speedMagnitude / 30, 2.0); // Up to 3x speed
 
             const throwOrigin = new THREE.Vector3((1 - wrist.x - 0.5) * 60, (0.5 - wrist.y) * 45, -5);
-            throwBall(throwOrigin, aimPoint, finalSpeed);
+            throwBall(throwOrigin, aimPoint, multiplier);
             lastFireTime = now;
         }
     }

@@ -39,6 +39,17 @@
         #root {
             height: 100%;
             width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            position: relative;
+            background: var(--app-bg);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
         }
 
         .font-display {
@@ -314,32 +325,34 @@
             }
 
             return (
-                <div className="h-full flex flex-col">
-                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FDF6E3]">
-                        {tab === 'path' && (
-                            <div className="page-enter pb-[100px]">
-                                <Header title="Your Journey" subtitle="Lekker Lingo" rightAction={<div className="bg-[#FADBD8] text-[#C0392B] font-bold px-3 py-1 rounded-full text-xs border border-red-100">{xp} XP</div>} />
-                                <div className="px-4 mt-2">
-                                    {VOCAB_DATA.map(l => (
-                                        <LevelCard
-                                            key={l.id}
-                                            level={l}
-                                            status={completed.includes(l.id) ? 'completed' : (l.id === currentLevelId ? 'active' : (l.id < currentLevelId ? 'completed' : 'locked'))}
-                                            onClick={() => handleLevelSelect(l.id)}
-                                        />
-                                    ))}
+                <div className="app-container">
+                    <div className="h-full flex flex-col">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FDF6E3]">
+                            {tab === 'path' && (
+                                <div className="page-enter pb-[100px]">
+                                    <Header title="Your Journey" subtitle="Lekker Lingo" rightAction={<div className="bg-[#FADBD8] text-[#C0392B] font-bold px-3 py-1 rounded-full text-xs border border-red-100">{xp} XP</div>} />
+                                    <div className="px-4 mt-2">
+                                        {VOCAB_DATA.map(l => (
+                                            <LevelCard
+                                                key={l.id}
+                                                level={l}
+                                                status={completed.includes(l.id) ? 'completed' : (l.id === currentLevelId ? 'active' : (l.id < currentLevelId ? 'completed' : 'locked'))}
+                                                onClick={() => handleLevelSelect(l.id)}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                        {tab === 'learn' && (<Quiz level={VOCAB_DATA.find(l => l.id === currentLevelId)} onNext={handleNextLevel} />)}
-                        {tab === 'profile' && (
-                            <div className="page-enter">
-                                <Header title="Passport" subtitle="Stats" rightAction={<button onClick={resetProgress} className="text-gray-400 hover:text-red-500 transition-colors"><Icons.Reset /></button>} />
-                                <Profile xp={xp} completed={completed} />
-                            </div>
-                        )}
+                            )}
+                            {tab === 'learn' && (<Quiz level={VOCAB_DATA.find(l => l.id === currentLevelId)} onNext={handleNextLevel} />)}
+                            {tab === 'profile' && (
+                                <div className="page-enter">
+                                    <Header title="Passport" subtitle="Stats" rightAction={<button onClick={resetProgress} className="text-gray-400 hover:text-red-500 transition-colors"><Icons.Reset /></button>} />
+                                    <Profile xp={xp} completed={completed} />
+                                </div>
+                            )}
+                        </div>
+                        <TabBar active={tab} onChange={setTab} />
                     </div>
-                    <TabBar active={tab} onChange={setTab} />
                 </div>
             );
         };
