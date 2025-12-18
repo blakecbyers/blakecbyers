@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Doggo Meadow Fetch</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/@mediapipe/hands@0.4.1646424915/hands.js"></script>
+    <script src="https://unpkg.com/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://unpkg.com/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #14532d;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #bbf7d0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f0fdf4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .ghost-home {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            display: flex;
+            items-center;
+            justify-center;
+            transition: all 0.3s ease;
+            opacity: 0.4;
+        }
+
+        .ghost-home:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tap-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(20, 83, 45, 0.9);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <a href="../" class="ghost-home" title="Go Home">
+        <i data-lucide="home" class="w-6 h-6"></i>
+    </a>
+
+    <div id="tap-to-start" class="tap-overlay">
+        <div class="text-6xl mb-6">⚾🐕</div>
+        <h2 class="text-3xl font-black mb-2 uppercase tracking-tighter">Ready to Fetch?</h2>
+        <p class="opacity-70 font-medium">Tap anywhere to start audio & camera</p>
+    </div>
+
+    <div id="loading" class="loading-overlay" style="display: none;">
+        <div class="text-6xl mb-4">🐕</div>
+        <div class="text-2xl font-black text-green-900 tracking-tight">CULTIVATING THE MEADOW...</div>
+        <div class="mt-4 w-48 h-2 bg-green-100 rounded-full overflow-hidden">
+            <div class="h-full bg-green-600 animate-[pulse_1.5s_infinite]"></div>
+        </div>
+    </div>
+
+    <div id="video-container">
+        <video id="input-video" playsinline></video>
+    </div>
+
+    <div id="ui-layer" class="fixed inset-0 pointer-events-none z-10 p-6 flex flex-col justify-between pt-20">
+        <div class="flex justify-between items-start">
+            <div class="game-card px-6 py-4 rounded-3xl">
+                <div class="text-[10px] text-green-600 uppercase font-bold tracking-widest">Score</div>
+                <div id="score-val" class="text-4xl font-black text-green-900 tabular-nums">0</div>
+            </div>
+            <div class="game-card px-6 py-4 rounded-3xl text-right">
+                <div class="text-[10px] text-green-600 uppercase font-bold tracking-widest">Accuracy</div>
+                <div id="accuracy-val" class="text-4xl font-black text-green-900">100%</div>
+            </div>
+        </div>
+
+        <div id="hint-container" class="flex justify-center mb-6 transition-opacity duration-300 opacity-0">
+            <div class="bg-green-100 border-2 border-green-200 px-6 py-2 rounded-2xl flex items-center shadow-sm">
+                <span class="text-xl mr-2">🥎</span>
+                <span class="text-green-800 font-bold text-sm uppercase tracking-wide">Pinch to rapid fire
+                    baseballs!</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="dog-baseball.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
