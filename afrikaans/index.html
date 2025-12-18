@@ -146,11 +146,44 @@
         .safe-pb {
             padding-bottom: env(safe-area-inset-bottom);
         }
+
+        .ghost-home {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            z-index: 9999;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 9999px;
+            color: #D35400;
+            opacity: 0.2;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .ghost-home:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.08);
+            transform: scale(1.05);
+        }
     </style>
 </head>
 
 <body>
-
+    <a href="../" class="ghost-home">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+    </a>
     <div id="root"></div>
 
     <!-- Data & Logic -->
@@ -253,6 +286,17 @@
 
             const handleKeyDown = (e) => { if (e.key === 'Enter') checkAnswer(); }
 
+            const speak = (text) => {
+                if (!window.speechSynthesis) return;
+                const ut = new SpeechSynthesisUtterance(text);
+                // Try to find an Afrikaans voice
+                const voices = window.speechSynthesis.getVoices();
+                const afVoice = voices.find(v => v.lang.startsWith('af'));
+                if (afVoice) ut.voice = afVoice;
+                else ut.lang = 'af-ZA';
+                window.speechSynthesis.speak(ut);
+            };
+
             return (
                 <div className="flex flex-col h-full bg-[#FDF6E3] pb-[85px] relative overflow-hidden">
                     <div className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-y-auto custom-scrollbar">
@@ -264,9 +308,12 @@
                         <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 text-center border border-orange-100 z-10 relative my-auto">
                             <div className="text-sm font-bold text-gray-400 uppercase mb-4 tracking-widest">{level.category}</div>
                             <h2 className="text-4xl md:text-5xl font-black text-[#2c3e50] mb-2 font-display">{level.title}</h2>
-                            <div className="inline-flex items-center gap-2 bg-orange-50 text-[#D35400] px-3 py-1 rounded-full text-sm font-mono mb-6">
+                            <button
+                                onClick={() => speak(level.title)}
+                                className="inline-flex items-center gap-2 bg-orange-50 text-[#D35400] px-3 py-1 rounded-full text-sm font-mono mb-6 hover:bg-orange-100 transition-colors active:scale-95"
+                            >
                                 <Icons.Speaker /> {level.phonetic}
-                            </div>
+                            </button>
                             <p className="text-gray-600 mb-8 leading-relaxed">{level.desc}</p>
                             {status !== 'success' ? (
                                 <div className={`relative transition-all ${status === 'error' ? 'animate-shake' : ''}`}>

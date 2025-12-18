@@ -38,6 +38,15 @@ const DECK_COUNTRIES = RAW_COUNTRIES.split(',').map(entry => {
     return { text: name, code: code, type: 'country' };
 });
 
+// 5. West Wing Deck
+const DECK_WEST_WING = [
+    "Josiah Bartlet", "Leo McGarry", "Josh Lyman", "Toby Ziegler", "Sam Seaborn", "C.J. Cregg",
+    "Donna Moss", "Charlie Young", "Abbey Bartlet", "Mrs. Landingham", "Vice President Hoynes",
+    "Admiral Fitzwallace", "Danny Concannon", "Joey Lucas", "Ainsley Hayes", "Bruno Gianelli",
+    "Nancy McNally", "Ron Butterfield", "Lord John Marbury", "Margaret Hooper", "Oliver Babbish",
+    "Dolores Landingham", "Ginger", "Bonnie", "Carol Fitzpatrick"
+];
+
 const normalizeDeck = (data) => data.map(item => ({ text: item, type: 'text' }));
 
 export const DECKS = [
@@ -58,6 +67,15 @@ export const DECKS = [
         gradient: 'from-emerald-500 to-teal-600',
         icon: <Globe size={24} className="text-white" />,
         data: DECK_COUNTRIES
+    },
+    {
+        id: 'westwing',
+        title: 'The West Wing',
+        description: 'Major characters & staff.',
+        color: 'bg-indigo-600',
+        gradient: 'from-indigo-600 to-blue-700',
+        icon: <span className="text-2xl">🏛️</span>,
+        data: normalizeDeck(DECK_WEST_WING)
     },
     {
         id: 'blevnecked',
