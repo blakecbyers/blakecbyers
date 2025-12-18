@@ -6,7 +6,55 @@ import CountdownView from './components/CountdownView';
 import GameView from './components/GameView';
 import ResultsView from './components/ResultsView';
 
+
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null, errorInfo: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        this.setState({ error, errorInfo });
+        console.error("Uncaught error:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-8 text-center">
+                    <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong.</h1>
+                    <details className="whitespace-pre-wrap text-left bg-gray-100 p-4 rounded text-sm text-gray-800">
+                        {this.state.error && this.state.error.toString()}
+                        <br />
+                        {this.state.errorInfo && this.state.errorInfo.componentStack}
+                    </details>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-8 px-6 py-3 bg-zinc-900 text-white rounded-lg"
+                    >
+                        Reload Game
+                    </button>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
 export default function App() {
+    return (
+        <ErrorBoundary>
+            <AppContent />
+        </ErrorBoundary>
+    );
+}
+
+function AppContent() {
     const [view, setView] = useState('menu');
     const [selectedDeck, setSelectedDeck] = useState(null);
     const [shuffledCards, setShuffledCards] = useState([]);
