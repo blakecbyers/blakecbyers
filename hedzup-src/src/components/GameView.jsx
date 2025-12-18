@@ -17,7 +17,9 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
 
     useEffect(() => {
         if (timer <= 0) {
-            setResults(prev => ({ ...prev, skipped: [...prev.skipped, currentCard.text] }));
+            if (currentCard) {
+                setResults(prev => ({ ...prev, skipped: [...prev.skipped, currentCard.text] }));
+            }
             onFinish();
             return;
         }
@@ -163,7 +165,7 @@ export default function GameView({ deck, cards, currentIndex, setCurrentIndex, t
                 )}
 
                 <div className={`transform transition-all duration-500 ease-out ${cardClass} ${cardStyle} bg-white rounded-[3rem] shadow-2xl flex items-center justify-center p-8 text-center relative mx-auto my-auto`}>
-                    {status === 'active' ? (
+                    {status === 'active' && currentCard ? (
                         <div className="flex flex-col items-center justify-center h-full w-full">
                             {currentCard.type === 'country' && (
                                 <img
