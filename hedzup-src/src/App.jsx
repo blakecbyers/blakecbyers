@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { DECKS } from './data/decks';
 import MenuView from './components/MenuView';
 import InstructionsView from './components/InstructionsView';
