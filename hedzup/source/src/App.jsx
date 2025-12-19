@@ -102,29 +102,31 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
             onTouchEnd={onTouchEnd}
             className={`fixed inset-0 flex items-center justify-center transition-colors duration-300 ${bg} touch-none`}
         >
-            {/* View rotated 90deg for audience */}
-            <div style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }} className="relative flex flex-col items-center justify-center w-[100vh] h-[100vw]">
-
-                {/* Visible Timer - Centered at the top relative to the rotated container */}
-                <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md px-10 py-5 rounded-[2rem] z-50">
-                    <span className="font-mono text-6xl font-black text-white">{timer}</span>
+            {/* View rotated 90deg for audience - Container fills screen */}
+            <div
+                style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }}
+                className="relative flex flex-col items-center justify-center w-[100vh] h-[100vw] gap-8"
+            >
+                {/* Timer - Semi-transparent pill */}
+                <div className="bg-black/50 backdrop-blur-md px-10 py-4 rounded-full">
+                    <span className="font-mono text-5xl font-black text-white">{timer}</span>
                 </div>
 
-                {/* Card */}
+                {/* Card - Now taking more horizontal space (rotated) */}
                 <div className={`
-                    w-[90%] h-[70%] bg-white rounded-[4rem] shadow-2xl flex flex-col items-center justify-center px-12 py-16 text-center
+                    w-[95%] h-[65%] bg-white rounded-[4rem] shadow-2xl flex flex-col items-center justify-center px-12 py-10 text-center
                     transition-all duration-300 transform
-                    ${status !== 'active' ? 'opacity-0 scale-90 translate-y-10' : 'opacity-100 scale-100 translate-y-0'}
+                    ${status !== 'active' ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}
                 `}>
                     {card?.type === 'country' && card?.code && (
                         <img
                             src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
-                            className="w-48 h-48 mb-12 object-contain"
+                            className="w-32 h-32 mb-8 object-contain"
                             alt="flag"
                         />
                     )}
 
-                    <h1 className={`${card?.text.length > 12 ? 'text-6xl' : 'text-8xl'} font-black text-stone-900 leading-[1.1] w-full break-words`}>
+                    <h1 className={`${card?.text.length > 15 ? 'text-6xl' : 'text-8xl'} font-black text-stone-900 leading-[1.1] w-full break-words`}>
                         {card?.text}
                     </h1>
                 </div>

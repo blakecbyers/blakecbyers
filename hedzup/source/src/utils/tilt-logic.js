@@ -65,28 +65,20 @@ class TiltLogic {
         // Store raw values for reference
         this.current = { alpha, beta, gamma };
 
-        // --- FIRST PRINCIPLES PITCH CALCULATION ---
-        // For a heads-up game, "Pitch" is the angle of the screen normal relative to the horizon.
-        // We use the Z-component of the gravity vector in the device's coordinate frame.
-        // g_z = cos(beta) * cos(gamma)
-
-        const bRad = beta * (Math.PI / 180);
-        const gRad = gamma * (Math.PI / 180);
-        const zComponent = Math.cos(bRad) * Math.cos(gRad);
-
-        // This gives us a 1D "pitch" value:
-        // 0 = perfectly vertical (screen facing straight ahead)
-        // Positive = tilted "Forward" (screen toward floor / Correct)
-        // Negative = tilted "Backward" (screen toward ceiling / Skip)
-        // (Note: We negate it to make "Forward" positive for intuitive thresholds)
-        const rawPitch = -Math.asin(zComponent) * (180 / Math.PI);
+        // --- ROBUST PITCH CALCULATION ---
+        // For Heads-up in landscape, 'beta' is the primary "pitch" axis.
+        // Tilting forward/backward moves beta in positive/negative directions.
+        const rawPitch = beta;
 
         // Apply smoothing to the final pitch value instead of raw angles
-        // This prevents "jumps" when Euler angles flip at the 90-degree boundaries.
         this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
 
         // Calculate delta from calibration
-        const calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
+        let calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
+
+        // Handle wrap-around (-180 to 180)
+        if (calibratedPitch > 180) calibratedPitch -= 360;
+        if (calibratedPitch < -180) calibratedPitch += 360;
 
         this.checkTriggers(calibratedPitch);
 
