@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DECKS } from './data/decks';
+import TiltLogic from './utils/tilt-logic';
 
 // --- CONFIG ---
 const TILT_THRESHOLD = 45;
 const NEUTRAL_ZONE = 20;
-
-// --- SHARED UI ---
+const SMOOTHING = 0.3;
 const Button = ({ onClick, children, className = "" }) => (
     <button
         onClick={onClick}
@@ -67,43 +67,22 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
         touchStart.current = null;
     };
 
-    // Simple, reliable tilt logic
+    // Standalone Tilt Logic Integration
     useEffect(() => {
-        const onMotion = (e) => {
-            const { beta, gamma } = e;
-            if (beta === null) return;
+        const engine = new TiltLogic({
+            threshold: TILT_THRESHOLD,
+            neutralZone: NEUTRAL_ZONE,
+            smoothing: SMOOTHING,
+            onYes: () => handleAction('correct'),
+            onSkip: () => handleAction('pass')
+        });
 
-            // Use relative beta for portrait-held vertical tilt
-            // Since the UI is rotated 90deg, we need to handle the sensor axis carefully.
-            // When held on forehead in landscape, 'gamma' is usually the pitch (forward/back).
-            let val = gamma - (calibration.gamma || 0);
+        // Set the calibration from the countdown phase
+        engine.calibration = calibration;
+        engine.start();
 
-            // Basic wrap-around
-            if (val > 180) val -= 360;
-            if (val < -180) val += 360;
-
-            // Smoothing
-            physics.current.tilt = physics.current.tilt + 0.3 * (val - physics.current.tilt);
-            const smoothed = physics.current.tilt;
-
-            if (status !== 'active') return;
-
-            if (physics.current.state === 'NEUTRAL') {
-                if (smoothed > TILT_THRESHOLD) {
-                    physics.current.state = 'TRIGGERED';
-                    handleAction('correct'); // Tilt Down
-                } else if (smoothed < -TILT_THRESHOLD) {
-                    physics.current.state = 'TRIGGERED';
-                    handleAction('pass'); // Tilt Up
-                }
-            } else if (Math.abs(smoothed) < NEUTRAL_ZONE) {
-                physics.current.state = 'NEUTRAL';
-            }
-        };
-
-        window.addEventListener('deviceorientation', onMotion);
-        return () => window.removeEventListener('deviceorientation', onMotion);
-    }, [status, calibration, handleAction]);
+        return () => engine.stop();
+    }, [calibration, handleAction]);
 
     // Timer
     useEffect(() => {
@@ -224,16 +203,22 @@ const Instructions = ({ deck, onStart }) => {
 
 const Countdown = ({ onReady, active }) => {
     const [sec, setSec] = useState(3);
-    const cal = useRef({ gamma: 0 });
+    const engine = useRef(null);
 
     useEffect(() => {
-        const track = (e) => { if (e.gamma !== null) cal.current = { gamma: e.gamma }; };
-        if (active) window.addEventListener('deviceorientation', track);
+        if (!engine.current) {
+            engine.current = new TiltLogic({ smoothing: 1 }); // Fast response for calibration
+        }
+
+        if (active) engine.current.start();
+
         if (sec > 0) {
             const t = setTimeout(() => setSec(sec - 1), 1000);
-            return () => { clearTimeout(t); window.removeEventListener('deviceorientation', track); };
+            return () => clearTimeout(t);
         } else {
-            onReady(cal.current);
+            engine.current.stop();
+            // Pass the final "neutral" orientation to the game
+            onReady(engine.current.current);
         }
     }, [sec, onReady, active]);
 
