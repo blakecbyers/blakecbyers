@@ -322,7 +322,7 @@ export default function App() {
     };
 
     return (
-        <div className="min-h-screen bg-stone-50 font-sans selection:bg-orange-100 touch-none select-none text-stone-950 antialiased overflow-hidden">
+        <div className="min-h-screen bg-stone-50 font-sans selection:bg-orange-100 select-none text-stone-950 antialiased">
             {view === 'menu' && <Menu onSelect={handleSelect} />}
             {view === 'instructions' && <Instructions deck={deck} onStart={(ok) => { setActive(ok); setView('countdown'); }} />}
             {view === 'countdown' && <Countdown active={active} onReady={(c) => { setCal(c); setView('game'); }} />}

@@ -12,8 +12,6 @@
 
 body {
   margin: 0;
-  overflow: hidden;
-  touch-action: none;
   background-color: #fafafa;
   color: #09090b;
   -webkit-tap-highlight-color: transparent;
@@ -28,14 +26,7 @@ body {
   letter-spacing: -0.07em;
 }
 
-/* Disable bounce on iOS */
-html,
-body {
-  position: fixed;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-}
+/* Disable bounce on iOS - only for game view, handled in component */
 
 /* Hide scrollbars */
 ::-webkit-scrollbar {
