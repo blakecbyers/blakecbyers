@@ -102,50 +102,58 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
             onTouchEnd={onTouchEnd}
             className={`fixed inset-0 flex items-center justify-center transition-colors duration-500 ${bg} touch-none overflow-hidden`}
         >
-            {/* View rotated 90deg for audience - Container fills screen */}
+            {/* 
+                Rotate container 90deg for audience.
+                Width = Screen Height (long axis).
+                Height = Screen Width (short axis).
+            */}
             <div
                 style={{
                     transform: 'rotate(90deg)',
-                    width: '100vh',
-                    height: '100vw',
+                    width: '100dvh',
+                    height: '100dvw',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2rem'
+                    justifyContent: 'center'
                 }}
             >
+                {/* Top Margin / Spacer to balance the bottom */}
+                <div className="flex-none h-[8vw]" />
+
                 {/* Timer Area */}
-                <div className="mb-[5vh] shrink-0">
-                    <div className="bg-black/30 backdrop-blur-2xl px-12 py-4 rounded-full border border-white/10 shadow-xl">
-                        <span className="font-mono text-[9vh] leading-none font-black text-white">{timer}</span>
+                <div className="flex-none mb-[4vw]">
+                    <div className="bg-black/30 backdrop-blur-2xl px-12 py-3 rounded-full border border-white/10 shadow-xl">
+                        <span className="font-mono text-[8vw] leading-none font-black text-white">{timer}</span>
                     </div>
                 </div>
 
-                {/* Card Area - Wider and properly centered */}
-                <div className={`
-                    w-[94vw] flex-grow max-h-[60vh] bg-white rounded-[6vh] shadow-2xl flex flex-col items-center justify-center px-[8vw] py-[4vh] text-center
-                    transition-all duration-300 transform
-                    ${status !== 'active' ? 'opacity-0 scale-95 translate-y-8' : 'opacity-100 scale-100 translate-y-0'}
-                `}>
-                    {card?.type === 'country' && card?.code && (
-                        <img
-                            src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
-                            className="w-[18vh] h-[18vh] mb-[3vh] object-contain drop-shadow-sm"
-                            alt="flag"
-                        />
-                    )}
-
-                    <h1 className={`
-                        ${card?.text.length > 15 ? 'text-[7.5vh]' : 'text-[11vh]'} 
-                        font-black text-stone-900 leading-[1] w-full break-words tracking-tight
+                {/* Card Area - Flex grow ensures it takes available space and centers content */}
+                <div className="flex-grow flex items-center justify-center w-full px-[5dvh]">
+                    <div className={`
+                        w-full max-h-[60vw] bg-white rounded-[6vw] shadow-2xl flex flex-col items-center justify-center px-[8vw] py-[4vw] text-center
+                        transition-all duration-300 transform
+                        ${status !== 'active' ? 'opacity-0 scale-95 translate-y-8' : 'opacity-100 scale-100 translate-y-0'}
                     `}>
-                        {card?.text}
-                    </h1>
+                        {card?.type === 'country' && card?.code && (
+                            <img
+                                src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
+                                className="w-[18vw] h-[18vw] mb-[3vw] object-contain drop-shadow-sm"
+                                alt="flag"
+                            />
+                        )}
+
+                        <h1 className={`
+                            ${card?.text.length > 15 ? 'text-[7.5vw]' : 'text-[11vw]'} 
+                            font-black text-stone-900 leading-[1] w-full break-words tracking-tight
+                        `}>
+                            {card?.text}
+                        </h1>
+                    </div>
                 </div>
 
-                {/* Bottom spacer for balance */}
-                <div className="h-[2vh] w-full mt-[4vh]" />
+                {/* Bottom Spacer to perfectly balance the top area and keep card centered */}
+                <div className="flex-none h-[12vw]" />
             </div>
         </div>
     );
@@ -241,12 +249,24 @@ const Countdown = ({ onReady, active }) => {
     }, [sec, onReady, active]);
 
     return (
-        <div className="fixed inset-0 bg-stone-950 flex items-center justify-center z-[100] p-10">
-            <div style={{ transform: 'rotate(90deg)' }} className="text-center">
-                <div className="text-[12rem] font-black text-white leading-none">
+        <div className="fixed inset-0 bg-stone-950 flex items-center justify-center z-[100] p-10 overflow-hidden">
+            <div
+                style={{
+                    transform: 'rotate(90deg)',
+                    width: '100dvh',
+                    height: '100dvw',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+            >
+                <div className="text-[30vw] font-black text-white leading-none drop-shadow-2xl">
                     {sec > 0 ? sec : "GO!"}
                 </div>
-                <p className="text-white/30 text-2xl font-black uppercase tracking-widest mt-8">Calibrating...</p>
+                <p className="text-white/30 text-[5vw] font-black uppercase tracking-[1rem] mt-[5vw] ml-[1rem]">
+                    Calibrating...
+                </p>
             </div>
         </div>
     );

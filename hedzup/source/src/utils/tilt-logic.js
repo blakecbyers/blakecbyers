@@ -65,31 +65,42 @@ class TiltLogic {
         // Store raw values
         this.current = { alpha, beta, gamma };
 
-        // --- STABLE PITCH CALCULATION ---
-        // We calculate the device's pitch relative to the ground.
-        // We use Math.atan2 to get a full 360-degree signed angle.
+        // --- ORIENTATION-AWARE PITCH ---
+        // Detect landscape orientation to handle sign flips
+        const orientation = (screen.orientation || {}).type || window.orientation || 'landscape-primary';
+        const isLandscapeSecondary = String(orientation).includes('secondary') || orientation === -90 || orientation === 270;
+
         const b = beta * (Math.PI / 180);
         const g = gamma * (Math.PI / 180);
 
-        // This works reliably for "Heads Up" mode
+        // Calculate pitch using atan2 for stability (full 360 range)
         let rawPitch = Math.atan2(Math.sin(g), Math.cos(g) * Math.cos(b)) * (180 / Math.PI);
 
-        // Ensure smoothing
+        // Handle landscape secondary flip
+        if (isLandscapeSecondary) {
+            rawPitch = -rawPitch;
+        }
+
+        // Apply smoothing
         this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
 
         // Calculate delta from calibration
         let calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
 
-        // Wrap-around for full stability
+        // Handle wrap-around
         if (calibratedPitch > 180) calibratedPitch -= 360;
         if (calibratedPitch < -180) calibratedPitch += 360;
 
-        this.checkTriggers(calibratedPitch);
+        // FINAL ADJUSTMENT: Map Tilt Forward (Down) to POSITIVE values.
+        // Based on testing, Tilt Forward results in a change that we want to be positive.
+        const userRelativePitch = -calibratedPitch;
 
-        // Notify update for debugging/UI
+        this.checkTriggers(userRelativePitch);
+
+        // Notify update with all relevant data
         this.onUpdate({
             raw: this.current,
-            pitch: calibratedPitch,
+            pitch: userRelativePitch,
             state: this.state
         });
     }
