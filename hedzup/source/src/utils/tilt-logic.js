@@ -59,48 +59,51 @@ class TiltLogic {
      * Process raw sensor data.
      */
     handleOrientation(event) {
-        let { alpha, beta, gamma } = event;
+        let { beta, gamma } = event;
         if (beta === null || gamma === null) return;
 
         // Store raw values
-        this.current = { alpha, beta, gamma };
+        this.current = { beta, gamma, alpha: event.alpha || 0 };
 
-        // --- ORIENTATION-AWARE PITCH ---
-        // Detect landscape orientation to handle sign flips
-        const orientation = (screen.orientation || {}).type || window.orientation || 'landscape-primary';
-        const isLandscapeSecondary = String(orientation).includes('secondary') || orientation === -90 || orientation === 270;
-
+        // --- ROBUST GRAVITY VECTOR PROJECTION ---
+        // Z-projection of gravity tells us how much the screen is tilted from vertical.
         const b = beta * (Math.PI / 180);
         const g = gamma * (Math.PI / 180);
+        const gz = Math.cos(b) * Math.cos(g);
 
-        // Calculate pitch using atan2 for stability (full 360 range)
-        let rawPitch = Math.atan2(Math.sin(g), Math.cos(g) * Math.cos(b)) * (180 / Math.PI);
+        // This gives -90 to 90 with 0 being perfectly vertical
+        let rawPitch = -Math.asin(gz) * (180 / Math.PI);
 
-        // Handle landscape secondary flip
-        if (isLandscapeSecondary) {
-            rawPitch = -rawPitch;
+        // Disambiguate forward/backward using gamma's sign
+        // In landscape, gamma is the primary tilt axis.
+        if (gamma < 0) {
+            if (rawPitch > 0) rawPitch = 180 - rawPitch;
+            else rawPitch = -180 - rawPitch;
         }
 
         // Apply smoothing
         this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
 
+        // Orientation aware flip
+        const orientation = (screen.orientation || {}).type || window.orientation || 'landscape-primary';
+        const isSecondary = String(orientation).includes('secondary') || orientation === -90 || orientation === 270;
+
         // Calculate delta from calibration
         let calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
 
-        // Handle wrap-around
+        // Normalize
         if (calibratedPitch > 180) calibratedPitch -= 360;
         if (calibratedPitch < -180) calibratedPitch += 360;
 
-        // FINAL ADJUSTMENT: Map Tilt Forward (Down) to POSITIVE values.
-        // Based on testing, Tilt Forward results in a change that we want to be positive.
-        const userRelativePitch = -calibratedPitch;
+        // Final sign correction for YES/SKIP mapping
+        const finalPitch = isSecondary ? -calibratedPitch : calibratedPitch;
 
-        this.checkTriggers(userRelativePitch);
+        this.checkTriggers(finalPitch);
 
         // Notify update with all relevant data
         this.onUpdate({
             raw: this.current,
-            pitch: userRelativePitch,
+            pitch: finalPitch,
             state: this.state
         });
     }
@@ -134,8 +137,6 @@ class TiltLogic {
      * Linear interpolation helper.
      */
     lerp(start, end, amt) {
-        // Handle wrap-around for degrees during lerp if necessary
-        // (Simple lerp for now, as gamma usually doesn't flip frequently in this use case)
         return start + (end - start) * amt;
     }
 }

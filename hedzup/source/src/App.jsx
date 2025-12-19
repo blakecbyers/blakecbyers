@@ -23,7 +23,6 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
     const [timer, setTimer] = useState(60);
 
     const card = cards[index] || null;
-    const physics = useRef({ tilt: 0, state: 'NEUTRAL' });
 
     const handleAction = useCallback((type) => {
         if (status !== 'active') return;
@@ -110,50 +109,44 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
             <div
                 style={{
                     transform: 'rotate(90deg)',
-                    width: '100dvh',
-                    height: '100dvw',
+                    width: '100lvh',
+                    height: '100lvw',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    gap: '4vh'
                 }}
             >
-                {/* Top Margin / Spacer to balance the bottom */}
-                <div className="flex-none h-[8vw]" />
-
                 {/* Timer Area */}
-                <div className="flex-none mb-[4vw]">
-                    <div className="bg-black/30 backdrop-blur-2xl px-12 py-3 rounded-full border border-white/10 shadow-xl">
-                        <span className="font-mono text-[8vw] leading-none font-black text-white">{timer}</span>
-                    </div>
+                <div className="flex-none bg-black/40 backdrop-blur-2xl px-12 py-3 rounded-full border border-white/10 shadow-xl">
+                    <span className="font-mono text-[9vh] leading-none font-black text-white">{timer}</span>
                 </div>
 
-                {/* Card Area - Flex grow ensures it takes available space and centers content */}
-                <div className="flex-grow flex items-center justify-center w-full px-[5dvh]">
-                    <div className={`
-                        w-full max-h-[60vw] bg-white rounded-[6vw] shadow-2xl flex flex-col items-center justify-center px-[8vw] py-[4vw] text-center
-                        transition-all duration-300 transform
-                        ${status !== 'active' ? 'opacity-0 scale-95 translate-y-8' : 'opacity-100 scale-100 translate-y-0'}
+                {/* Card Area - Flexbox ensures it fills and centers the content */}
+                <div className={`
+                    w-[92vw] h-[65vh] bg-white rounded-[6vh] shadow-2xl flex flex-col items-center justify-center px-10 py-6 text-center
+                    transition-all duration-300 transform
+                    ${status !== 'active' ? 'opacity-0 scale-95 translate-y-8' : 'opacity-100 scale-100 translate-y-0'}
+                `}>
+                    {card?.type === 'country' && card?.code && (
+                        <img
+                            src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
+                            className="w-[18vh] h-[18vh] mb-[4vh] object-contain drop-shadow-sm"
+                            alt="flag"
+                        />
+                    )}
+
+                    <h1 className={`
+                        ${card?.text.length > 15 ? 'text-[7.5vh]' : 'text-[11vh]'} 
+                        font-black text-stone-900 leading-[1] w-full break-words tracking-tight
                     `}>
-                        {card?.type === 'country' && card?.code && (
-                            <img
-                                src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
-                                className="w-[18vw] h-[18vw] mb-[3vw] object-contain drop-shadow-sm"
-                                alt="flag"
-                            />
-                        )}
-
-                        <h1 className={`
-                            ${card?.text.length > 15 ? 'text-[7.5vw]' : 'text-[11vw]'} 
-                            font-black text-stone-900 leading-[1] w-full break-words tracking-tight
-                        `}>
-                            {card?.text}
-                        </h1>
-                    </div>
+                        {card?.text}
+                    </h1>
                 </div>
 
-                {/* Bottom Spacer to perfectly balance the top area and keep card centered */}
-                <div className="flex-none h-[12vw]" />
+                {/* Bottom Spacer for balance */}
+                <div className="flex-none h-[4vh]" />
             </div>
         </div>
     );
@@ -253,8 +246,8 @@ const Countdown = ({ onReady, active }) => {
             <div
                 style={{
                     transform: 'rotate(90deg)',
-                    width: '100dvh',
-                    height: '100dvw',
+                    width: '100lvh',
+                    height: '100lvw',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
