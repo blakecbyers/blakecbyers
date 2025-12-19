@@ -100,43 +100,52 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
         <div
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
-            className={`fixed inset-0 flex items-center justify-center transition-colors duration-500 ${bg} touch-none`}
+            className={`fixed inset-0 flex items-center justify-center transition-colors duration-500 ${bg} touch-none overflow-hidden`}
         >
             {/* View rotated 90deg for audience - Container fills screen */}
             <div
                 style={{
                     transform: 'rotate(90deg)',
                     width: '100vh',
-                    height: '100vw'
+                    height: '100vw',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem'
                 }}
-                className="relative flex flex-col items-center justify-center p-[4vh]"
             >
-                {/* Timer - Semi-transparent pill */}
-                <div className="bg-black/40 backdrop-blur-xl px-[8vw] py-[2.5vh] rounded-full mb-[5vh] shrink-0 border border-white/10">
-                    <span className="font-mono text-[8vh] leading-none font-black text-white">{timer}</span>
+                {/* Timer Area */}
+                <div className="mb-[5vh] shrink-0">
+                    <div className="bg-black/30 backdrop-blur-2xl px-12 py-4 rounded-full border border-white/10 shadow-xl">
+                        <span className="font-mono text-[9vh] leading-none font-black text-white">{timer}</span>
+                    </div>
                 </div>
 
-                {/* Card - Scale with screen width (short side of phone) */}
+                {/* Card Area - Wider and properly centered */}
                 <div className={`
-                    w-[92vw] flex-grow max-h-[65vh] bg-white rounded-[5vh] shadow-2xl flex flex-col items-center justify-center px-[6vw] py-[6vh] text-center
+                    w-[94vw] flex-grow max-h-[60vh] bg-white rounded-[6vh] shadow-2xl flex flex-col items-center justify-center px-[8vw] py-[4vh] text-center
                     transition-all duration-300 transform
-                    ${status !== 'active' ? 'opacity-0 scale-90 translate-y-4' : 'opacity-100 scale-100 translate-y-0'}
+                    ${status !== 'active' ? 'opacity-0 scale-95 translate-y-8' : 'opacity-100 scale-100 translate-y-0'}
                 `}>
                     {card?.type === 'country' && card?.code && (
                         <img
                             src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
-                            className="w-[18vh] h-[18vh] mb-[4vh] object-contain"
+                            className="w-[18vh] h-[18vh] mb-[3vh] object-contain drop-shadow-sm"
                             alt="flag"
                         />
                     )}
 
                     <h1 className={`
-                        ${card?.text.length > 15 ? 'text-[7vh]' : 'text-[10vh]'} 
-                        font-black text-stone-900 leading-[1.1] w-full break-words tracking-tighter
+                        ${card?.text.length > 15 ? 'text-[7.5vh]' : 'text-[11vh]'} 
+                        font-black text-stone-900 leading-[1] w-full break-words tracking-tight
                     `}>
                         {card?.text}
                     </h1>
                 </div>
+
+                {/* Bottom spacer for balance */}
+                <div className="h-[2vh] w-full mt-[4vh]" />
             </div>
         </div>
     );

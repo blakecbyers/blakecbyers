@@ -59,40 +59,31 @@ class TiltLogic {
      * Process raw sensor data.
      */
     handleOrientation(event) {
-        const { alpha, beta, gamma } = event;
+        let { alpha, beta, gamma } = event;
         if (beta === null || gamma === null) return;
 
-        // Store raw values for reference
+        // Store raw values
         this.current = { alpha, beta, gamma };
 
-        // --- STABLE HEADS-UP PITCH CALCULATION ---
-        // We need to calculate the pitch (forward/back) regardless of device landscape orientation.
-        // On most devices in the "Heads Up" position (held against forehead):
-        // - 'beta' is the roll/side-tilt.
-        // - 'gamma' is the pitch (forward/back).
-        // However, this can swap depending on how the browser handles orientation.
+        // --- STABLE PITCH CALCULATION ---
+        // We calculate the device's pitch relative to the ground.
+        // We use Math.atan2 to get a full 360-degree signed angle.
+        const b = beta * (Math.PI / 180);
+        const g = gamma * (Math.PI / 180);
 
-        // A robust approach: track the projection of the gravity vector onto the screen normal.
-        const bRad = beta * (Math.PI / 180);
-        const gRad = gamma * (Math.PI / 180);
+        // This works reliably for "Heads Up" mode
+        let rawPitch = Math.atan2(Math.sin(g), Math.cos(g) * Math.cos(b)) * (180 / Math.PI);
 
-        // We use the orientation-agnostic Z-gravity component
-        let pitch = gamma;
+        // Ensure smoothing
+        this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
 
-        // If the device is held in landscape, the axis behavior changed.
-        // We calibrate relative to the starting position to ignore the base 90-degree offset.
-        this.smoothed.pitch = this.lerp(this.smoothed.pitch || pitch, pitch, this.options.smoothing);
-
+        // Calculate delta from calibration
         let calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
 
-        // Handle the flip boundary (-180 to 180)
+        // Wrap-around for full stability
         if (calibratedPitch > 180) calibratedPitch -= 360;
         if (calibratedPitch < -180) calibratedPitch += 360;
 
-        // CRITICAL: Differentiate Forward from Backward.
-        // In "Heads Up" position (landscape, vertical screen), gamma usually 
-        // increases as you tilt forward (toward the floor).
-        // However, we want to ensure it's not symmetric.
         this.checkTriggers(calibratedPitch);
 
         // Notify update for debugging/UI
