@@ -1,158 +1,131 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DECKS } from './data/decks';
 
-/**
- * HEDZUP: MASTER PRODUCTION EDITION
- * Produced for an elite codebase with perfect sensor handling and audience perspective.
- */
+// --- CONFIG ---
+const TILT_THRESHOLD = 45;
+const NEUTRAL_ZONE = 20;
 
-// --- DYNAMIC CONFIGURATION ---
-const SENSOR_STABILIZATION = 0.28; // Low-pass filter weight
-const TRIGGER_THRESHOLD = 45;      // Angle in degrees to trigger action
-const HYSTERESIS_LIMIT = 15;        // Angle to return to neutral
-
-// --- SHARED UI COMPONENTS ---
-const ActionButton = ({ onClick, children, className = "" }) => (
+// --- SHARED UI ---
+const Button = ({ onClick, children, className = "" }) => (
     <button
         onClick={onClick}
-        className={`w-full py-8 text-5xl font-black rounded-[4rem] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.2)] tracking-tighter uppercase ${className}`}
+        className={`w-full py-4 px-6 font-bold rounded-2xl active:scale-95 transition-all shadow-lg text-xl uppercase ${className}`}
     >
         {children}
     </button>
 );
 
-/**
- * CORE GAME ENGINE
- * Engineered for industrial-grade orientation handling.
- */
-const HedzupGame = ({ deck, cards, onFinish, playFeedback, initialCal }) => {
-    const [status, setStatus] = useState('active'); // active | correct | pass
+// --- GAMEPLAY ---
+const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
+    const [status, setStatus] = useState('active'); // active, correct, pass
     const [index, setIndex] = useState(0);
-    const [tally, setTally] = useState({ correct: [], skipped: [] });
-    const [seconds, setSeconds] = useState(60);
+    const [stats, setStats] = useState({ correct: [], skipped: [] });
+    const [timer, setTimer] = useState(60);
 
-    const activeItem = cards[index] || null;
-    const bridge = useRef({ pitch: 0, state: 'NEUTRAL' });
+    const card = cards[index] || null;
+    const physics = useRef({ tilt: 0, state: 'NEUTRAL' });
 
-    // Precise Game Action Dispatcher
-    const processAction = useCallback((result) => {
+    const handleAction = useCallback((type) => {
         if (status !== 'active') return;
 
-        playFeedback(result === 'correct' ? 'success' : 'pass');
-        setStatus(result);
+        playSound(type === 'correct' ? 'success' : 'pass');
+        setStatus(type);
 
-        const currentTally = { ...tally };
-        if (result === 'correct') currentTally.correct = [...currentTally.correct, activeItem];
-        else currentTally.skipped = [...currentTally.skipped, activeItem];
-        setTally(currentTally);
+        const newStats = { ...stats };
+        if (type === 'correct') newStats.correct = [...newStats.correct, card];
+        else newStats.skipped = [...newStats.skipped, card];
+        setStats(newStats);
 
-        // Smooth transition to next card
         setTimeout(() => {
             if (index + 1 >= cards.length) {
-                onFinish(currentTally);
+                onFinish(newStats);
             } else {
                 setIndex(prev => prev + 1);
                 setStatus('active');
             }
         }, 600);
-    }, [status, index, cards, activeItem, tally, playFeedback, onFinish]);
+    }, [status, index, cards, card, stats, playSound, onFinish]);
 
-    /**
-     * SENSOR PROCESSING UNIT
-     * Dual-orientation aware engine using relative pitch delta.
-     */
+    // Simple, reliable tilt logic
     useEffect(() => {
-        const onDeviceMotion = (e) => {
+        const onMotion = (e) => {
             const { beta, gamma } = e;
-            if (beta === null || gamma === null) return;
+            if (beta === null) return;
 
-            // In landscape-left orientation (standard for heads up):
-            // Gamma is the primary pitch axis (tilting toward floor/ceiling).
-            // Beta sign detects if the phone is flipped (Notch Left vs Notch Right).
-            const multiplier = beta > 0 ? 1 : -1;
-            const livePitch = gamma * multiplier;
-            let delta = livePitch - (initialCal.gamma * multiplier);
+            // Use relative beta for portrait-held vertical tilt
+            // Since the UI is rotated 90deg, we need to handle the sensor axis carefully.
+            // When held on forehead in landscape, 'gamma' is usually the pitch (forward/back).
+            let val = gamma - (calibration.gamma || 0);
 
-            // Normalize angular distance
-            if (delta > 180) delta -= 360;
-            if (delta < -180) delta += 360;
+            // Basic wrap-around
+            if (val > 180) val -= 360;
+            if (val < -180) val += 360;
 
-            // Low-pass filter for butter-smooth state locking
-            bridge.current.pitch = bridge.current.pitch + SENSOR_STABILIZATION * (delta - bridge.current.pitch);
-            const currentVal = bridge.current.pitch;
+            // Smoothing
+            physics.current.tilt = physics.current.tilt + 0.3 * (val - physics.current.tilt);
+            const smoothed = physics.current.tilt;
 
             if (status !== 'active') return;
 
-            // Hysteresis-based State Machine
-            if (bridge.current.state === 'NEUTRAL') {
-                if (currentVal > TRIGGER_THRESHOLD) {
-                    bridge.current.state = 'TRIGGERED';
-                    processAction('correct');
-                } else if (currentVal < -TRIGGER_THRESHOLD) {
-                    bridge.current.state = 'TRIGGERED';
-                    processAction('pass');
+            if (physics.current.state === 'NEUTRAL') {
+                if (smoothed > TILT_THRESHOLD) {
+                    physics.current.state = 'TRIGGERED';
+                    handleAction('correct');
+                } else if (smoothed < -TILT_THRESHOLD) {
+                    physics.current.state = 'TRIGGERED';
+                    handleAction('pass');
                 }
-            } else if (Math.abs(currentVal) < HYSTERESIS_LIMIT) {
-                bridge.current.state = 'NEUTRAL';
+            } else if (Math.abs(smoothed) < NEUTRAL_ZONE) {
+                physics.current.state = 'NEUTRAL';
             }
         };
 
-        window.addEventListener('deviceorientation', onDeviceMotion);
-        return () => window.removeEventListener('deviceorientation', onDeviceMotion);
-    }, [status, initialCal, processAction]);
+        window.addEventListener('deviceorientation', onMotion);
+        return () => window.removeEventListener('deviceorientation', onMotion);
+    }, [status, calibration, handleAction]);
 
-    // Master Timer
+    // Timer
     useEffect(() => {
-        if (seconds <= 0) {
-            onFinish(tally);
+        if (timer <= 0) {
+            onFinish(stats);
             return;
         }
-        const clock = setInterval(() => setSeconds(t => t - 1), 1000);
-        return () => clearInterval(clock);
-    }, [seconds, onFinish, tally]);
+        const interval = setInterval(() => setTimer(t => t - 1), 1000);
+        return () => clearInterval(interval);
+    }, [timer, onFinish, stats]);
 
-    // Surface Touch Gestures
-    const touchCoord = useRef(0);
-    const handleStart = (e) => touchCoord.current = e.touches[0].clientY;
-    const handleEnd = (e) => {
-        const offset = e.changedTouches[0].clientY - touchCoord.current;
-        if (Math.abs(offset) > 80) processAction(offset > 0 ? 'correct' : 'pass');
-    };
-
-    const sceneBg = status === 'correct' ? 'bg-green-500' : status === 'pass' ? 'bg-orange-500' : 'bg-zinc-950';
+    const bg = status === 'correct' ? 'bg-green-500' : status === 'pass' ? 'bg-orange-500' : 'bg-stone-900';
 
     return (
-        <div className={`fixed inset-0 flex items-center justify-center transition-colors duration-500 ${sceneBg} touch-none`} onTouchStart={handleStart} onTouchEnd={handleEnd}>
-            {/* AUDIENCE VIEWPORT: Flipped 90deg to ensure global readability */}
+        <div className={`fixed inset-0 flex items-center justify-center transition-colors duration-300 ${bg} touch-none`}>
+            {/* View rotated 90deg for audience */}
             <div style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }} className="relative flex flex-col items-center justify-center w-[100vh] h-[100vw]">
 
-                {/* TIMER: Industrial Impact Visibility */}
-                <div className="absolute top-12 left-12 bg-black/90 backdrop-blur-3xl px-24 py-12 rounded-[4.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.6)] z-50 border border-white/5 animate-in slide-in-from-top-20 duration-1000">
-                    <span className="font-mono text-[12rem] font-black text-white leading-none tracking-tightest tabular-nums">{seconds}</span>
+                {/* Visible Timer */}
+                <div className="absolute top-8 left-8 bg-black/50 backdrop-blur-md px-8 py-4 rounded-3xl z-50">
+                    <span className="font-mono text-5xl font-black text-white">{timer}</span>
                 </div>
 
-                {/* THE CARD */}
+                {/* Card */}
                 <div className={`
-                    w-[92%] h-[82%] bg-white rounded-[8.5rem] shadow-[0_120px_240px_-50px_rgba(0,0,0,0.9)] flex flex-col items-center justify-center p-24 text-center
-                    transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) transform
-                    ${status !== 'active' ? 'opacity-0 scale-75 translate-y-32' : 'opacity-100 scale-100 translate-y-0'}
+                    w-[85%] h-[75%] bg-white rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-8 text-center
+                    transition-all duration-300 transform
+                    ${status !== 'active' ? 'opacity-0 scale-90 translate-y-10' : 'opacity-100 scale-100 translate-y-0'}
                 `}>
-                    {activeItem?.type === 'country' && activeItem?.code && (
+                    {card?.type === 'country' && card?.code && (
                         <img
-                            src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${activeItem.code}/vector.svg`}
-                            className="w-[35vh] h-[35vh] mb-20 object-contain drop-shadow-2xl"
-                            alt="visual"
+                            src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
+                            className="w-40 h-40 mb-8 object-contain"
+                            alt="flag"
                         />
                     )}
 
-                    <h1 className={`${activeItem?.text.length > 10 ? 'text-[12vh]' : 'text-[18vh]'} font-black text-zinc-950 leading-[0.8] tracking-tightest uppercase`}>
-                        {activeItem?.text}
+                    <h1 className={`${card?.text.length > 12 ? 'text-5xl' : 'text-7xl'} font-black text-stone-900 leading-tight`}>
+                        {card?.text}
                     </h1>
 
-                    <div className="mt-20 opacity-10 text-[6vh] font-black uppercase tracking-[1em] text-zinc-900 flex items-center gap-10">
-                        <div className="w-24 h-1 bg-zinc-950"></div>
-                        <span>{activeItem?.type === 'country' ? 'Geography' : deck.title}</span>
-                        <div className="w-24 h-1 bg-zinc-950"></div>
+                    <div className="mt-8 opacity-20 text-2xl font-bold uppercase tracking-widest text-stone-900">
+                        {card?.type === 'country' ? 'Country' : deck.title}
                     </div>
                 </div>
             </div>
@@ -160,28 +133,28 @@ const HedzupGame = ({ deck, cards, onFinish, playFeedback, initialCal }) => {
     );
 };
 
-// --- SCENE IMPLEMENTATIONS ---
+// --- VIEWS ---
 
-const Scene_Menu = ({ list, onPick }) => (
-    <div className="min-h-screen bg-zinc-50 p-16 flex flex-col pt-40 overflow-y-auto">
-        <header className="mb-32 px-4">
-            <h1 className="text-[15rem] font-black text-zinc-950 tracking-tightest mb-4 leading-none inline-block border-b-[24px] border-zinc-950 pb-8 uppercase">Hedzup</h1>
-            <p className="text-6xl text-zinc-400 font-bold uppercase tracking-[0.6em] mt-10 pl-6">Elite Edition</p>
+const Menu = ({ onSelect }) => (
+    <div className="min-h-screen bg-stone-50 p-6 flex flex-col pt-12 overflow-y-auto">
+        <header className="mb-10">
+            <h1 className="text-6xl font-black text-stone-900 tracking-tighter mb-2">Hedzup</h1>
+            <p className="text-lg text-stone-500 font-bold uppercase tracking-widest">Select Category</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 pb-64">
-            {list.map(d => (
+        <div className="grid grid-cols-1 gap-4 pb-20">
+            {DECKS.map(deck => (
                 <div
-                    key={d.id}
-                    onClick={() => onPick(d)}
-                    className="group cursor-pointer bg-white p-16 rounded-[6rem] shadow-[0_30px_90px_rgba(0,0,0,0.06)] hover:shadow-3xl hover:-translate-y-4 transition-all duration-700 border border-zinc-50 flex items-center gap-16"
+                    key={deck.id}
+                    onClick={() => onSelect(deck)}
+                    className="cursor-pointer bg-white p-6 rounded-3xl shadow-sm border border-stone-100 flex items-center gap-6 active:scale-[0.98] transition-all"
                 >
-                    <div className={`w-44 h-44 rounded-[4.5rem] bg-gradient-to-br ${d.gradient} flex items-center justify-center shadow-3xl group-hover:rotate-12 transition-all duration-700`}>
-                        {d.icon}
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${deck.gradient} flex items-center justify-center shadow-md`}>
+                        {deck.icon}
                     </div>
                     <div>
-                        <h3 className="text-7xl font-black text-zinc-950 mb-3 tracking-tighter">{d.title}</h3>
-                        <p className="text-zinc-400 font-black uppercase text-lg tracking-widest opacity-60 leading-relaxed">{d.description}</p>
+                        <h3 className="text-2xl font-black text-stone-900">{deck.title}</h3>
+                        <p className="text-stone-400 font-bold text-xs uppercase tracking-tight">{deck.description}</p>
                     </div>
                 </div>
             ))}
@@ -189,109 +162,106 @@ const Scene_Menu = ({ list, onPick }) => (
     </div>
 );
 
-const Scene_Splash = ({ deck, onConfirm }) => {
-    const handleMotionAccess = async () => {
+const Instructions = ({ deck, onStart }) => {
+    const handleStart = async () => {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const res = await DeviceOrientationEvent.requestPermission();
-                onConfirm(res === 'granted');
-            } catch (e) { onConfirm(false); }
-        } else { onConfirm(true); }
+                onStart(res === 'granted');
+            } catch (e) { onStart(false); }
+        } else { onStart(true); }
     };
 
     return (
-        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-24 text-center animate-in fade-in duration-1000">
-            <div className={`w-72 h-72 rounded-[6.5rem] bg-gradient-to-br ${deck.gradient} flex items-center justify-center shadow-3xl mb-24`}>
+        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+            <div className={`w-24 h-24 rounded-3xl bg-gradient-to-br ${deck.gradient} flex items-center justify-center shadow-xl mb-8`}>
                 {deck.icon}
             </div>
-            <h2 className="text-[8rem] font-black text-zinc-950 mb-24 tracking-tightest uppercase">{deck.title}</h2>
+            <h2 className="text-4xl font-black text-stone-950 mb-8">{deck.title}</h2>
 
-            <div className="w-full max-w-5xl space-y-12 mb-32">
-                <div className="flex items-center bg-zinc-50 p-16 rounded-[6rem] gap-14 border border-zinc-100 shadow-sm transition-all hover:scale-105 duration-500">
-                    <div className="w-24 h-24 rounded-full bg-zinc-950 text-white flex items-center justify-center font-black text-5xl">1</div>
-                    <span className="text-6xl font-black text-zinc-600">Forehead, Screen Out</span>
+            <div className="w-full max-w-xs space-y-4 mb-10 text-left">
+                <div className="flex items-center bg-stone-50 p-4 rounded-2xl gap-4 border border-stone-100">
+                    <div className="w-10 h-10 rounded-full bg-stone-900 text-white flex items-center justify-center font-black">1</div>
+                    <span className="text-lg font-bold text-stone-600">Forehead, Screen Out</span>
                 </div>
-                <div className="flex flex-col md:flex-row gap-12 w-full">
-                    <div className="flex-1 flex items-center bg-green-50 p-16 rounded-[6rem] gap-14 border border-green-200">
-                        <div className="w-24 h-24 rounded-full bg-green-500 text-white flex items-center justify-center font-black text-5xl">✓</div>
-                        <span className="text-5xl font-black text-green-700">TILT DOWN</span>
-                    </div>
-                    <div className="flex-1 flex items-center bg-orange-50 p-16 rounded-[6rem] gap-14 border border-orange-200">
-                        <div className="w-24 h-24 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-5xl">X</div>
-                        <span className="text-5xl font-black text-orange-700">TILT UP</span>
-                    </div>
+                <div className="flex items-center bg-green-50 p-4 rounded-2xl gap-4 border border-green-100">
+                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-black">✓</div>
+                    <span className="text-lg font-bold text-green-700">Tilt Down = Correct</span>
+                </div>
+                <div className="flex items-center bg-orange-50 p-4 rounded-2xl gap-4 border border-orange-100">
+                    <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black">X</div>
+                    <span className="text-lg font-bold text-orange-700">Tilt Up = Pass</span>
                 </div>
             </div>
 
-            <div className="w-full max-w-2xl">
-                <ActionButton onClick={handleMotionAccess} className="bg-zinc-950 text-white py-14 shadow-3xl">LOCKED IN</ActionButton>
+            <div className="w-full max-w-xs">
+                <Button onClick={handleStart} className="bg-stone-950 text-white">READY</Button>
             </div>
         </div>
     );
 };
 
-const Scene_Warmup = ({ onReady, active }) => {
-    const [count, setCount] = useState(3);
-    const orientationBuffer = useRef({ gamma: 0 });
+const Countdown = ({ onReady, active }) => {
+    const [sec, setSec] = useState(3);
+    const cal = useRef({ gamma: 0 });
 
     useEffect(() => {
-        const sampler = (e) => { if (e.gamma !== null) orientationBuffer.current = { gamma: e.gamma }; };
-        if (active) window.addEventListener('deviceorientation', sampler);
-        if (count > 0) {
-            const lap = setTimeout(() => setCount(count - 1), 1000);
-            return () => { clearTimeout(lap); window.removeEventListener('deviceorientation', sampler); };
+        const track = (e) => { if (e.gamma !== null) cal.current = { gamma: e.gamma }; };
+        if (active) window.addEventListener('deviceorientation', track);
+        if (sec > 0) {
+            const t = setTimeout(() => setSec(sec - 1), 1000);
+            return () => { clearTimeout(t); window.removeEventListener('deviceorientation', track); };
         } else {
-            onReady(orientationBuffer.current);
+            onReady(cal.current);
         }
-    }, [count, onReady, active]);
+    }, [sec, onReady, active]);
 
     return (
-        <div className="fixed inset-0 bg-zinc-950 flex items-center justify-center z-[100] p-24">
+        <div className="fixed inset-0 bg-stone-950 flex items-center justify-center z-[100] p-10">
             <div style={{ transform: 'rotate(90deg)' }} className="text-center">
-                <div className="text-[35rem] font-black text-white italic leading-none animate-pulse drop-shadow-[0_0_150px_rgba(255,255,255,0.4)]">
-                    {count > 0 ? count : "GO!"}
+                <div className="text-[12rem] font-black text-white leading-none">
+                    {sec > 0 ? sec : "GO!"}
                 </div>
-                <p className="text-white/20 text-7xl font-black uppercase tracking-[2.5em] mt-48 pl-14 white-space-nowrap leading-none">Calibrating...</p>
+                <p className="text-white/30 text-2xl font-black uppercase tracking-widest mt-8">Calibrating...</p>
             </div>
         </div>
     );
 };
 
-const Scene_Results = ({ stats, onExit, onRetry }) => (
-    <div className="min-h-screen bg-zinc-50 flex flex-col p-24 overflow-y-auto">
-        <header className="mb-40 text-center pt-40">
-            <h1 className="text-[15rem] font-black text-zinc-950 tracking-tightest leading-none">SESSION OVER</h1>
-            <div className="flex justify-center gap-64 mt-32">
-                <div className="text-center">
-                    <span className="text-[20rem] font-black text-green-500 block mb-10 leading-none tabular-nums animate-in zoom-in-50 duration-700">{stats.correct.length}</span>
-                    <p className="text-3xl font-black text-zinc-400 uppercase tracking-widest leading-none">Successes</p>
-                </div>
-                <div className="text-center opacity-40">
-                    <span className="text-[20rem] font-black text-zinc-300 block mb-10 leading-none tabular-nums animate-in zoom-in-50 duration-1000">{stats.skipped.length}</span>
-                    <p className="text-3xl font-black text-zinc-400 uppercase tracking-widest leading-none">Skips</p>
-                </div>
-            </div>
-        </header>
+const Results = ({ stats, onHome, onPlayAgain }) => (
+    <div className="min-h-screen bg-stone-50 flex flex-col p-6 overflow-y-auto pt-10">
+        <h1 className="text-6xl font-black text-stone-900 mb-8">Results</h1>
 
-        <div className="flex-1 space-y-16 mb-48 max-w-7xl mx-auto w-full">
-            {[...stats.correct.map(c => ({ ...c, win: true })), ...stats.skipped.map(c => ({ ...c, win: false }))].map((item, i) => (
-                <div key={i} className={`p-20 rounded-[7rem] flex items-center justify-between shadow-3xl transition-all duration-500 ${item.win ? 'bg-white border-green-50 scale-100' : 'bg-zinc-50/50 scale-95 opacity-50'}`}>
-                    <span className="text-[10rem] font-black text-zinc-950 tracking-tightest leading-none uppercase">{item.text}</span>
-                    <div className={`w-32 h-32 rounded-full flex items-center justify-center font-black text-6xl shadow-inner ${item.win ? 'bg-green-100 text-green-600' : 'bg-zinc-200 text-zinc-500'}`}>
-                        {item.win ? '✓' : 'X'}
-                    </div>
+        <div className="flex gap-8 mb-10">
+            <div>
+                <span className="text-6xl font-black text-green-500 block">{stats.correct.length}</span>
+                <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Correct</p>
+            </div>
+            <div>
+                <span className="text-6xl font-black text-orange-500 block">{stats.skipped.length}</span>
+                <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Passed</p>
+            </div>
+        </div>
+
+        <div className="space-y-3 mb-12">
+            {[...stats.correct.map(c => ({ ...c, hit: true })), ...stats.skipped.map(c => ({ ...c, hit: false }))].map((item, i) => (
+                <div key={i} className="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-stone-100">
+                    <span className="text-xl font-bold text-stone-800">{item.text}</span>
+                    <span className={`font-black ${item.hit ? 'text-green-500' : 'text-orange-500'}`}>
+                        {item.hit ? '✓' : 'X'}
+                    </span>
                 </div>
             ))}
         </div>
 
-        <div className="space-y-16 pb-64 mt-auto max-w-3xl mx-auto w-full">
-            <ActionButton onClick={onRetry} className="bg-zinc-950 text-white py-14 shadow-4xl">PLAY AGAIN</ActionButton>
-            <button onClick={onExit} className="w-full text-zinc-400 font-bold p-16 hover:text-zinc-950 tracking-[1.5em] uppercase text-3xl transition-all">Command Hub</button>
+        <div className="mt-auto space-y-4 pb-10">
+            <Button onClick={onPlayAgain} className="bg-stone-950 text-white">PLAY AGAIN</Button>
+            <button onClick={onHome} className="w-full text-stone-400 font-bold uppercase text-sm tracking-widest">Menu</button>
         </div>
     </div>
 );
 
-// --- MASTER APPLICATION HUB ---
+// --- APP ---
 export default function App() {
     const [view, setView] = useState('menu');
     const [deck, setDeck] = useState(null);
@@ -300,65 +270,51 @@ export default function App() {
     const [active, setActive] = useState(false);
     const [cal, setCal] = useState({ gamma: 0 });
 
-    const handleSFX = (type) => {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        if (ctx.state === 'suspended') ctx.resume();
-
+    const playSound = (type) => {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        const ctx = new AC();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
-        const now = ctx.currentTime;
+        const t = ctx.currentTime;
 
         if (type === 'success') {
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.exponentialRampToValueAtTime(1800, now + 0.12);
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            osc.start(); osc.stop(now + 0.2);
+            osc.frequency.setValueAtTime(600, t);
+            osc.frequency.exponentialRampToValueAtTime(1200, t + 0.1);
+            gain.gain.setValueAtTime(0.1, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            osc.start(); osc.stop(t + 0.2);
         } else if (type === 'pass') {
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.linearRampToValueAtTime(50, now + 0.4);
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-            osc.start(); osc.stop(now + 0.4);
-        } else if (type === 'finish') {
-            osc.frequency.setValueAtTime(600, now);
-            osc.frequency.exponentialRampToValueAtTime(1400, now + 0.7);
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.linearRampToValueAtTime(0, now + 1.8);
-            osc.start(); osc.stop(now + 1.8);
+            osc.frequency.setValueAtTime(400, t);
+            osc.frequency.linearRampToValueAtTime(100, t + 0.3);
+            gain.gain.setValueAtTime(0.1, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+            osc.start(); osc.stop(t + 0.3);
         }
     };
 
-    const activateGame = (d) => {
+    const handleSelect = (d) => {
         setDeck(d);
         setCards([...d.data].sort(() => Math.random() - 0.5));
-        setView('splash');
-    };
-
-    const deactivateGame = (results) => {
-        setStats(results);
-        handleSFX('finish');
-        setView('results');
+        setView('instructions');
     };
 
     return (
-        <div className="min-h-screen bg-zinc-50 font-sans selection:bg-zinc-200 touch-none select-none text-zinc-950 antialiased overflow-hidden transition-all duration-1000">
-            {view === 'menu' && <Scene_Menu list={DECKS} onPick={activateGame} />}
-            {view === 'splash' && <Scene_Splash deck={deck} onConfirm={(ok) => { setActive(ok); setView('warmup'); }} />}
-            {view === 'warmup' && <Scene_Warmup active={active} onReady={(c) => { setCal(c); setView('play'); }} />}
-            {view === 'play' && (
-                <HedzupGame
+        <div className="min-h-screen bg-stone-50 font-sans selection:bg-orange-100 touch-none select-none text-stone-950 antialiased overflow-hidden">
+            {view === 'menu' && <Menu onSelect={handleSelect} />}
+            {view === 'instructions' && <Instructions deck={deck} onStart={(ok) => { setActive(ok); setView('countdown'); }} />}
+            {view === 'countdown' && <Countdown active={active} onReady={(c) => { setCal(c); setView('game'); }} />}
+            {view === 'game' && (
+                <GameView
                     deck={deck}
                     cards={cards}
-                    onFinish={deactivateGame}
-                    playFeedback={handleSFX}
-                    initialCal={cal}
+                    onFinish={(res) => { setStats(res); setView('results'); }}
+                    playSound={playSound}
+                    calibration={cal}
                 />
             )}
-            {view === 'results' && <Scene_Results stats={stats} onExit={() => setView('menu')} onRetry={() => activateGame(deck)} />}
+            {view === 'results' && <Results stats={stats} onHome={() => setView('menu')} onPlayAgain={() => handleSelect(deck)} />}
         </div>
     );
 }
