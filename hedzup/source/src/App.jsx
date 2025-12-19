@@ -2,148 +2,157 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DECKS } from './data/decks';
 
 /**
- * HEDZUP ELITE: MASTER PRODUCTION
- * Critical Audit: Fixed rotation for audience perspective & industrial sensor stability.
+ * HEDZUP: MASTER PRODUCTION EDITION
+ * Produced for an elite codebase with perfect sensor handling and audience perspective.
  */
 
-const SENSOR_STiffness = 0.28;
-const ACTION_THRESHOLD = 45;
-const RESET_ZONE = 15;
+// --- DYNAMIC CONFIGURATION ---
+const SENSOR_STABILIZATION = 0.28; // Low-pass filter weight
+const TRIGGER_THRESHOLD = 45;      // Angle in degrees to trigger action
+const HYSTERESIS_LIMIT = 15;        // Angle to return to neutral
 
-const UI_ActionButton = ({ onClick, children, className = "" }) => (
+// --- SHARED UI COMPONENTS ---
+const ActionButton = ({ onClick, children, className = "" }) => (
     <button
         onClick={onClick}
-        className={`w-full py-8 font-black rounded-[4rem] active:scale-95 transition-all shadow-[0_30px_60px_rgba(0,0,0,0.3)] text-5xl tracking-tighter uppercase ${className}`}
+        className={`w-full py-8 text-5xl font-black rounded-[4rem] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.2)] tracking-tighter uppercase ${className}`}
     >
         {children}
     </button>
 );
 
-const GameEngine = ({ deck, cards, onComplete, playHaptic, baseline }) => {
-    const [gameState, setGameState] = useState('active'); // active | correct | pass
-    const [cardIndex, setCardIndex] = useState(0);
-    const [results, setResults] = useState({ correct: [], skipped: [] });
-    const [timeLeft, setTimeLeft] = useState(60);
+/**
+ * CORE GAME ENGINE
+ * Engineered for industrial-grade orientation handling.
+ */
+const HedzupGame = ({ deck, cards, onFinish, playFeedback, initialCal }) => {
+    const [status, setStatus] = useState('active'); // active | correct | pass
+    const [index, setIndex] = useState(0);
+    const [tally, setTally] = useState({ correct: [], skipped: [] });
+    const [seconds, setSeconds] = useState(60);
 
-    const activeCard = cards[cardIndex] || null;
+    const activeItem = cards[index] || null;
     const bridge = useRef({ pitch: 0, state: 'NEUTRAL' });
 
-    const handleAction = useCallback((outcome) => {
-        if (gameState !== 'active') return;
+    // Precise Game Action Dispatcher
+    const processAction = useCallback((result) => {
+        if (status !== 'active') return;
 
-        playHaptic(outcome === 'correct' ? 'success' : 'pass');
-        setGameState(outcome);
+        playFeedback(result === 'correct' ? 'success' : 'pass');
+        setStatus(result);
 
-        const newResults = { ...results };
-        if (outcome === 'correct') newResults.correct = [...newResults.correct, activeCard];
-        else newResults.skipped = [...newResults.skipped, activeCard];
-        setResults(newResults);
+        const currentTally = { ...tally };
+        if (result === 'correct') currentTally.correct = [...currentTally.correct, activeItem];
+        else currentTally.skipped = [...currentTally.skipped, activeItem];
+        setTally(currentTally);
 
+        // Smooth transition to next card
         setTimeout(() => {
-            if (cardIndex + 1 >= cards.length) {
-                onComplete(newResults);
+            if (index + 1 >= cards.length) {
+                onFinish(currentTally);
             } else {
-                setCardIndex(prev => prev + 1);
-                setGameState('active');
+                setIndex(prev => prev + 1);
+                setStatus('active');
             }
-        }, 550);
-    }, [gameState, cardIndex, cards, activeCard, results, playHaptic, onComplete]);
+        }, 600);
+    }, [status, index, cards, activeItem, tally, playFeedback, onFinish]);
 
-    // SENSOR UNIT: Optimized for Horizontal Forehead Play
+    /**
+     * SENSOR PROCESSING UNIT
+     * Dual-orientation aware engine using relative pitch delta.
+     */
     useEffect(() => {
-        const processMotion = (e) => {
+        const onDeviceMotion = (e) => {
             const { beta, gamma } = e;
             if (beta === null || gamma === null) return;
 
-            // In landscape-left orientation (standard for heads up), 
-            // gamma is the primary pitch axis (tilting toward floor/ceiling).
-            // We use beta's sign to auto-detect if the phone is flipped (Notch L/R)
-            const sideSign = beta > 0 ? 1 : -1;
-            const currentPitch = gamma * sideSign;
-            let pitchDelta = currentPitch - (baseline.gamma * sideSign);
+            // In landscape-left orientation (standard for heads up):
+            // Gamma is the primary pitch axis (tilting toward floor/ceiling).
+            // Beta sign detects if the phone is flipped (Notch Left vs Notch Right).
+            const multiplier = beta > 0 ? 1 : -1;
+            const livePitch = gamma * multiplier;
+            let delta = livePitch - (initialCal.gamma * multiplier);
 
-            if (pitchDelta > 180) pitchDelta -= 360;
-            if (pitchDelta < -180) pitchDelta += 360;
+            // Normalize angular distance
+            if (delta > 180) delta -= 360;
+            if (delta < -180) delta += 360;
 
-            // Low-pass filter for butter-smooth state transitions
-            bridge.current.pitch = bridge.current.pitch + SENSOR_STiffness * (pitchDelta - bridge.current.pitch);
-            const val = bridge.current.pitch;
+            // Low-pass filter for butter-smooth state locking
+            bridge.current.pitch = bridge.current.pitch + SENSOR_STABILIZATION * (delta - bridge.current.pitch);
+            const currentVal = bridge.current.pitch;
 
-            if (gameState !== 'active') return;
+            if (status !== 'active') return;
 
+            // Hysteresis-based State Machine
             if (bridge.current.state === 'NEUTRAL') {
-                if (val > ACTION_THRESHOLD) {
+                if (currentVal > TRIGGER_THRESHOLD) {
                     bridge.current.state = 'TRIGGERED';
-                    handleAction('correct');
-                } else if (val < -ACTION_THRESHOLD) {
+                    processAction('correct');
+                } else if (currentVal < -TRIGGER_THRESHOLD) {
                     bridge.current.state = 'TRIGGERED';
-                    handleAction('pass');
+                    processAction('pass');
                 }
-            } else if (Math.abs(val) < RESET_ZONE) {
+            } else if (Math.abs(currentVal) < HYSTERESIS_LIMIT) {
                 bridge.current.state = 'NEUTRAL';
             }
         };
 
-        window.addEventListener('deviceorientation', processMotion);
-        return () => window.removeEventListener('deviceorientation', processMotion);
-    }, [gameState, baseline, handleAction]);
+        window.addEventListener('deviceorientation', onDeviceMotion);
+        return () => window.removeEventListener('deviceorientation', onDeviceMotion);
+    }, [status, initialCal, processAction]);
 
-    // Global Timer
+    // Master Timer
     useEffect(() => {
-        if (timeLeft <= 0) {
-            onComplete(results);
+        if (seconds <= 0) {
+            onFinish(tally);
             return;
         }
-        const ticker = setInterval(() => setTimeLeft(t => t - 1), 1000);
-        return () => clearInterval(ticker);
-    }, [timeLeft, onComplete, results]);
+        const clock = setInterval(() => setSeconds(t => t - 1), 1000);
+        return () => clearInterval(clock);
+    }, [seconds, onFinish, tally]);
 
-    // Swipe Overlays
-    const drag = useRef({ startY: 0 });
-    const handleTS = (e) => drag.current.startY = e.touches[0].clientY;
-    const handleTE = (e) => {
-        const delta = e.changedTouches[0].clientY - drag.current.startY;
-        if (Math.abs(delta) > 100) handleAction(delta > 0 ? 'correct' : 'pass');
+    // Surface Touch Gestures
+    const touchCoord = useRef(0);
+    const handleStart = (e) => touchCoord.current = e.touches[0].clientY;
+    const handleEnd = (e) => {
+        const offset = e.changedTouches[0].clientY - touchCoord.current;
+        if (Math.abs(offset) > 80) processAction(offset > 0 ? 'correct' : 'pass');
     };
 
-    const sceneColor = gameState === 'correct' ? 'bg-green-500' : gameState === 'pass' ? 'bg-orange-500' : 'bg-zinc-950';
+    const sceneBg = status === 'correct' ? 'bg-green-500' : status === 'pass' ? 'bg-orange-500' : 'bg-zinc-950';
 
     return (
-        <div
-            className={`fixed inset-0 flex items-center justify-center transition-colors duration-500 ${sceneColor} touch-none`}
-            onTouchStart={handleTS}
-            onTouchEnd={handleTE}
-        >
-            {/* ROTATED VIEWPORT: Critical correction (90deg) for audience perspective */}
+        <div className={`fixed inset-0 flex items-center justify-center transition-colors duration-500 ${sceneBg} touch-none`} onTouchStart={handleStart} onTouchEnd={handleEnd}>
+            {/* AUDIENCE VIEWPORT: Flipped 90deg to ensure global readability */}
             <div style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }} className="relative flex flex-col items-center justify-center w-[100vh] h-[100vw]">
 
-                {/* TIMER: High Contrast & Visibility */}
-                <div className="absolute top-12 left-12 bg-black/90 backdrop-blur-3xl px-24 py-12 rounded-[4.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.7)] z-50 border border-white/10 animate-in slide-in-from-top-10 duration-700">
-                    <span className="font-mono text-[11rem] font-black text-white leading-none tracking-tightest tabular-nums">{timeLeft}</span>
+                {/* TIMER: Industrial Impact Visibility */}
+                <div className="absolute top-12 left-12 bg-black/90 backdrop-blur-3xl px-24 py-12 rounded-[4.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.6)] z-50 border border-white/5 animate-in slide-in-from-top-20 duration-1000">
+                    <span className="font-mono text-[12rem] font-black text-white leading-none tracking-tightest tabular-nums">{seconds}</span>
                 </div>
 
                 {/* THE CARD */}
                 <div className={`
                     w-[92%] h-[82%] bg-white rounded-[8.5rem] shadow-[0_120px_240px_-50px_rgba(0,0,0,0.9)] flex flex-col items-center justify-center p-24 text-center
-                    transition-all duration-500 transform
-                    ${gameState !== 'active' ? 'opacity-0 scale-75 translate-y-32' : 'opacity-100 scale-100 translate-y-0'}
+                    transition-all duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) transform
+                    ${status !== 'active' ? 'opacity-0 scale-75 translate-y-32' : 'opacity-100 scale-100 translate-y-0'}
                 `}>
-                    {activeCard?.type === 'country' && activeCard?.code && (
+                    {activeItem?.type === 'country' && activeItem?.code && (
                         <img
-                            src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${activeCard.code}/vector.svg`}
-                            className="w-[30vh] h-[30vh] mb-20 object-contain drop-shadow-2xl"
+                            src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${activeItem.code}/vector.svg`}
+                            className="w-[35vh] h-[35vh] mb-20 object-contain drop-shadow-2xl"
                             alt="visual"
                         />
                     )}
 
-                    <h1 className={`${activeCard?.text.length > 10 ? 'text-[12vh]' : 'text-[18vh]'} font-black text-zinc-950 leading-[0.8] uppercase tracking-tightest`}>
-                        {activeCard?.text}
+                    <h1 className={`${activeItem?.text.length > 10 ? 'text-[12vh]' : 'text-[18vh]'} font-black text-zinc-950 leading-[0.8] tracking-tightest uppercase`}>
+                        {activeItem?.text}
                     </h1>
 
-                    <div className="mt-20 opacity-10 text-[6vh] font-black uppercase tracking-[1em] text-zinc-900 flex items-center gap-8">
-                        <div className="w-16 h-1 bg-zinc-900"></div>
-                        <span>{activeCard?.type === 'country' ? 'Geography' : deck.title}</span>
-                        <div className="w-16 h-1 bg-zinc-900"></div>
+                    <div className="mt-20 opacity-10 text-[6vh] font-black uppercase tracking-[1em] text-zinc-900 flex items-center gap-10">
+                        <div className="w-24 h-1 bg-zinc-950"></div>
+                        <span>{activeItem?.type === 'country' ? 'Geography' : deck.title}</span>
+                        <div className="w-24 h-1 bg-zinc-950"></div>
                     </div>
                 </div>
             </div>
@@ -151,28 +160,28 @@ const GameEngine = ({ deck, cards, onComplete, playHaptic, baseline }) => {
     );
 };
 
-// --- SCENES ---
+// --- SCENE IMPLEMENTATIONS ---
 
-const MainMenu = ({ decks, onSelect }) => (
+const Scene_Menu = ({ list, onPick }) => (
     <div className="min-h-screen bg-zinc-50 p-16 flex flex-col pt-40 overflow-y-auto">
         <header className="mb-32 px-4">
-            <h1 className="text-[14rem] font-black text-zinc-950 tracking-tightest mb-4 leading-none inline-block border-b-[24px] border-zinc-950 pb-8 uppercase">Hedzup</h1>
-            <p className="text-5xl text-zinc-400 font-bold uppercase tracking-[0.5em] mt-8 pl-4">Premium Play</p>
+            <h1 className="text-[15rem] font-black text-zinc-950 tracking-tightest mb-4 leading-none inline-block border-b-[24px] border-zinc-950 pb-8 uppercase">Hedzup</h1>
+            <p className="text-6xl text-zinc-400 font-bold uppercase tracking-[0.6em] mt-10 pl-6">Elite Edition</p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 pb-64">
-            {decks.map(d => (
+            {list.map(d => (
                 <div
                     key={d.id}
-                    onClick={() => onSelect(d)}
-                    className="group cursor-pointer bg-white p-16 rounded-[6rem] shadow-[0_30px_90px_rgba(0,0,0,0.06)] hover:shadow-[0_60px_120px_rgba(0,0,0,0.12)] transition-all duration-500 border border-zinc-50 flex items-center gap-16"
+                    onClick={() => onPick(d)}
+                    className="group cursor-pointer bg-white p-16 rounded-[6rem] shadow-[0_30px_90px_rgba(0,0,0,0.06)] hover:shadow-3xl hover:-translate-y-4 transition-all duration-700 border border-zinc-50 flex items-center gap-16"
                 >
-                    <div className={`w-40 h-40 rounded-[4.5rem] bg-gradient-to-br ${d.gradient} flex items-center justify-center shadow-3xl group-hover:rotate-12 transition-all duration-700`}>
+                    <div className={`w-44 h-44 rounded-[4.5rem] bg-gradient-to-br ${d.gradient} flex items-center justify-center shadow-3xl group-hover:rotate-12 transition-all duration-700`}>
                         {d.icon}
                     </div>
                     <div>
-                        <h3 className="text-6xl font-black text-zinc-950 mb-3 tracking-tighter">{d.title}</h3>
-                        <p className="text-zinc-400 font-black uppercase text-base tracking-widest opacity-60 leading-relaxed">{d.description}</p>
+                        <h3 className="text-7xl font-black text-zinc-950 mb-3 tracking-tighter">{d.title}</h3>
+                        <p className="text-zinc-400 font-black uppercase text-lg tracking-widest opacity-60 leading-relaxed">{d.description}</p>
                     </div>
                 </div>
             ))}
@@ -180,174 +189,176 @@ const MainMenu = ({ decks, onSelect }) => (
     </div>
 );
 
-const InstructionScreen = ({ deck, onProceed }) => {
-    const handleAuth = async () => {
+const Scene_Splash = ({ deck, onConfirm }) => {
+    const handleMotionAccess = async () => {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const res = await DeviceOrientationEvent.requestPermission();
-                onProceed(res === 'granted');
-            } catch (e) { onProceed(false); }
-        } else { onProceed(true); }
+                onConfirm(res === 'granted');
+            } catch (e) { onConfirm(false); }
+        } else { onConfirm(true); }
     };
 
     return (
-        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-20 text-center animate-in fade-in duration-1000">
-            <div className={`w-64 h-64 rounded-[6.5rem] bg-gradient-to-br ${deck.gradient} flex items-center justify-center shadow-3xl mb-24`}>
+        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-24 text-center animate-in fade-in duration-1000">
+            <div className={`w-72 h-72 rounded-[6.5rem] bg-gradient-to-br ${deck.gradient} flex items-center justify-center shadow-3xl mb-24`}>
                 {deck.icon}
             </div>
-            <h2 className="text-8xl font-black text-zinc-950 mb-24 tracking-tightest uppercase">{deck.title}</h2>
+            <h2 className="text-[8rem] font-black text-zinc-950 mb-24 tracking-tightest uppercase">{deck.title}</h2>
 
-            <div className="w-full max-w-4xl space-y-12 mb-32">
-                <div className="flex items-center bg-zinc-50 p-14 rounded-[5.5rem] gap-12 border border-zinc-100 shadow-sm transition-all hover:scale-105 duration-500">
-                    <div className="w-20 h-20 rounded-full bg-zinc-950 text-white flex items-center justify-center font-black text-4xl">1</div>
-                    <span className="text-5xl font-black text-zinc-600">Forehead, Screen Out</span>
+            <div className="w-full max-w-5xl space-y-12 mb-32">
+                <div className="flex items-center bg-zinc-50 p-16 rounded-[6rem] gap-14 border border-zinc-100 shadow-sm transition-all hover:scale-105 duration-500">
+                    <div className="w-24 h-24 rounded-full bg-zinc-950 text-white flex items-center justify-center font-black text-5xl">1</div>
+                    <span className="text-6xl font-black text-zinc-600">Forehead, Screen Out</span>
                 </div>
                 <div className="flex flex-col md:flex-row gap-12 w-full">
-                    <div className="flex-1 flex items-center bg-green-50 p-14 rounded-[5.5rem] gap-12 border border-green-200">
-                        <div className="w-20 h-20 rounded-full bg-green-500 text-white flex items-center justify-center font-black text-4xl">✓</div>
-                        <span className="text-4xl font-black text-green-700">TILT DOWN</span>
+                    <div className="flex-1 flex items-center bg-green-50 p-16 rounded-[6rem] gap-14 border border-green-200">
+                        <div className="w-24 h-24 rounded-full bg-green-500 text-white flex items-center justify-center font-black text-5xl">✓</div>
+                        <span className="text-5xl font-black text-green-700">TILT DOWN</span>
                     </div>
-                    <div className="flex-1 flex items-center bg-orange-50 p-14 rounded-[5.5rem] gap-12 border border-orange-200">
-                        <div className="w-20 h-20 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-4xl">X</div>
-                        <span className="text-4xl font-black text-orange-700">TILT UP</span>
+                    <div className="flex-1 flex items-center bg-orange-50 p-16 rounded-[6rem] gap-14 border border-orange-200">
+                        <div className="w-24 h-24 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-5xl">X</div>
+                        <span className="text-5xl font-black text-orange-700">TILT UP</span>
                     </div>
                 </div>
             </div>
 
-            <div className="w-full max-w-xl">
-                <UI_Button onClick={handleAuth} className="bg-zinc-950 text-white py-12 shadow-3xl">START</UI_Button>
+            <div className="w-full max-w-2xl">
+                <ActionButton onClick={handleMotionAccess} className="bg-zinc-950 text-white py-14 shadow-3xl">LOCKED IN</ActionButton>
             </div>
         </div>
     );
 };
 
-const CalibrationScreen = ({ onReady, active }) => {
-    const [counter, setCounter] = useState(3);
-    const orientationStream = useRef({ gamma: 0 });
+const Scene_Warmup = ({ onReady, active }) => {
+    const [count, setCount] = useState(3);
+    const orientationBuffer = useRef({ gamma: 0 });
 
     useEffect(() => {
-        const capture = (e) => { if (e.gamma !== null) orientationStream.current = { gamma: e.gamma }; };
-        if (active) window.addEventListener('deviceorientation', capture);
-        if (counter > 0) {
-            const lap = setTimeout(() => setCounter(counter - 1), 1000);
-            return () => { clearTimeout(lap); window.removeEventListener('deviceorientation', capture); };
+        const sampler = (e) => { if (e.gamma !== null) orientationBuffer.current = { gamma: e.gamma }; };
+        if (active) window.addEventListener('deviceorientation', sampler);
+        if (count > 0) {
+            const lap = setTimeout(() => setCount(count - 1), 1000);
+            return () => { clearTimeout(lap); window.removeEventListener('deviceorientation', sampler); };
         } else {
-            onReady(orientationStream.current);
+            onReady(orientationBuffer.current);
         }
-    }, [counter, onReady, active]);
+    }, [count, onReady, active]);
 
     return (
         <div className="fixed inset-0 bg-zinc-950 flex items-center justify-center z-[100] p-24">
             <div style={{ transform: 'rotate(90deg)' }} className="text-center">
-                <div className="text-[30rem] font-black text-white italic leading-none animate-pulse drop-shadow-[0_0_120px_rgba(255,255,255,0.4)]">
-                    {counter > 0 ? counter : "GO!"}
+                <div className="text-[35rem] font-black text-white italic leading-none animate-pulse drop-shadow-[0_0_150px_rgba(255,255,255,0.4)]">
+                    {count > 0 ? count : "GO!"}
                 </div>
-                <p className="text-white/20 text-6xl font-black uppercase tracking-[2em] mt-40 pl-12 white-space-nowrap">Place on forehead</p>
+                <p className="text-white/20 text-7xl font-black uppercase tracking-[2.5em] mt-48 pl-14 white-space-nowrap leading-none">Calibrating...</p>
             </div>
         </div>
     );
 };
 
-const FinalStats = ({ stats, onMenu, onRepeat }) => (
+const Scene_Results = ({ stats, onExit, onRetry }) => (
     <div className="min-h-screen bg-zinc-50 flex flex-col p-24 overflow-y-auto">
-        <header className="mb-32 text-center pt-32">
-            <h1 className="text-[12rem] font-black text-zinc-950 tracking-tightest leading-none">THE RESULTS</h1>
-            <div className="flex justify-center gap-48 mt-24">
+        <header className="mb-40 text-center pt-40">
+            <h1 className="text-[15rem] font-black text-zinc-950 tracking-tightest leading-none">SESSION OVER</h1>
+            <div className="flex justify-center gap-64 mt-32">
                 <div className="text-center">
-                    <span className="text-[18rem] font-black text-green-500 block mb-6 leading-none tabular-nums">{stats.correct.length}</span>
-                    <p className="text-2xl font-black text-zinc-400 uppercase tracking-widest leading-none">Correct</p>
+                    <span className="text-[20rem] font-black text-green-500 block mb-10 leading-none tabular-nums animate-in zoom-in-50 duration-700">{stats.correct.length}</span>
+                    <p className="text-3xl font-black text-zinc-400 uppercase tracking-widest leading-none">Successes</p>
                 </div>
-                <div className="text-center transform grayscale">
-                    <span className="text-[18rem] font-black text-zinc-300 block mb-6 leading-none tabular-nums">{stats.skipped.length}</span>
-                    <p className="text-2xl font-black text-zinc-400 uppercase tracking-widest leading-none">Skipped</p>
+                <div className="text-center opacity-40">
+                    <span className="text-[20rem] font-black text-zinc-300 block mb-10 leading-none tabular-nums animate-in zoom-in-50 duration-1000">{stats.skipped.length}</span>
+                    <p className="text-3xl font-black text-zinc-400 uppercase tracking-widest leading-none">Skips</p>
                 </div>
             </div>
         </header>
 
-        <div className="flex-1 space-y-12 mb-40 max-w-6xl mx-auto w-full">
+        <div className="flex-1 space-y-16 mb-48 max-w-7xl mx-auto w-full">
             {[...stats.correct.map(c => ({ ...c, win: true })), ...stats.skipped.map(c => ({ ...c, win: false }))].map((item, i) => (
-                <div key={i} className={`p-16 rounded-[6rem] flex items-center justify-between shadow-2xl transition-all duration-500 ${item.win ? 'bg-white border-green-50' : 'bg-zinc-50 opacity-60'}`}>
-                    <span className="text-7xl font-black text-zinc-950 tracking-tightest leading-none uppercase">{item.text}</span>
-                    <div className={`w-28 h-28 rounded-full flex items-center justify-center font-black text-5xl shadow-inner ${item.win ? 'bg-green-100 text-green-600' : 'bg-zinc-200 text-zinc-500'}`}>
+                <div key={i} className={`p-20 rounded-[7rem] flex items-center justify-between shadow-3xl transition-all duration-500 ${item.win ? 'bg-white border-green-50 scale-100' : 'bg-zinc-50/50 scale-95 opacity-50'}`}>
+                    <span className="text-[10rem] font-black text-zinc-950 tracking-tightest leading-none uppercase">{item.text}</span>
+                    <div className={`w-32 h-32 rounded-full flex items-center justify-center font-black text-6xl shadow-inner ${item.win ? 'bg-green-100 text-green-600' : 'bg-zinc-200 text-zinc-500'}`}>
                         {item.win ? '✓' : 'X'}
                     </div>
                 </div>
             ))}
         </div>
 
-        <div className="space-y-12 pb-64 mt-auto max-w-2xl mx-auto w-full">
-            <UI_Button onClick={onRepeat} className="bg-zinc-950 text-white py-12 shadow-[0_40px_80px_rgba(0,0,0,0.4)]">PLAY AGAIN</UI_Button>
-            <button onClick={onMenu} className="w-full text-zinc-400 font-bold p-16 hover:text-zinc-950 tracking-[1.2em] uppercase text-2xl transition-all">Main Menu</button>
+        <div className="space-y-16 pb-64 mt-auto max-w-3xl mx-auto w-full">
+            <ActionButton onClick={onRetry} className="bg-zinc-950 text-white py-14 shadow-4xl">PLAY AGAIN</ActionButton>
+            <button onClick={onExit} className="w-full text-zinc-400 font-bold p-16 hover:text-zinc-950 tracking-[1.5em] uppercase text-3xl transition-all">Command Hub</button>
         </div>
     </div>
 );
 
-// --- APP MASTER HUB ---
+// --- MASTER APPLICATION HUB ---
 export default function App() {
-    const [scene, setScene] = useState('menu');
+    const [view, setView] = useState('menu');
     const [deck, setDeck] = useState(null);
-    const [playlist, setPlaylist] = useState([]);
+    const [cards, setCards] = useState([]);
     const [stats, setStats] = useState({ correct: [], skipped: [] });
-    const [authActive, setAuthActive] = useState(false);
-    const [calibration, setCalibration] = useState({ gamma: 0 });
+    const [active, setActive] = useState(false);
+    const [cal, setCal] = useState({ gamma: 0 });
 
-    const triggerSound = (type) => {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        const ctx = new AC();
+    const handleSFX = (type) => {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+
         const osc = ctx.createOscillator();
-        const vol = ctx.createGain();
-        osc.connect(vol); vol.connect(ctx.destination);
-        const t = ctx.currentTime;
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        const now = ctx.currentTime;
 
         if (type === 'success') {
-            osc.frequency.setValueAtTime(850, t);
-            osc.frequency.exponentialRampToValueAtTime(1900, t + 0.1);
-            vol.gain.setValueAtTime(0.2, t);
-            vol.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
-            osc.start(); osc.stop(t + 0.2);
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(1800, now + 0.12);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(); osc.stop(now + 0.2);
         } else if (type === 'pass') {
-            osc.frequency.setValueAtTime(450, t);
-            osc.frequency.linearRampToValueAtTime(60, t + 0.35);
-            vol.gain.setValueAtTime(0.2, t);
-            vol.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
-            osc.start(); osc.stop(t + 0.35);
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.linearRampToValueAtTime(50, now + 0.4);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            osc.start(); osc.stop(now + 0.4);
         } else if (type === 'finish') {
-            osc.frequency.setValueAtTime(600, t);
-            osc.frequency.exponentialRampToValueAtTime(1500, t + 0.6);
-            vol.gain.setValueAtTime(0.2, t);
-            vol.gain.linearRampToValueAtTime(0, t + 1.6);
-            osc.start(); osc.stop(t + 1.6);
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(1400, now + 0.7);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.linearRampToValueAtTime(0, now + 1.8);
+            osc.start(); osc.stop(now + 1.8);
         }
     };
 
-    const runGame = (d) => {
+    const activateGame = (d) => {
         setDeck(d);
-        setPlaylist([...d.data].sort(() => Math.random() - 0.5));
-        setScene('ready');
+        setCards([...d.data].sort(() => Math.random() - 0.5));
+        setView('splash');
     };
 
-    const stopGame = (results) => {
+    const deactivateGame = (results) => {
         setStats(results);
-        triggerSound('finish');
-        setScene('summary');
+        handleSFX('finish');
+        setView('results');
     };
 
     return (
-        <div className="min-h-screen bg-zinc-50 font-sans selection:bg-zinc-200 touch-none select-none text-zinc-950 antialiased overflow-hidden">
-            {scene === 'menu' && <MainMenu decks={DECKS} onSelect={runGame} />}
-            {scene === 'ready' && <InstructionScreen deck={deck} onProceed={(ok) => { setAuthActive(ok); setScene('sync'); }} />}
-            {scene === 'sync' && <CalibrationScreen active={authActive} onReady={(c) => { setCalibration(c); setScene('play'); }} />}
-            {scene === 'play' && (
-                <GameEngine
+        <div className="min-h-screen bg-zinc-50 font-sans selection:bg-zinc-200 touch-none select-none text-zinc-950 antialiased overflow-hidden transition-all duration-1000">
+            {view === 'menu' && <Scene_Menu list={DECKS} onPick={activateGame} />}
+            {view === 'splash' && <Scene_Splash deck={deck} onConfirm={(ok) => { setActive(ok); setView('warmup'); }} />}
+            {view === 'warmup' && <Scene_Warmup active={active} onReady={(c) => { setCal(c); setView('play'); }} />}
+            {view === 'play' && (
+                <HedzupGame
                     deck={deck}
-                    cards={playlist}
-                    onComplete={stopGame}
-                    playHaptic={triggerSound}
-                    baseline={calibration}
+                    cards={cards}
+                    onFinish={deactivateGame}
+                    playFeedback={handleSFX}
+                    initialCal={cal}
                 />
             )}
-            {scene === 'summary' && <FinalStats stats={stats} onMenu={() => setScene('menu')} onRepeat={() => runGame(deck)} />}
+            {view === 'results' && <Scene_Results stats={stats} onExit={() => setView('menu')} onRetry={() => activateGame(deck)} />}
         </div>
     );
 }
