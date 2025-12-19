@@ -20,9 +20,9 @@ class TiltLogic {
         this.onNeutral = options.onNeutral || (() => { });
 
         this.state = 'NEUTRAL'; // NEUTRAL, TRIGGERED_YES, TRIGGERED_SKIP
-        this.calibration = { beta: 0, gamma: 0, alpha: 0 };
+        this.calibration = { pitch: 0 };
         this.current = { beta: 0, gamma: 0, alpha: 0 };
-        this.smoothed = { beta: 0, gamma: 0, alpha: 0 };
+        this.smoothed = { pitch: 0 };
 
         this.handleOrientation = this.handleOrientation.bind(this);
         this.isActive = false;
@@ -50,10 +50,8 @@ class TiltLogic {
      * Capture current angles as the baseline "neutral" position.
      */
     calibrate() {
-        // Set calibration to current raw values
-        this.calibration = { ...this.current };
-        // Reset smoothed values to speed up recovery to stabilized state
-        this.smoothed = { ...this.current };
+        // Set calibration to current smoothed pitch
+        this.calibration.pitch = this.smoothed.pitch;
         this.state = 'NEUTRAL';
     }
 
@@ -64,31 +62,38 @@ class TiltLogic {
         const { alpha, beta, gamma } = event;
         if (beta === null || gamma === null) return;
 
-        // Store raw values
+        // Store raw values for reference
         this.current = { alpha, beta, gamma };
 
-        // Apply low-pass filter for smoothing
-        this.smoothed.alpha = this.lerp(this.smoothed.alpha, alpha, this.options.smoothing);
-        this.smoothed.beta = this.lerp(this.smoothed.beta, beta, this.options.smoothing);
-        this.smoothed.gamma = this.lerp(this.smoothed.gamma, gamma, this.options.smoothing);
+        // --- FIRST PRINCIPLES PITCH CALCULATION ---
+        // For a heads-up game, "Pitch" is the angle of the screen normal relative to the horizon.
+        // We use the Z-component of the gravity vector in the device's coordinate frame.
+        // g_z = cos(beta) * cos(gamma)
+
+        const bRad = beta * (Math.PI / 180);
+        const gRad = gamma * (Math.PI / 180);
+        const zComponent = Math.cos(bRad) * Math.cos(gRad);
+
+        // This gives us a 1D "pitch" value:
+        // 0 = perfectly vertical (screen facing straight ahead)
+        // Positive = tilted "Forward" (screen toward floor / Correct)
+        // Negative = tilted "Backward" (screen toward ceiling / Skip)
+        // (Note: We negate it to make "Forward" positive for intuitive thresholds)
+        const rawPitch = -Math.asin(zComponent) * (180 / Math.PI);
+
+        // Apply smoothing to the final pitch value instead of raw angles
+        // This prevents "jumps" when Euler angles flip at the 90-degree boundaries.
+        this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
 
         // Calculate delta from calibration
-        // In landscape (heads-up), gamma is typically the "pitch" (forward/backward)
-        // However, this can depend on the device's default orientation and how browser handles landscape.
-        // We'll calculate the relative gamma.
-        let pitch = this.smoothed.gamma - this.calibration.gamma;
+        const calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
 
-        // Handle wrap-around for degrees (-180 to 180)
-        if (pitch > 180) pitch -= 360;
-        if (pitch < -180) pitch += 360;
-
-        this.checkTriggers(pitch);
+        this.checkTriggers(calibratedPitch);
 
         // Notify update with all relevant data
         this.onUpdate({
             raw: this.current,
-            smoothed: this.smoothed,
-            pitch: pitch,
+            pitch: calibratedPitch,
             state: this.state
         });
     }
@@ -98,10 +103,13 @@ class TiltLogic {
      */
     checkTriggers(pitch) {
         if (this.state === 'NEUTRAL') {
+            // Forward tilt = Correct (Yes)
             if (pitch > this.options.threshold) {
                 this.state = 'TRIGGERED_YES';
                 this.onYes();
-            } else if (pitch < -this.options.threshold) {
+            }
+            // Backward tilt = Skip
+            else if (pitch < -this.options.threshold) {
                 this.state = 'TRIGGERED_SKIP';
                 this.onSkip();
             }

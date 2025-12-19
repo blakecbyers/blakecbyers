@@ -218,7 +218,7 @@ const Countdown = ({ onReady, active }) => {
         } else {
             engine.current.stop();
             // Pass the final "neutral" orientation to the game
-            onReady(engine.current.current);
+            onReady({ pitch: engine.current.smoothed.pitch });
         }
     }, [sec, onReady, active]);
 
@@ -274,7 +274,7 @@ export default function App() {
     const [cards, setCards] = useState([]);
     const [stats, setStats] = useState({ correct: [], skipped: [] });
     const [active, setActive] = useState(false);
-    const [cal, setCal] = useState({ gamma: 0 });
+    const [cal, setCal] = useState({ pitch: 0 });
 
     const playSound = (type) => {
         const AC = window.AudioContext || window.webkitAudioContext;
