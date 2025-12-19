@@ -127,7 +127,7 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
             <div style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }} className="relative flex flex-col items-center justify-center w-[100vh] h-[100vw]">
 
                 {/* Visible Timer - Centered at the top relative to the rotated container */}
-                <div className="absolute top-12 bg-black/50 backdrop-blur-md px-10 py-5 rounded-[2rem] z-50">
+                <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md px-10 py-5 rounded-[2rem] z-50">
                     <span className="font-mono text-6xl font-black text-white">{timer}</span>
                 </div>
 
