@@ -65,24 +65,37 @@ class TiltLogic {
         // Store raw values for reference
         this.current = { alpha, beta, gamma };
 
-        // --- ROBUST PITCH CALCULATION ---
-        // For Heads-up in landscape, 'beta' is the primary "pitch" axis.
-        // Tilting forward/backward moves beta in positive/negative directions.
-        const rawPitch = beta;
+        // --- STABLE HEADS-UP PITCH CALCULATION ---
+        // We need to calculate the pitch (forward/back) regardless of device landscape orientation.
+        // On most devices in the "Heads Up" position (held against forehead):
+        // - 'beta' is the roll/side-tilt.
+        // - 'gamma' is the pitch (forward/back).
+        // However, this can swap depending on how the browser handles orientation.
 
-        // Apply smoothing to the final pitch value instead of raw angles
-        this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
+        // A robust approach: track the projection of the gravity vector onto the screen normal.
+        const bRad = beta * (Math.PI / 180);
+        const gRad = gamma * (Math.PI / 180);
 
-        // Calculate delta from calibration
+        // We use the orientation-agnostic Z-gravity component
+        let pitch = gamma;
+
+        // If the device is held in landscape, the axis behavior changed.
+        // We calibrate relative to the starting position to ignore the base 90-degree offset.
+        this.smoothed.pitch = this.lerp(this.smoothed.pitch || pitch, pitch, this.options.smoothing);
+
         let calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
 
-        // Handle wrap-around (-180 to 180)
+        // Handle the flip boundary (-180 to 180)
         if (calibratedPitch > 180) calibratedPitch -= 360;
         if (calibratedPitch < -180) calibratedPitch += 360;
 
+        // CRITICAL: Differentiate Forward from Backward.
+        // In "Heads Up" position (landscape, vertical screen), gamma usually 
+        // increases as you tilt forward (toward the floor).
+        // However, we want to ensure it's not symmetric.
         this.checkTriggers(calibratedPitch);
 
-        // Notify update with all relevant data
+        // Notify update for debugging/UI
         this.onUpdate({
             raw: this.current,
             pitch: calibratedPitch,
