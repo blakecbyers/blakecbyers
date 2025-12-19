@@ -46,6 +46,27 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
         }, 600);
     }, [status, index, cards, card, stats, playSound, onFinish]);
 
+    // Swipe detection
+    const touchStart = useRef(null);
+
+    const onTouchStart = (e) => {
+        touchStart.current = e.touches[0].clientY;
+    };
+
+    const onTouchEnd = (e) => {
+        if (!touchStart.current) return;
+        const touchEnd = e.changedTouches[0].clientY;
+        const delta = touchEnd - touchStart.current;
+        const threshold = 50;
+
+        if (delta > threshold) {
+            handleAction('correct'); // Swipe Down
+        } else if (delta < -threshold) {
+            handleAction('pass'); // Swipe Up
+        }
+        touchStart.current = null;
+    };
+
     // Simple, reliable tilt logic
     useEffect(() => {
         const onMotion = (e) => {
@@ -70,10 +91,10 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
             if (physics.current.state === 'NEUTRAL') {
                 if (smoothed > TILT_THRESHOLD) {
                     physics.current.state = 'TRIGGERED';
-                    handleAction('correct');
+                    handleAction('correct'); // Tilt Down
                 } else if (smoothed < -TILT_THRESHOLD) {
                     physics.current.state = 'TRIGGERED';
-                    handleAction('pass');
+                    handleAction('pass'); // Tilt Up
                 }
             } else if (Math.abs(smoothed) < NEUTRAL_ZONE) {
                 physics.current.state = 'NEUTRAL';
@@ -97,36 +118,36 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
     const bg = status === 'correct' ? 'bg-green-500' : status === 'pass' ? 'bg-orange-500' : 'bg-stone-900';
 
     return (
-        <div className={`fixed inset-0 flex items-center justify-center transition-colors duration-300 ${bg} touch-none`}>
+        <div
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            className={`fixed inset-0 flex items-center justify-center transition-colors duration-300 ${bg} touch-none`}
+        >
             {/* View rotated 90deg for audience */}
             <div style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }} className="relative flex flex-col items-center justify-center w-[100vh] h-[100vw]">
 
-                {/* Visible Timer */}
-                <div className="absolute top-8 left-8 bg-black/50 backdrop-blur-md px-8 py-4 rounded-3xl z-50">
-                    <span className="font-mono text-5xl font-black text-white">{timer}</span>
+                {/* Visible Timer - Centered at the top relative to the rotated container */}
+                <div className="absolute top-12 bg-black/50 backdrop-blur-md px-10 py-5 rounded-[2rem] z-50">
+                    <span className="font-mono text-6xl font-black text-white">{timer}</span>
                 </div>
 
                 {/* Card */}
                 <div className={`
-                    w-[85%] h-[75%] bg-white rounded-[3rem] shadow-2xl flex flex-col items-center justify-center p-8 text-center
+                    w-[90%] h-[70%] bg-white rounded-[4rem] shadow-2xl flex flex-col items-center justify-center px-12 py-16 text-center
                     transition-all duration-300 transform
                     ${status !== 'active' ? 'opacity-0 scale-90 translate-y-10' : 'opacity-100 scale-100 translate-y-0'}
                 `}>
                     {card?.type === 'country' && card?.code && (
                         <img
                             src={`https://raw.githubusercontent.com/djaiss/mapsicon/master/all/${card.code}/vector.svg`}
-                            className="w-40 h-40 mb-8 object-contain"
+                            className="w-48 h-48 mb-12 object-contain"
                             alt="flag"
                         />
                     )}
 
-                    <h1 className={`${card?.text.length > 12 ? 'text-5xl' : 'text-7xl'} font-black text-stone-900 leading-tight`}>
+                    <h1 className={`${card?.text.length > 12 ? 'text-6xl' : 'text-8xl'} font-black text-stone-900 leading-[1.1] w-full break-words`}>
                         {card?.text}
                     </h1>
-
-                    <div className="mt-8 opacity-20 text-2xl font-bold uppercase tracking-widest text-stone-900">
-                        {card?.type === 'country' ? 'Country' : deck.title}
-                    </div>
                 </div>
             </div>
         </div>
