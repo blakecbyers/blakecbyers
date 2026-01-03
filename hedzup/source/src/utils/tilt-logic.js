@@ -1,9 +1,6 @@
 /**
- * TiltLogic - A standalone engine for device orientation game mechanics.
- * 
- * Maps device rotation to "Yes" (forward) and "Skip" (backward) actions.
- * Optimized for "Heads-up" style gameplay where the phone is held in landscape 
- * against the forehead, screen facing away.
+ * TiltLogic - Device orientation engine for game mechanics.
+ * Maps rotation to "Yes" (forward) and "Skip" (backward) actions.
  */
 class TiltLogic {
     constructor(options = {}) {

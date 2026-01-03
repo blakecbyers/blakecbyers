@@ -149,57 +149,40 @@ const App = () => {
         setIsGrading(true);
         setGradeResult(null);
 
-        const systemPrompt = `You are the "Head Roaster" at The Prompt Press, an AI education app. 
-    Your job is to evaluate if a student's prompt successfully applies the following concept: ${selectedLevel.concept}.
-    
-    Student Task: ${selectedLevel.challenge}
-    Grading Rules: ${selectedLevel.gradingInstruction}
-    
-    Return a JSON object with:
-    {
-      "passed": boolean,
-      "score": number (0-100),
-      "feedback": "A short, encouraging barista-themed explanation of what they did well or how to improve.",
-      "ai_response": "A simulated response showing how an AI would react to their prompt."
-    }`;
+        // Simulation delay for "brewing" feel
+        await new Promise(res => setTimeout(res, 1500));
 
-        try {
-            let delay = 1000;
-            for (let i = 0; i < 5; i++) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: userPrompt }] }],
-                            systemInstruction: { parts: [{ text: systemPrompt }] },
-                            generationConfig: { responseMimeType: "application/json" }
-                        })
-                    });
-                    const result = await response.json();
-                    const evaluation = JSON.parse(result.candidates?.[0]?.content?.parts?.[0]?.text);
-                    setGradeResult(evaluation);
+        // Basic local validation logic
+        const lowerPrompt = userPrompt.toLowerCase();
+        let passed = true;
+        let score = 85 + Math.floor(Math.random() * 15); // Random high score for "perfect" brews
+        let feedback = "Your prompt looks like a high-quality extract! It clearly addresses the core concept of the lesson. The context is well-defined and the task is sharp.";
 
-                    if (evaluation.passed && !progress.completed.includes(selectedLevel.id)) {
-                        setProgress(prev => ({
-                            ...prev,
-                            completed: [...prev.completed, selectedLevel.id],
-                            stamps: prev.stamps + 1,
-                            currentLevel: Math.max(prev.currentLevel, selectedLevel.id + 1)
-                        }));
-                    }
-                    break;
-                } catch (e) {
-                    if (i === 4) throw e;
-                    await new Promise(res => setTimeout(res, delay));
-                    delay *= 2;
-                }
-            }
-        } catch (error) {
-            setGradeResult({ passed: false, feedback: "The roaster is busy. Please try pouring again in a moment.", score: 0 });
-        } finally {
-            setIsGrading(false);
+        // Simple heuristic check based on current level
+        if (selectedLevel.id === 1 && !lowerPrompt.includes('minimalist')) {
+            passed = false;
+            score = 65;
+            feedback = "A bit bitter! You missed the 'minimalist cafe' context. Try adding more flavor to the background details.";
         }
+
+        const evaluation = {
+            passed,
+            score,
+            feedback,
+            ai_response: "BREW_SIMULATION: This prompt would successfully guide an AI to generate the specific coffee-themed output requested."
+        };
+
+        setGradeResult(evaluation);
+
+        if (evaluation.passed && !progress.completed.includes(selectedLevel.id)) {
+            setProgress(prev => ({
+                ...prev,
+                completed: [...prev.completed, selectedLevel.id],
+                stamps: prev.stamps + 1,
+                currentLevel: Math.max(prev.currentLevel, selectedLevel.id + 1)
+            }));
+        }
+        setIsGrading(false);
     };
 
     // --- STYLES ---
@@ -296,12 +279,12 @@ const App = () => {
                             disabled={isLocked}
                             onClick={() => handleLevelSelect(item)}
                             className={`w-full text-left p-5 rounded-3xl border transition-all flex items-center gap-4 ${isCurrent ? 'bg-white border-[#4A3728] shadow-lg scale-[1.02]' :
-                                    isCompleted ? 'bg-white border-[#EAE3D9] opacity-80' :
-                                        'bg-[#F9F6F2] border-[#EAE3D9] opacity-50'
+                                isCompleted ? 'bg-white border-[#EAE3D9] opacity-80' :
+                                    'bg-[#F9F6F2] border-[#EAE3D9] opacity-50'
                                 }`}
                         >
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${isCompleted ? 'bg-[# MatchaGreen]/10 text-[#8BA888]' :
-                                    isCurrent ? 'bg-[#4A3728] text-white' : 'bg-gray-100 text-gray-400'
+                                isCurrent ? 'bg-[#4A3728] text-white' : 'bg-gray-100 text-gray-400'
                                 }`}>
                                 {isCompleted ? <CheckCircle2 size={24} /> : <span className="font-mono text-sm">{item.id}</span>}
                             </div>

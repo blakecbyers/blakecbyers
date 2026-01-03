@@ -149,7 +149,7 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
                     </h1>
                 </div>
 
-                {/* Bottom Spacer for balance */}
+                {/* Bottom Spacer */}
                 <div className="flex-none h-[4vh]" />
             </div>
         </div>

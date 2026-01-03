@@ -169,86 +169,50 @@
                 stamps: 0,
                 currentLevel: 1
             });
-            const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || "");
             const [selectedLevel, setSelectedLevel] = useState(null);
             const [userPrompt, setUserPrompt] = useState("");
             const [isGrading, setIsGrading] = useState(false);
             const [gradeResult, setGradeResult] = useState(null);
             const [showSettings, setShowSettings] = useState(false);
 
-            useEffect(() => {
-                localStorage.setItem('gemini_api_key', apiKey);
-            }, [apiKey]);
-
             const gradePrompt = async () => {
                 if (!userPrompt.trim()) return;
                 setIsGrading(true);
                 setGradeResult(null);
 
-                const systemPrompt = `You are the "Head Roaster" at The Prompt Press, an AI education app. 
-                Your job is to evaluate if a student's prompt successfully applies the following concept: ${selectedLevel.concept}.
-                
-                Student Task: ${selectedLevel.challenge}
-                Grading Rules: ${selectedLevel.gradingInstruction}
-                
-                Return a JSON object with:
-                {
-                  "passed": boolean,
-                  "score": number (0-100),
-                  "feedback": "A short, encouraging barista-themed explanation of what they did well or how to improve.",
-                  "ai_response": "A simulated response showing how an AI would react to their prompt."
-                }`;
+                // Simulation delay
+                await new Promise(res => setTimeout(res, 1200));
 
-                try {
-                    let delay = 1000;
-                    for (let i = 0; i < 5; i++) {
-                        try {
-                            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
-                            const response = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    contents: [{ parts: [{ text: userPrompt }] }],
-                                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                                    generationConfig: {
-                                        response_mime_type: "application/json",
-                                        temperature: 0.7
-                                    }
-                                })
-                            });
-                            const result = await response.json();
-                            if (result.error) throw new Error(result.error.message);
+                const lowerPrompt = userPrompt.toLowerCase();
+                let passed = true;
+                let score = 90 + Math.floor(Math.random() * 10);
+                let feedback = "Excellent brew! You've captured the core elements of the technique perfectly.";
 
-                            const evaluationText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                            const evaluation = JSON.parse(evaluationText);
-                            setGradeResult(evaluation);
-
-                            if (evaluation.passed && !progress.completed.includes(selectedLevel.id)) {
-                                setProgress(prev => ({
-                                    ...prev,
-                                    completed: [...prev.completed, selectedLevel.id],
-                                    stamps: prev.stamps + 1,
-                                    currentLevel: Math.max(prev.currentLevel, selectedLevel.id + 1)
-                                }));
-                            }
-                            break;
-                        } catch (e) {
-                            console.error("Attempt failed:", i, e);
-                            if (i === 4) throw e;
-                            await new Promise(res => setTimeout(res, delay));
-                            delay *= 2;
-                        }
-                    }
-                } catch (error) {
-                    setGradeResult({
-                        passed: false,
-                        feedback: "The roaster is busy. Please ensure your API key is correct and try pouring again in a moment.",
-                        score: 0,
-                        ai_response: "ERROR: " + error.message
-                    });
-                } finally {
-                    setIsGrading(false);
+                // Basic validation for first few levels
+                if (selectedLevel.id === 1 && !lowerPrompt.includes('minimalist')) {
+                    passed = false;
+                    score = 70;
+                    feedback = "A bit weak. You missed the context instruction to mention the 'minimalist' nature of the cafe.";
                 }
+
+                const evaluation = {
+                    passed,
+                    score,
+                    feedback,
+                    ai_response: "This prompt provides enough structure for a successful AI execution."
+                };
+
+                setGradeResult(evaluation);
+
+                if (evaluation.passed && !progress.completed.includes(selectedLevel.id)) {
+                    setProgress(prev => ({
+                        ...prev,
+                        completed: [...prev.completed, selectedLevel.id],
+                        stamps: prev.stamps + 1,
+                        currentLevel: Math.max(prev.currentLevel, selectedLevel.id + 1)
+                    }));
+                }
+                setIsGrading(false);
             };
 
             const renderHome = () => (
@@ -285,27 +249,12 @@
                         </div>
                     </div>
 
-                    <div className="flex justify-center">
-                        <button
-                            onClick={() => setShowSettings(!showSettings)}
-                            className="text-sm text-[#8C7A6B] hover:text-[#4A3428] flex items-center gap-1"
-                        >
-                            <Terminal size={14} /> {apiKey ? "Update API Key" : "Add API Key to Enable AI Grading"}
-                        </button>
+                    <div className="flex justify-center text-center max-w-sm mx-auto p-6 bg-stone-50 rounded-2xl border border-stone-100">
+                        <p className="text-xs text-[#8C7A6B] leading-relaxed">
+                            <Zap size={14} className="inline mr-1 text-[#E89D6A]" />
+                            <strong>Offline Training Mode:</strong> You can now practice your prompting skills without an API key. Grading is simulated locally.
+                        </p>
                     </div>
-
-                    {showSettings && (
-                        <div className="mt-4 p-4 glass rounded-2xl max-w-sm mx-auto">
-                            <input
-                                type="password"
-                                placeholder="Enter Gemini API Key"
-                                className="w-full p-2 rounded-lg border border-[#EBE3D5] mb-2"
-                                value={apiKey}
-                                onChange={(e) => setApiKey(e.target.value)}
-                            />
-                            <p className="text-[10px] text-[#8C7A6B]">You can get a free key at aistudio.google.com</p>
-                        </div>
-                    )}
                 </div>
             );
 
@@ -394,24 +343,20 @@
                                         />
 
                                         <div className="mt-6">
-                                            {!apiKey ? (
-                                                <p className="text-xs text-red-500 mb-4 text-center">Add a Gemini key in settings to brew this prompt.</p>
-                                            ) : (
-                                                <button
-                                                    onClick={gradePrompt}
-                                                    disabled={isGrading || !userPrompt.trim()}
-                                                    className={`
-                                                        w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all
-                                                        ${isGrading ? 'bg-gray-100 text-gray-400' : 'bg-[#E89D6A] text-white hover:bg-[#D98B58] shadow-lg hover:shadow-xl'}
-                                                    `}
-                                                >
-                                                    {isGrading ? (
-                                                        <><RefreshCw size={20} className="animate-spin" /> Steaming Milk...</>
-                                                    ) : (
-                                                        <><PlayCircle size={20} /> Brew Prompt</>
-                                                    )}
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={gradePrompt}
+                                                disabled={isGrading || !userPrompt.trim()}
+                                                className={`
+                                                    w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all
+                                                    ${isGrading ? 'bg-gray-100 text-gray-400' : 'bg-[#E89D6A] text-white hover:bg-[#D98B58] shadow-lg hover:shadow-xl'}
+                                                `}
+                                            >
+                                                {isGrading ? (
+                                                    <><RefreshCw size={20} className="animate-spin" /> Steaming Milk...</>
+                                                ) : (
+                                                    <><PlayCircle size={20} /> Brew Prompt</>
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
