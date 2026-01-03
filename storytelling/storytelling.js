@@ -1,5 +1,32 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, ChevronRight, Zap, Trash2, PenTool, Lock } from 'lucide-react';
+const { useState, useEffect, useMemo, useRef } = React;
+
+// Custom Lucide Icon Component for Standalone Use
+const Icon = ({ name, size = 24, className = "" }) => {
+  const iconData = window.lucide ? window.lucide[name] : null;
+  if (!iconData) return null;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {iconData.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs }))}
+    </svg>
+  );
+};
+
+const X = (props) => <Icon name="X" {...props} />;
+const ChevronRight = (props) => <Icon name="ChevronRight" {...props} />;
+const Zap = (props) => <Icon name="Zap" {...props} />;
+const Trash2 = (props) => <Icon name="Trash2" {...props} />;
+const PenTool = (props) => <Icon name="PenTool" {...props} />;
+const Lock = (props) => <Icon name="Lock" {...props} />;
 
 /**
  * THE ARC - Masterclass Edition
@@ -39,7 +66,6 @@ const RULES = [
 // --- COMPONENTS ---
 
 // 1. THE CRUCIBLE (Rule 5)
-// Critique Upgrade: Words now physically collapse (width: 0) for a better "cutting room floor" feel.
 const TheCrucible = ({ onComplete, onExit }) => {
   const [words, setWords] = useState([]);
   const [completed, setCompleted] = useState(false);
@@ -71,7 +97,6 @@ const TheCrucible = ({ onComplete, onExit }) => {
     if (!keep) {
       setWords(prev => prev.map(w => w.id === id ? { ...w, visible: false } : w));
     } else {
-      // Visual Haptic: Shake the screen slightly on error
       const container = document.getElementById('crucible-container');
       if (container) {
         container.classList.add('animate-shake-harsh');
@@ -90,17 +115,16 @@ const TheCrucible = ({ onComplete, onExit }) => {
 
   return (
     <div id="crucible-container" className="flex flex-col h-full justify-center max-w-4xl mx-auto px-8 lg:px-16 relative">
-      {/* Background Number */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[20rem] font-serif text-parchment opacity-[0.03] pointer-events-none select-none leading-none">
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[20rem] font-serif text-[#EBE9D8] opacity-[0.03] pointer-events-none select-none leading-none">
         05
       </div>
 
-      <div className="mb-16 border-l-2 border-accent pl-6">
-        <h2 className="text-accent font-sans text-xs tracking-[0.4em] uppercase mb-3">The Crucible</h2>
-        <h1 className="text-4xl md:text-5xl font-serif text-parchment tracking-tight">Strip the scene to its bones.</h1>
+      <div className="mb-16 border-l-2 border-[#FFD600] pl-6">
+        <h2 className="text-[#FFD600] font-sans text-xs tracking-[0.4em] uppercase mb-3">The Crucible</h2>
+        <h1 className="text-4xl md:text-5xl font-serif text-[#EBE9D8] tracking-tight">Strip the scene to its bones.</h1>
       </div>
 
-      <div className="flex flex-wrap gap-x-1 gap-y-2 md:gap-y-6 text-4xl md:text-6xl font-serif leading-none text-parchment">
+      <div className="flex flex-wrap gap-x-1 gap-y-2 md:gap-y-6 text-4xl md:text-6xl font-serif leading-none text-[#EBE9D8]">
         {words.map((word) => (
           <span
             key={word.id}
@@ -108,7 +132,7 @@ const TheCrucible = ({ onComplete, onExit }) => {
             className={`
                 cursor-pointer transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap
                 ${word.visible ? 'max-w-[300px] opacity-100 mr-3' : 'max-w-0 opacity-0 mr-0'}
-                ${word.keep ? 'hover:text-parchment cursor-crosshair' : 'hover:text-red-500 hover:scale-95'}
+                ${word.keep ? 'hover:text-[#EBE9D8] cursor-crosshair' : 'hover:text-red-500 hover:scale-95'}
               `}
           >
             {word.text}
@@ -118,13 +142,13 @@ const TheCrucible = ({ onComplete, onExit }) => {
 
       {completed && (
         <div className="absolute bottom-12 left-0 w-full text-center animate-fade-in-up">
-          <div className="text-accent font-sans text-sm tracking-[0.5em] uppercase border-t border-accent/20 inline-block pt-4">
+          <div className="text-[#FFD600] font-sans text-sm tracking-[0.5em] uppercase border-t border-[#FFD600]/20 inline-block pt-4">
             Essence Revealed
           </div>
         </div>
       )}
 
-      <button onClick={onExit} className="absolute top-8 right-8 text-parchment/20 hover:text-accent transition-colors duration-300">
+      <button onClick={onExit} className="absolute top-8 right-8 text-[#EBE9D8]/20 hover:text-[#FFD600] transition-colors duration-300">
         <X size={24} />
       </button>
     </div>
@@ -132,7 +156,6 @@ const TheCrucible = ({ onComplete, onExit }) => {
 };
 
 // 2. THE CUT (Rule 12)
-// Critique Upgrade: Stacking rejected ideas visually. 
 const TheCut = ({ onComplete, onExit }) => {
   const [ideas, setIdeas] = useState([]);
   const [input, setInput] = useState("");
@@ -160,14 +183,14 @@ const TheCut = ({ onComplete, onExit }) => {
 
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto px-8 pt-32 relative">
-      <div className="absolute left-[-10%] top-20 text-[15rem] font-serif text-parchment opacity-[0.03] pointer-events-none select-none">
+      <div className="absolute left-[-10%] top-20 text-[15rem] font-serif text-[#EBE9D8] opacity-[0.03] pointer-events-none select-none">
         12
       </div>
 
       <div className="mb-12">
-        <h2 className="text-accent font-sans text-xs tracking-[0.3em] uppercase mb-4">Rule #12</h2>
-        <h1 className="text-4xl font-serif text-parchment tracking-tight mb-2">Discount the first five.</h1>
-        <p className="text-parchment/40 font-serif italic">Get the obvious out of the way.</p>
+        <h2 className="text-[#FFD600] font-sans text-xs tracking-[0.3em] uppercase mb-4">Rule #12</h2>
+        <h1 className="text-4xl font-serif text-[#EBE9D8] tracking-tight mb-2">Discount the first five.</h1>
+        <p className="text-[#EBE9D8]/40 font-serif italic">Get the obvious out of the way.</p>
       </div>
 
       <div className="flex-1 mb-8 relative h-[300px]">
@@ -180,15 +203,15 @@ const TheCut = ({ onComplete, onExit }) => {
               zIndex: idx
             }}
             className={`
-                absolute w-full p-6 border-b border-parchment/10 bg-obsidian-light backdrop-blur-sm
+                absolute w-full p-6 border-b border-[#EBE9D8]/10 bg-[#050505] backdrop-blur-sm
                 transition-all duration-700 ease-out
-                ${idea.status === 'rejected' ? 'opacity-30 translate-y-4' : 'opacity-100 border-accent/50 bg-accent/5 translate-y-0'}
+                ${idea.status === 'rejected' ? 'opacity-30 translate-y-4' : 'opacity-100 border-[#FFD600]/50 bg-[#FFD600]/5 translate-y-0'}
             `}
           >
             <div className="flex justify-between items-center">
-              <span className={`font-serif text-xl ${idea.status === 'rejected' ? 'line-through decoration-red-900' : 'text-accent'}`}>{idea.text}</span>
+              <span className={`font-serif text-xl ${idea.status === 'rejected' ? 'line-through decoration-red-900' : 'text-[#FFD600]'}`}>{idea.text}</span>
               {idea.status === 'rejected' && <span className="text-xs font-sans text-red-900 uppercase tracking-widest">Cliche</span>}
-              {idea.status === 'accepted' && <span className="text-xs font-sans text-accent uppercase tracking-widest">Gold</span>}
+              {idea.status === 'accepted' && <span className="text-xs font-sans text-[#FFD600] uppercase tracking-widest">Gold</span>}
             </div>
           </div>
         ))}
@@ -202,15 +225,15 @@ const TheCut = ({ onComplete, onExit }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={ideas.length < 5 ? `Idea No. ${ideas.length + 1}` : "The Sixth Idea."}
-            className="w-full bg-transparent border-b-2 border-parchment/20 py-4 text-3xl font-serif text-parchment focus:outline-none focus:border-accent placeholder-parchment/10 transition-colors"
+            className="w-full bg-transparent border-b-2 border-[#EBE9D8]/20 py-4 text-3xl font-serif text-[#EBE9D8] focus:outline-none focus:border-[#FFD600] placeholder-[#EBE9D8]/10 transition-colors"
           />
-          <button type="submit" className="absolute right-0 top-4 text-parchment/20 hover:text-accent transition-colors duration-300">
+          <button type="submit" className="absolute right-0 top-4 text-[#EBE9D8]/20 hover:text-[#FFD600] transition-colors duration-300">
             <ChevronRight size={32} />
           </button>
         </form>
       )}
 
-      <button onClick={onExit} className="absolute top-8 right-8 text-parchment/20 hover:text-parchment transition-colors">
+      <button onClick={onExit} className="absolute top-8 right-8 text-[#EBE9D8]/20 hover:text-[#EBE9D8] transition-colors">
         <X size={24} />
       </button>
     </div>
@@ -218,17 +241,14 @@ const TheCut = ({ onComplete, onExit }) => {
 };
 
 // 3. THE MIRROR (Rule 15)
-// Critique Upgrade: Typography reacts more organically.
 const TheMirror = ({ onComplete, onExit }) => {
   const [text, setText] = useState("");
   const [weight, setWeight] = useState(300);
 
   useEffect(() => {
     const baseWeight = 300;
-    // Honest words add significant weight
     const honestWords = ['fear', 'love', 'hate', 'afraid', 'secret', 'never', 'truth', 'died', 'kill', 'wish'];
     const wordCount = text.split(' ').filter(w => honestWords.includes(w.toLowerCase().replace(/[.,]/g, ''))).length;
-    // Calculate new weight with damping
     const targetWeight = baseWeight + Math.min(text.length * 0.8, 300) + (wordCount * 80);
     setWeight(targetWeight);
   }, [text]);
@@ -239,16 +259,16 @@ const TheMirror = ({ onComplete, onExit }) => {
 
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto px-8 pt-24 relative">
-      <div className="absolute right-10 bottom-10 text-[10rem] font-serif text-parchment opacity-[0.03] pointer-events-none select-none">
+      <div className="absolute right-10 bottom-10 text-[10rem] font-serif text-[#EBE9D8] opacity-[0.03] pointer-events-none select-none">
         15
       </div>
 
-      <div className="mb-12 flex justify-between items-end border-b border-parchment/10 pb-6">
+      <div className="mb-12 flex justify-between items-end border-b border-[#EBE9D8]/10 pb-6">
         <div>
-          <h2 className="text-accent font-sans text-xs tracking-[0.3em] uppercase mb-2">Rule #15</h2>
-          <h1 className="text-3xl font-serif text-parchment tracking-tight">The Mirror</h1>
+          <h2 className="text-[#FFD600] font-sans text-xs tracking-[0.3em] uppercase mb-2">Rule #15</h2>
+          <h1 className="text-3xl font-serif text-[#EBE9D8] tracking-tight">The Mirror</h1>
         </div>
-        <p className="text-parchment/40 font-serif italic text-sm hidden md:block">Honesty lends credibility.</p>
+        <p className="text-[#EBE9D8]/40 font-serif italic text-sm hidden md:block">Honesty lends credibility.</p>
       </div>
 
       <textarea
@@ -258,9 +278,9 @@ const TheMirror = ({ onComplete, onExit }) => {
         placeholder="How do you really feel?"
         style={{
           fontWeight: Math.min(weight, 900),
-          letterSpacing: `${-0.02 * (weight / 900)}em` // Tighter tracking as it gets heavier
+          letterSpacing: `${-0.02 * (weight / 900)}em`
         }}
-        className="flex-1 w-full bg-transparent resize-none border-none focus:ring-0 text-3xl md:text-6xl font-serif text-parchment placeholder-parchment/5 transition-all duration-500 leading-[1.1]"
+        className="flex-1 w-full bg-transparent resize-none border-none focus:ring-0 text-3xl md:text-6xl font-serif text-[#EBE9D8] placeholder-[#EBE9D8]/5 transition-all duration-500 leading-[1.1]"
       />
 
       <div className="pb-12 pt-6">
@@ -268,7 +288,7 @@ const TheMirror = ({ onComplete, onExit }) => {
           onClick={handleComplete}
           disabled={text.length < 20}
           className={`
-                group w-full py-4 border-y border-parchment/10 text-parchment/40 hover:text-accent hover:border-accent/30
+                group w-full py-4 border-y border-[#EBE9D8]/10 text-[#EBE9D8]/40 hover:text-[#FFD600] hover:border-[#FFD600]/30
                 font-sans text-xs tracking-[0.3em] uppercase transition-all duration-500 flex justify-between items-center
                 ${text.length < 20 ? 'opacity-0 pointer-events-none' : 'opacity-100'}
             `}
@@ -278,7 +298,7 @@ const TheMirror = ({ onComplete, onExit }) => {
         </button>
       </div>
 
-      <button onClick={onExit} className="absolute top-8 right-8 text-parchment/20 hover:text-parchment transition-colors">
+      <button onClick={onExit} className="absolute top-8 right-8 text-[#EBE9D8]/20 hover:text-[#EBE9D8] transition-colors">
         <X size={24} />
       </button>
     </div>
@@ -287,48 +307,38 @@ const TheMirror = ({ onComplete, onExit }) => {
 
 // 4. MAIN DASHBOARD (Story Spine)
 const Dashboard = ({ progress, onSelectRule }) => {
-  // Generate nodes with a sine wave offset for the "Arc" feel
   const nodes = useMemo(() => {
     return RULES.map((rule, i) => {
       const isUnlocked = i === 0 || progress[RULES[i - 1].id];
       const isCompleted = progress[rule.id];
-      // Swiss Design: Alternating layout, heavy whitespace
       const align = i % 2 === 0 ? 'left' : 'right';
-
       return { ...rule, align, isUnlocked, isCompleted };
     });
   }, [progress]);
 
-  // Calculate completion for the "Draft Density" line thickness
   const density = Object.keys(progress).length / 22;
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-20 relative min-h-screen">
-      {/* Header */}
       <header className="mb-32 pl-4 md:pl-0 pt-10">
-        <h1 className="text-7xl md:text-9xl font-serif text-parchment tracking-tighter mb-2 opacity-90 leading-[0.8]">
+        <h1 className="text-7xl md:text-9xl font-serif text-[#EBE9D8] tracking-tighter mb-2 opacity-90 leading-[0.8]">
           The Arc
         </h1>
         <div className="flex items-center gap-4 mt-6">
-          <div className="h-px w-12 bg-accent"></div>
-          <p className="text-parchment/60 font-sans text-xs tracking-[0.3em] uppercase">22 Rules of Storytelling</p>
+          <div className="h-px w-12 bg-[#FFD600]"></div>
+          <p className="text-[#EBE9D8]/60 font-sans text-xs tracking-[0.3em] uppercase">22 Rules of Storytelling</p>
         </div>
       </header>
 
-      {/* The Spine Line */}
       <div className="relative">
-        {/* The "Thread" - thickens with progress */}
         <div
-          className="absolute left-[20px] md:left-[50%] top-0 bottom-0 bg-parchment transition-all duration-1000 ease-out z-0"
-          style={{
-            width: '1px',
-            opacity: 0.1
-          }}
+          className="absolute left-[20px] md:left-[50%] top-0 bottom-0 bg-[#EBE9D8] transition-all duration-1000 ease-out z-0"
+          style={{ width: '1px', opacity: 0.1 }}
         />
         <div
-          className="absolute left-[20px] md:left-[50%] top-0 bg-accent transition-all duration-1000 ease-out z-0 shadow-[0_0_15px_rgba(255,214,0,0.3)]"
+          className="absolute left-[20px] md:left-[50%] top-0 bg-[#FFD600] transition-all duration-1000 ease-out z-0 shadow-[0_0_15px_rgba(255,214,0,0.3)]"
           style={{
-            width: `${Math.max(1, density * 4)}px`, // Draft Density visualized
+            width: `${Math.max(1, density * 4)}px`,
             height: `${(Object.keys(progress).length / 22) * 100}%`,
             opacity: 0.8
           }}
@@ -346,15 +356,13 @@ const Dashboard = ({ progress, onSelectRule }) => {
                                 group
                             `}
             >
-              {/* The Node Point */}
               <div className="absolute left-[16px] md:left-[50%] md:-ml-[4px] w-[9px] h-[9px] z-10">
                 <div className={`
                                     w-full h-full rounded-full transition-all duration-500
-                                    ${rule.isCompleted ? 'bg-accent scale-125' : 'bg-parchment/30 group-hover:scale-125'}
+                                    ${rule.isCompleted ? 'bg-[#FFD600] scale-125' : 'bg-[#EBE9D8]/30 group-hover:scale-125'}
                                 `} />
               </div>
 
-              {/* Content Block */}
               <div className={`
                                 pl-16 md:pl-0 w-full md:w-[42%] 
                                 ${rule.align === 'left' ? 'md:text-right md:pr-16' : 'md:text-left md:pl-16'}
@@ -362,30 +370,30 @@ const Dashboard = ({ progress, onSelectRule }) => {
                 <div className="overflow-hidden">
                   <h2 className={`
                                         text-xs font-sans tracking-[0.2em] uppercase mb-3 transition-transform duration-500 translate-y-2 group-hover:translate-y-0
-                                        ${rule.isCompleted ? 'text-accent' : 'text-parchment/40'}
+                                        ${rule.isCompleted ? 'text-[#FFD600]' : 'text-[#EBE9D8]/40'}
                                     `}>
                     Rule {String(rule.id).padStart(2, '0')}
                   </h2>
                 </div>
 
                 <h3 className={`
-                                    text-2xl md:text-3xl font-serif leading-tight mb-2 text-parchment transition-colors duration-300
-                                    ${rule.isCompleted ? 'line-through decoration-accent/50 text-parchment/50' : 'group-hover:text-white'}
+                                    text-2xl md:text-3xl font-serif leading-tight mb-2 text-[#EBE9D8] transition-colors duration-300
+                                    ${rule.isCompleted ? 'line-through decoration-[#FFD600]/50 text-[#EBE9D8]/50' : 'group-hover:text-white'}
                                 `}>
                   {rule.subtitle}
                 </h3>
 
-                <p className="hidden md:block font-sans text-xs text-parchment/40 leading-relaxed max-w-xs ml-auto mr-auto">
+                <p className="hidden md:block font-sans text-xs text-[#EBE9D8]/40 leading-relaxed max-w-xs ml-auto mr-auto">
                   {rule.content.substring(0, 60)}...
                 </p>
 
                 {rule.type === 'interactive' && !rule.isCompleted && (
                   <div className={`
-                                        mt-4 inline-flex items-center gap-2 text-[10px] tracking-widest uppercase border border-parchment/10 px-3 py-1 rounded-full
+                                        mt-4 inline-flex items-center gap-2 text-[10px] tracking-widest uppercase border border-[#EBE9D8]/10 px-3 py-1 rounded-full
                                         ${rule.align === 'left' ? 'md:flex-row-reverse' : ''}
                                     `}>
-                    <PenTool size={10} className="text-accent" />
-                    <span className="text-parchment/60">Exercise</span>
+                    <PenTool size={10} className="text-[#FFD600]" />
+                    <span className="text-[#EBE9D8]/60">Exercise</span>
                   </div>
                 )}
               </div>
@@ -397,34 +405,33 @@ const Dashboard = ({ progress, onSelectRule }) => {
   );
 };
 
-// 5. STATIC RULE VIEW (Standard Reading)
+// 5. STATIC RULE VIEW
 const StaticRule = ({ rule, onComplete, onExit }) => {
   useEffect(() => {
-    // Extended from 4000 to 8000ms
     const timer = setTimeout(onComplete, 8000);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-8 text-center max-w-4xl mx-auto animate-fade-in-up relative">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[30rem] font-serif text-parchment opacity-[0.02] pointer-events-none select-none leading-none">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[30rem] font-serif text-[#EBE9D8] opacity-[0.02] pointer-events-none select-none leading-none">
         {rule.id}
       </div>
 
-      <div className="mb-8 w-px h-16 bg-gradient-to-b from-transparent to-accent"></div>
+      <div className="mb-8 w-px h-16 bg-gradient-to-b from-transparent to-[#FFD600]"></div>
 
-      <h2 className="text-3xl md:text-5xl font-serif text-parchment mb-12 leading-tight tracking-tight max-w-2xl">
+      <h2 className="text-3xl md:text-5xl font-serif text-[#EBE9D8] mb-12 leading-tight tracking-tight max-w-2xl">
         "{rule.content}"
       </h2>
 
       <div className="flex items-center gap-4 opacity-50">
-        <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
-        <p className="text-parchment font-sans text-[10px] tracking-[0.3em] uppercase">
+        <div className="w-2 h-2 bg-[#FFD600] rounded-full animate-pulse"></div>
+        <p className="text-[#EBE9D8] font-sans text-[10px] tracking-[0.3em] uppercase">
           Internalizing...
         </p>
       </div>
 
-      <button onClick={onExit} className="absolute top-8 right-8 text-parchment/20 hover:text-parchment transition-colors">
+      <button onClick={onExit} className="absolute top-8 right-8 text-[#EBE9D8]/20 hover:text-[#EBE9D8] transition-colors">
         <X size={24} />
       </button>
     </div>
@@ -432,7 +439,7 @@ const StaticRule = ({ rule, onComplete, onExit }) => {
 };
 
 // --- APP CONTAINER ---
-export default function TheArcApp() {
+function TheArcApp() {
   const [view, setView] = useState('dashboard');
   const [activeRule, setActiveRule] = useState(null);
   const [progress, setProgress] = useState({});
@@ -456,7 +463,6 @@ export default function TheArcApp() {
   const handleCompleteRule = () => {
     if (!activeRule) return;
 
-    // Improved Cinematic Flash: Brightness bloom
     setFlash(true);
     setTimeout(() => setFlash(false), 1200);
 
@@ -469,63 +475,37 @@ export default function TheArcApp() {
     }, 1500);
   };
 
-  // Styles Injection
-  const GlobalStyles = () => (
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,900;1,400&display=swap');
-      
-      :root {
-        --obsidian: #050505;
-        --parchment: #EBE9D8;
-        --accent: #FFD600;
-      }
-
-      body {
-        background-color: var(--obsidian);
-        color: var(--parchment);
-      }
-
-      .font-serif { font-family: 'Playfair Display', serif; }
-      .font-sans { font-family: 'Inter', sans-serif; }
-      
-      /* Harsh Shake for "The Cut" rejection */
-      @keyframes shakeHarsh {
-        0%, 100% { transform: translateX(0); }
-        20% { transform: translateX(-8px) rotate(-1deg); }
-        40% { transform: translateX(8px) rotate(1deg); }
-        60% { transform: translateX(-4px); }
-        80% { transform: translateX(4px); }
-      }
-      .animate-shake-harsh { animation: shakeHarsh 0.3s cubic-bezier(.36,.07,.19,.97) both; }
-      
-      @keyframes fadeInUp { 
-        from { opacity: 0; transform: translateY(40px); } 
-        to { opacity: 1; transform: translateY(0); } 
-      }
-      .animate-fade-in-up { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-      /* The Flash Effect */
-      .cinematic-flash {
-        background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 70%);
-        mix-blend-mode: overlay;
-      }
-      
-      /* Hide Scrollbar */
-      ::-webkit-scrollbar { width: 0px; background: transparent; }
-    `}</style>
-  );
-
   return (
     <div className="bg-[#050505] min-h-screen text-[#EBE9D8] overflow-hidden relative selection:bg-[#FFD600] selection:text-black">
-      <GlobalStyles />
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,900;1,400&display=swap');
+        
+        .font-serif { font-family: 'Playfair Display', serif; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+        
+        @keyframes shakeHarsh {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px) rotate(-1deg); }
+          40% { transform: translateX(8px) rotate(1deg); }
+          60% { transform: translateX(-4px); }
+          80% { transform: translateX(4px); }
+        }
+        .animate-shake-harsh { animation: shakeHarsh 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        
+        @keyframes fadeInUp { 
+          from { opacity: 0; transform: translateY(40px); } 
+          to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-fade-in-up { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-      {/* Cinematic Flash Overlay */}
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+      `}</style>
+
       <div className={`
         fixed inset-0 z-50 pointer-events-none transition-all duration-1000 ease-out
         ${flash ? 'opacity-100 bg-white' : 'opacity-0 bg-transparent'}
       `} />
 
-      {/* Main Content */}
       <main className="h-screen overflow-y-auto scroll-smooth">
         {view === 'dashboard' && (
           <Dashboard progress={progress} onSelectRule={handleSelectRule} />
@@ -546,16 +526,22 @@ export default function TheArcApp() {
         )}
       </main>
 
-      {/* Draft Density Indicator */}
       <div className="fixed bottom-8 right-8 z-30 flex flex-col items-end gap-2 opacity-40 hover:opacity-100 transition-opacity">
         <span className="font-sans text-[9px] tracking-[0.3em] uppercase">Draft Density</span>
-        <div className="h-1 w-24 bg-parchment/10 rounded-full overflow-hidden">
+        <div className="h-1 w-24 bg-[#EBE9D8]/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-accent transition-all duration-1000"
+            className="h-full bg-[#FFD600] transition-all duration-1000"
             style={{ width: `${(Object.keys(progress).length / 22) * 100}%` }}
           />
         </div>
       </div>
     </div>
   );
+}
+
+// Initial Render
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(<TheArcApp />);
 }
