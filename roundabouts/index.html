@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roundabout Revolution</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0c0c0e;
+            color: #ffffff;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .hero-gradient {
+            background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #0c0c0e 100%);
+        }
+
+        .card-blur {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .accent-glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .ghost-home {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            z-index: 100;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #fff;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .ghost-home:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        @keyframes rotate-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-rotate {
+            animation: rotate-slow 20s linear infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../index.html" class="ghost-home">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+        </svg>
+    </a>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Custom Lucide Icon Component for Standalone Use
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconData = lucide[name];
+            if (!iconData) return null;
+            return (
+                <svg
+                    width={size}
+                    height={size}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={className}
+                >
+                    {iconData.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs }))}
+                </svg>
+            );
+        };
+
+        const Wind = (props) => <Icon name="Wind" {...props} />;
+        const ShieldCheck = (props) => <Icon name="ShieldCheck" {...props} />;
+        const Clock = (props) => <Icon name="Clock" {...props} />;
+        const Info = (props) => <Icon name="Info" {...props} />;
+        const Quote = (props) => <Icon name="Quote" {...props} />;
+        const ArrowRight = (props) => <Icon name="ArrowRight" {...props} />;
+        const Cpu = (props) => <Icon name="Cpu" {...props} />;
+        const Zap = (props) => <Icon name="Zap" {...props} />;
+        const BatteryCharging = (props) => <Icon name="BatteryCharging" {...props} />;
+        const WifiOff = (props) => <Icon name="WifiOff" {...props} />;
+        const Car = (props) => <Icon name="Car" {...props} />;
+
+        const FEATURES = [
+            { icon: Wind, title: "Efficiency", desc: "Reduces fuel consumption and vehicle emissions by eliminating stops at lights." },
+            { icon: ShieldCheck, title: "Safety", desc: "Reduces fatal accidents by 90% and overall injuries by 76% compared to signals." },
+            { icon: Clock, title: "Capacity", desc: "Handles 30-50% more traffic volume than traditional signalized intersections." }
+        ];
+
+        const FUTURE_TECH = [
+            { icon: Cpu, title: "V2X Integration", desc: "Autonomous vehicles commuicating for perfect gap-entry and zero-stop flow." },
+            { icon: BatteryCharging, title: "Inductive Charging", desc: "Dynamic charging coils embedded in lanes to power EVs as they circulate." },
+            { icon: WifiOff, title: "Resilient Design", desc: "Works perfectly during power outages without dependency on grid infrastructure." }
+        ];
+
+        const RoundaboutRevolution = () => {
+            const [activeTab, setActiveTab] = useState('principles');
+
+            return (
+                <div className="min-h-screen hero-gradient">
+                    <section className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto relative overflow-hidden">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl -z-10 animate-pulse"></div>
+                        <h1 className="text-6xl font-bold mb-6 tracking-tighter">The End of the <span className="text-blue-500">Red Light.</span></h1>
+                        <p className="text-xl text-zinc-400 mb-10 leading-relaxed max-w-2xl mx-auto">
+                            Roundabouts are the single most effective way to improve road safety, traffic flow, and urban sustainability. It's time to circulate.
+                        </p>
+                        <div className="flex gap-4 justify-center">
+                            <button className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-8 rounded-xl accent-glow transition-all">Start the Tour</button>
+                            <button className="bg-white/5 hover:bg-white/10 border border-white/10 py-4 px-8 rounded-xl transition-all">View the Data</button>
+                        </div>
+                    </section>
+
+                    <section className="py-20 px-6 max-w-6xl mx-auto">
+                        <div className="grid md:grid-cols-3 gap-8">
+                            {FEATURES.map((f, i) => (
+                                <div key={i} className="card-blur p-8 rounded-3xl group hover:border-blue-500/50 transition-all">
+                                    <div className="w-12 h-12 bg-blue-500/20 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                        <f.icon />
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-3">{f.title}</h3>
+                                    <p className="text-zinc-500 leading-relaxed">{f.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="py-20 px-6 max-w-5xl mx-auto bg-zinc-900/50 rounded-[3rem] border border-white/5 my-20">
+                        <div className="text-center mb-12">
+                            <h2 className="text-4xl font-bold mb-4">Circular Logic</h2>
+                            <p className="text-zinc-500">Why the circle beats the cross.</p>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-12 items-center">
+                            <div className="relative">
+                                <div className="aspect-square border-4 border-dashed border-blue-500/20 rounded-full flex items-center justify-center animate-rotate">
+                                    <div className="w-4/5 aspect-square border-4 border-blue-500/40 rounded-full flex items-center justify-center">
+                                        <div className="w-3/5 aspect-square bg-blue-500/20 rounded-full blur-xl"></div>
+                                    </div>
+                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <Car size={48} className="text-blue-500" />
+                                </div>
+                            </div>
+                            <div className="space-y-8">
+                                <div className="flex gap-6">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold">1</div>
+                                    <div>
+                                        <h4 className="text-xl font-bold mb-2">Lower Speeds</h4>
+                                        <p className="text-zinc-500">Vehicles must slow to 15-20mph to navigate, making collisions far less severe.</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-6">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold">2</div>
+                                    <div>
+                                        <h4 className="text-xl font-bold mb-2">Angle of Impact</h4>
+                                        <p className="text-zinc-500">T-bone and head-on collisions are physically impossible in a one-way circle.</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-6">
+                                    <div className="shrink-0 w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold">3</div>
+                                    <div>
+                                        <h4 className="text-xl font-bold mb-2">Continuous Flow</h4>
+                                        <p className="text-zinc-500">Drivers yield into gaps instead of waiting for a computer-timed cycle.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <footer className="py-20 border-t border-white/5 px-6 text-center text-zinc-600">
+                        <div className="max-w-md mx-auto">
+                            <div className="flex justify-center gap-6 mb-8 text-zinc-400">
+                                <Info size={20} />
+                                <Quote size={20} />
+                                <Zap size={20} />
+                            </div>
+                            <p className="text-sm">© 2025 Roundabout Revolution. Powered by Physics and Common Sense.</p>
+                        </div>
+                    </footer>
+                </div>
+            )
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<RoundaboutRevolution />);
+    </script>
+</body>
+
+</html>

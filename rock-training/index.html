@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Solid Academy</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0F172A;
+            color: #fff;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .gradient-border {
+            border: 1px solid transparent;
+            background-image: linear-gradient(#0F172A, #0F172A), radial-gradient(circle at top left, #3B82F6, #8B5CF6);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Custom Lucide Icon Component for Standalone Use
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconData = lucide[name];
+            if (!iconData) return null;
+            return (
+                <svg
+                    width={size}
+                    height={size}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={className}
+                >
+                    {iconData.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs }))}
+                </svg>
+            );
+        };
+
+        const GraduationCap = (props) => <Icon name="GraduationCap" {...props} />;
+        const ChevronRight = (props) => <Icon name="ChevronRight" {...props} />;
+        const Play = (props) => <Icon name="Play" {...props} />;
+        const CheckCircle2 = (props) => <Icon name="CheckCircle2" {...props} />;
+        const Circle = (props) => <Icon name="Circle" {...props} />;
+        const Lock = (props) => <Icon name="Lock" {...props} />;
+        const Zap = (props) => <Icon name="Zap" {...props} />;
+        const Trophy = (props) => <Icon name="Trophy" {...props} />;
+        const BookOpen = (props) => <Icon name="BookOpen" {...props} />;
+        const ArrowLeft = (props) => <Icon name="ArrowLeft" {...props} />;
+        const Info = (props) => <Icon name="Info" {...props} />;
+        const Target = (props) => <Icon name="Target" {...props} />;
+        const Layout = (props) => <Icon name="Layout" {...props} />;
+        const Code = (props) => <Icon name="Code" {...props} />;
+        const Globe = (props) => <Icon name="Globe" {...props} />;
+
+        const THEMES = {
+            lava: { primary: "#FF4D4D", secondary: "#2D1B1B", icon: Zap },
+            html: { primary: "#3B82F6", secondary: "#1E293B", icon: Code },
+            internet: { primary: "#10B981", secondary: "#064E3B", icon: Globe },
+            design: { primary: "#A855F7", secondary: "#2E1065", icon: Layout }
+        };
+
+        const CURRICULUM = [
+            {
+                id: 'lava-1',
+                track: 'lava',
+                title: 'What is Lava?',
+                modules: [
+                    { id: 'l1m1', title: 'The Liquid Syntax', type: 'lesson', content: 'Lava is based on Liquid, a templating language used to display dynamic data.' },
+                    { id: 'l1m2', title: 'Output Tags', type: 'lesson', content: '{{ Person.Firstname }} outputs the first name of a person.' },
+                    { id: 'l1m3', title: 'Logic Tags', type: 'quiz', question: 'Which tag is used for logic?', options: ['{{ }}', '{% %}', '[[ ]]', '<% %>'], answer: 1 }
+                ]
+            },
+            {
+                id: 'html-1',
+                track: 'html',
+                title: 'Structure & Rock',
+                modules: [
+                    { id: 'h1m1', title: 'Blocks & Zones', type: 'lesson', content: 'Rock pages are made of Zones, which contain Blocks.' },
+                    { id: 'h1m2', title: 'The Grid System', type: 'lesson', content: 'Rock uses a Bootstrap-based 12-column grid system.' },
+                    { id: 'h1m3', title: 'Identify a Zone', type: 'quiz', question: 'Where do Blocks live?', options: ['Pages', 'Zones', 'Modals', 'Attributes'], answer: 1 }
+                ]
+            }
+        ];
+
+        const App = () => {
+            const [view, setView] = useState('dashboard');
+            const [stats, setStats] = useState({ xp: 0, badges: 0, streak: 1 });
+            const [activeTrack, setActiveTrack] = useState(null);
+            const [activeModule, setActiveModule] = useState(null);
+            const [progress, setProgress] = useState({});
+
+            const handleModuleComplete = (moduleId) => {
+                if (!progress[moduleId]) {
+                    setStats(prev => ({ ...prev, xp: prev.xp + 50 }));
+                    setProgress(prev => ({ ...prev, [moduleId]: true }));
+                }
+                setTimeout(() => {
+                    setActiveModule(null);
+                }, 1000);
+            };
+
+            const renderDashboard = () => (
+                <div className="max-w-5xl mx-auto pt-16 px-6 pb-20 animate-fade-in">
+                    <header className="flex justify-between items-center mb-12">
+                        <div>
+                            <h1 className="text-4xl font-extrabold tracking-tight">Rock Solid Academy</h1>
+                            <p className="text-slate-400 mt-2">Level up your Rock RMS expertise.</p>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="glass px-6 py-3 rounded-2xl flex items-center gap-3">
+                                <Zap className="text-yellow-400" size={18} />
+                                <span className="font-bold">{stats.xp} XP</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                        {Object.entries(THEMES).map(([id, theme]) => (
+                            <div
+                                key={id}
+                                onClick={() => setActiveTrack(id)}
+                                className="glass p-8 rounded-[2rem] border border-white/5 hover:border-white/10 transition-all cursor-pointer group relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <theme.icon size={120} />
+                                </div>
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6`} style={{ background: theme.primary + '20', color: theme.primary }}>
+                                    <theme.icon size={24} />
+                                </div>
+                                <h3 className="text-xl font-bold uppercase tracking-wider mb-2">{id}</h3>
+                                <p className="text-slate-400 text-sm">Master the foundations of {id} in Rock.</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="space-y-6">
+                        <h2 className="text-2xl font-bold flex items-center gap-3">
+                            <Target className="text-blue-500" size={24} /> Your Learning Path
+                        </h2>
+                        <div className="space-y-4">
+                            {CURRICULUM.map(level => (
+                                <div key={level.id} className="glass p-6 rounded-3xl flex items-center justify-between border-l-4" style={{ borderLeftColor: THEMES[level.track].primary }}>
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 rounded-full border-2 border-slate-700 flex items-center justify-center text-slate-500">
+                                            {level.id.split('-')[1]}
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: THEMES[level.track].primary }}>{level.track}</div>
+                                            <h4 className="font-bold text-lg">{level.title}</h4>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => { setActiveTrack(level.track); setActiveModule(level.modules[0]); }}
+                                        className="bg-white/5 hover:bg-white/10 px-6 py-2 rounded-xl font-bold transition-all text-sm"
+                                    >
+                                        Resume
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderModule = () => {
+                const isQuiz = activeModule.type === 'quiz';
+                return (
+                    <div className="fixed inset-0 bg-slate-950 z-50 flex flex-col animate-fade-in">
+                        <nav className="p-6 border-b border-white/5 flex justify-between items-center">
+                            <button onClick={() => setActiveModule(null)} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+                                <ArrowLeft size={20} /> Exit Module
+                            </button>
+                            <div className="text-center">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{activeModule.type}</span>
+                                <h3 className="font-bold">{activeModule.title}</h3>
+                            </div>
+                            <div className="w-20"></div>
+                        </nav>
+
+                        <div className="flex-1 flex flex-col items-center justify-center p-8">
+                            <div className="max-w-2xl w-full">
+                                {isQuiz ? (
+                                    <div className="space-y-8">
+                                        <h2 className="text-3xl font-bold text-center mb-12">{activeModule.question}</h2>
+                                        <div className="grid gap-4">
+                                            {activeModule.options.map((opt, i) => (
+                                                <button
+                                                    key={opt}
+                                                    onClick={() => i === activeModule.answer ? handleModuleComplete(activeModule.id) : alert('Try again!')}
+                                                    className="w-full glass p-6 rounded-2xl text-left hover:bg-white/5 border border-white/5 hover:border-blue-500/50 transition-all font-medium text-lg flex justify-between items-center"
+                                                >
+                                                    {opt}
+                                                    <ChevronRight size={20} className="text-slate-600" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center space-y-8">
+                                        <div className="w-20 h-20 bg-blue-500/20 text-blue-500 rounded-3xl flex items-center justify-center mx-auto mb-12">
+                                            <BookOpen size={40} />
+                                        </div>
+                                        <h2 className="text-4xl font-extrabold mb-6 leading-tight">{activeModule.title}</h2>
+                                        <p className="text-xl text-slate-400 leading-relaxed mb-12">
+                                            {activeModule.content}
+                                        </p>
+                                        <button
+                                            onClick={() => handleModuleComplete(activeModule.id)}
+                                            className="bg-blue-600 hover:bg-blue-500 text-white px-12 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 transition-all"
+                                        >
+                                            Complete Lesson
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen">
+                    <nav className="fixed top-0 w-full z-40 glass border-b border-white/5 px-6 py-4 flex justify-between items-center">
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('dashboard')}>
+                            <div className="bg-blue-600 p-2 rounded-xl">
+                                <GraduationCap size={20} className="text-white" />
+                            </div>
+                            <span className="font-extrabold text-xl tracking-tight">RSA</span>
+                        </div>
+                    </nav>
+
+                    {activeModule ? renderModule() : renderDashboard()}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

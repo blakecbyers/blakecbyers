@@ -66,41 +66,49 @@ class TiltLogic {
         this.current = { beta, gamma, alpha: event.alpha || 0 };
 
         // --- ROBUST GRAVITY VECTOR PROJECTION ---
-        // Z-projection of gravity tells us how much the screen is tilted from vertical.
+        // We want to know how much the face of the phone is tilted towards or away from the user.
+        // Even if the phone is rotated, the gravity vector stays constant.
+
+        // Convert to radians
         const b = beta * (Math.PI / 180);
         const g = gamma * (Math.PI / 180);
+
+        // Gravity vector in device coordinates (assuming unit gravity)
+        const gx = -Math.sin(g);
+        const gy = Math.sin(b) * Math.cos(g);
         const gz = Math.cos(b) * Math.cos(g);
 
-        // This gives -90 to 90 with 0 being perfectly vertical
-        let rawPitch = -Math.asin(gz) * (180 / Math.PI);
+        // Normalize device-relative gravity to the plane of play (landscape)
+        // In "Heads Up" mode (phone on forehead), the action is a "nod".
+        // This is a rotation around the device's long axis (if landscape).
 
-        // Disambiguate forward/backward using gamma's sign
-        // In landscape, gamma is the primary tilt axis.
-        if (gamma < 0) {
-            if (rawPitch > 0) rawPitch = 180 - rawPitch;
-            else rawPitch = -180 - rawPitch;
-        }
+        // We use Math.atan2 to get a full 360 range and avoid gimbal lock issues.
+        // For landscape forehead play, we care about the relationship between gy and gz.
+        let rawPitch = Math.atan2(gy, gz) * (180 / Math.PI);
 
         // Apply smoothing
         this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
 
-        // Orientation aware flip
+        // Orientation aware flip (handle landscape-primary vs landscape-secondary)
         const orientation = (screen.orientation || {}).type || window.orientation || 'landscape-primary';
         const isSecondary = String(orientation).includes('secondary') || orientation === -90 || orientation === 270;
 
         // Calculate delta from calibration
         let calibratedPitch = this.smoothed.pitch - this.calibration.pitch;
 
-        // Normalize
+        // Normalize to -180 to 180
         if (calibratedPitch > 180) calibratedPitch -= 360;
         if (calibratedPitch < -180) calibratedPitch += 360;
 
-        // Final sign correction for YES/SKIP mapping
+        // Final sign correction
+        // Action Mapping:
+        // Forward (Nod Down) = Positive Pitch = Correct
+        // Backward (Nod Up) = Negative Pitch = Skip
         const finalPitch = isSecondary ? -calibratedPitch : calibratedPitch;
 
         this.checkTriggers(finalPitch);
 
-        // Notify update with all relevant data
+        // Notify update
         this.onUpdate({
             raw: this.current,
             pitch: finalPitch,
@@ -137,7 +145,11 @@ class TiltLogic {
      * Linear interpolation helper.
      */
     lerp(start, end, amt) {
-        return start + (end - start) * amt;
+        // Handle wrap-around for angles in lerp
+        let diff = end - start;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        return start + diff * amt;
     }
 }
 

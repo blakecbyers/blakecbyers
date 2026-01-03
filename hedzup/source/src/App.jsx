@@ -45,23 +45,27 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
         }, 600);
     }, [status, index, cards, card, stats, playSound, onFinish]);
 
-    // Swipe detection
+    // Swipe detection (Rotated for 90deg UI)
     const touchStart = useRef(null);
 
     const onTouchStart = (e) => {
-        touchStart.current = e.touches[0].clientY;
+        // Since the UI is rotated 90deg, screen-down is device-right (positive X)
+        // and screen-up is device-left (negative X).
+        touchStart.current = e.touches[0].clientX;
     };
 
     const onTouchEnd = (e) => {
-        if (!touchStart.current) return;
-        const touchEnd = e.changedTouches[0].clientY;
+        if (touchStart.current === null) return;
+        const touchEnd = e.changedTouches[0].clientX;
         const delta = touchEnd - touchStart.current;
         const threshold = 50;
 
+        // Delta > 0 means swiping from left to right on the device.
+        // On a 90deg rotated screen, this is 'down' towards the chin.
         if (delta > threshold) {
-            handleAction('correct'); // Swipe Down
+            handleAction('correct'); // Swipe Down (Visual)
         } else if (delta < -threshold) {
-            handleAction('pass'); // Swipe Up
+            handleAction('pass');    // Swipe Up (Visual)
         }
         touchStart.current = null;
     };

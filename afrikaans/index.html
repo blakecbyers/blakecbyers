@@ -318,12 +318,34 @@
 
             const speak = (text) => {
                 if (!window.speechSynthesis) return;
-                const ut = new SpeechSynthesisUtterance(text);
-                const voices = window.speechSynthesis.getVoices();
-                const afVoice = voices.find(v => v.lang.startsWith('af'));
-                if (afVoice) ut.voice = afVoice;
-                else ut.lang = 'af-ZA';
-                window.speechSynthesis.speak(ut);
+
+                window.speechSynthesis.cancel();
+
+                const startSpeaking = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    const afVoice = voices.find(v =>
+                        v.lang.toLowerCase().replace('_', '-') === 'af-za' ||
+                        v.lang.toLowerCase().startsWith('af')
+                    );
+
+                    const ut = new SpeechSynthesisUtterance(text);
+                    if (afVoice) {
+                        ut.voice = afVoice;
+                        ut.rate = 0.85;
+                    } else {
+                        ut.lang = 'af-ZA';
+                    }
+                    window.speechSynthesis.speak(ut);
+                };
+
+                if (window.speechSynthesis.getVoices().length === 0) {
+                    window.speechSynthesis.onvoiceschanged = () => {
+                        window.speechSynthesis.onvoiceschanged = null;
+                        startSpeaking();
+                    };
+                } else {
+                    startSpeaking();
+                }
             };
 
             // Auto speak on load

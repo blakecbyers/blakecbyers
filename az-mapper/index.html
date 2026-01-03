@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arizona Mapper</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;800;900&family=Inter:wght@400;600;800;900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --az-orange: #f97316;
+            --chunky-border: 3px;
+        }
+
+        body {
+            font-family: 'Lexend', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            background-color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 0;
+            background: #cbd5e1;
+            transition: filter 0.5s ease;
+        }
+
+        .leaflet-interactive {
+            outline: none;
+            transition: stroke 0.2s, fill 0.2s, opacity 0.2s;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: var(--chunky-border) solid #1e293b;
+        }
+
+        .chunky-shadow {
+            box-shadow: 0 6px 0px 0px #1e293b;
+        }
+
+        .menu-card {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .menu-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px 0px #1e293b;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 4px solid #ef4444;
+            pointer-events: none;
+            animation: ripple-anim 0.5s ease-out forwards;
+            transform: translate(-50%, -50%);
+            z-index: 400;
+        }
+
+        @keyframes ripple-anim {
+            0% {
+                width: 10px;
+                height: 10px;
+                opacity: 1;
+            }
+
+            100% {
+                width: 100px;
+                height: 100px;
+                opacity: 0;
+            }
+        }
+
+        .desert-sky {
+            background: radial-gradient(circle at 50% 30%, #fff7ed 0%, #ffedd5 100%);
+        }
+
+        .badge {
+            background: #1e293b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+        }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translateX(-2px);
+            }
+
+            20%,
+            80% {
+                transform: translateX(4px);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translateX(-6px);
+            }
+
+            40%,
+            60% {
+                transform: translateX(6px);
+            }
+        }
+
+        .leaflet-tooltip {
+            background: #1e293b !important;
+            border: none !important;
+            color: white !important;
+            font-weight: 800 !important;
+            border-radius: 8px !important;
+            padding: 4px 12px !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+            font-family: 'Lexend', sans-serif;
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body class="desert-sky">
+
+    <div id="map"></div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen"
+        class="absolute inset-0 z-[1000] desert-sky flex flex-col items-center justify-center p-8 overflow-hidden">
+        <div class="absolute top-[-50px] right-[-50px] w-64 h-64 bg-orange-400/20 rounded-full blur-3xl"></div>
+        <div class="relative z-10 w-full max-w-sm flex flex-col items-center fade-in">
+            <div class="mb-12 flex flex-col items-center">
+                <div class="flex items-center space-x-3 mb-2">
+                    <span class="badge text-4xl">AZ</span>
+                    <h1 class="text-4xl font-black tracking-tight text-slate-900 uppercase">Mapper</h1>
+                </div>
+                <div class="h-[4px] w-12 bg-orange-500 rounded-full"></div>
+            </div>
+
+            <div class="w-full space-y-5">
+                <div class="grid grid-cols-2 gap-5">
+                    <button onclick="startGame('phx_cities')"
+                        class="menu-card glass chunky-shadow rounded-[2rem] p-6 text-left group">
+                        <div
+                            class="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center mb-5 border-2 border-slate-900 group-hover:bg-sky-500 transition-colors">
+                            <svg class="w-6 h-6 text-slate-900 group-hover:text-white" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="font-extrabold text-slate-900 text-sm uppercase tracking-tight">Metro<br>Jigsaw
+                        </div>
+                    </button>
+
+                    <button onclick="startGame('az_cities')"
+                        class="menu-card glass chunky-shadow rounded-[2rem] p-6 text-left group">
+                        <div
+                            class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-5 border-2 border-slate-900 group-hover:bg-purple-500 transition-colors">
+                            <svg class="w-6 h-6 text-slate-900 group-hover:text-white" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="font-extrabold text-slate-900 text-sm uppercase tracking-tight">Statewide<br>Cities
+                        </div>
+                    </button>
+                </div>
+
+                <button onclick="startGame('freeways')"
+                    class="menu-card w-full glass chunky-shadow rounded-[2rem] p-6 flex items-center justify-between group">
+                    <div class="flex items-center">
+                        <div
+                            class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mr-5 border-2 border-slate-900 group-hover:bg-orange-500 transition-colors">
+                            <svg class="w-6 h-6 text-slate-900 group-hover:text-white" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M9 20l-5.447-2.724A2 2 0 013 15.488V5.512a2 2 0 011.553-1.96L9 2m0 18l6-3m-6 3V2m6 15l5.447 2.724A2 2 0 0021 17.882V7.912a2 2 0 00-1.553-1.96L15 3m0 15V3m0 0L9 6">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <div class="text-lg font-black text-slate-900 leading-none uppercase">Highway Master</div>
+                        </div>
+                    </div>
+                    <div
+                        class="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-all">
+                        <svg class="w-5 h-5 text-white transform group-hover:translate-x-1 transition-transform"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7">
+                            </path>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME UI -->
+    <div id="game-ui"
+        class="hidden pointer-events-none absolute inset-x-0 top-0 z-[500] flex flex-col items-center p-4">
+        <!-- New Integrated Header -->
+        <div class="pointer-events-auto w-full max-w-lg flex items-stretch space-x-3 slide-up">
+            <!-- Objective Container -->
+            <div id="prompt-box"
+                class="flex-grow glass chunky-shadow rounded-2xl px-6 py-4 flex items-center border-2 border-slate-900">
+                <div class="flex items-baseline space-x-2">
+                    <span
+                        class="text-[9px] uppercase tracking-[0.2em] text-orange-600 font-black whitespace-nowrap">Find</span>
+                    <span id="target-name"
+                        class="text-2xl font-black text-slate-900 tracking-tight leading-none">...</span>
+                </div>
+            </div>
+
+            <!-- Stopwatch Container -->
+            <div
+                class="glass chunky-shadow rounded-2xl px-5 py-4 flex flex-col items-center justify-center border-2 border-slate-900 min-w-[100px]">
+                <span id="timer-display" class="text-2xl font-black text-slate-900 tabular-nums">00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="game-over"
+        class="hidden absolute inset-0 z-[1000] bg-orange-50/98 backdrop-blur-lg flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-full max-w-sm glass chunky-shadow p-10 rounded-[3rem]">
+            <div class="text-[12px] font-black text-orange-600 uppercase tracking-[0.4em] mb-4">Journey Over</div>
+            <div class="text-8xl font-black text-slate-900 mb-2 tracking-tighter" id="final-score">100%</div>
+            <div class="text-xl font-bold text-slate-500 mb-10">⏱ <span id="final-time">00:00</span></div>
+
+            <div class="space-y-4">
+                <button onclick="retryGame()"
+                    class="menu-card chunky-shadow w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg active:scale-95 uppercase tracking-widest border-2 border-slate-900">Retry</button>
+                <button onclick="returnToMenu()"
+                    class="menu-card chunky-shadow w-full bg-orange-600 text-white py-5 rounded-2xl font-black text-lg active:scale-95 uppercase tracking-widest border-2 border-slate-900">Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // --- JIGSAW CONSTANTS (Perfect Snapping) ---
+        const L_43RD = -112.155; const L_91ST = -112.260; const L_115TH = -112.312;
+        const L_DYSART = -112.352; const L_ESTRELLA = -112.445; const L_EL_MIRAGE = -112.325;
+        const L_SCOTTS = -111.926; const L_PRICE = -111.890; const L_GILBERT = -111.789;
+        const L_MESA_E = -111.642; const L_POWER = -111.682;
+        const H_BELL = 33.637; const H_CAMEL = 33.507; const H_MCDOW = 33.465;
+        const H_BASE = 33.378; const H_RAY = 33.318; const H_S = 33.205;
+        const H_CAVE_CREEK = 33.840;
+
+        const PHOENIX_CENTER = [33.52, -112.07];
+        let currentGameMode = '';
+        let timerInterval;
+        let seconds = 0;
+
+        const PHX_CITY_POLYS = [
+            { name: "Phoenix", coords: [[33.82, L_43RD], [33.82, L_SCOTTS], [33.58, L_SCOTTS], [33.58, -111.98], [33.52, -111.98], [33.52, L_SCOTTS], [H_MCDOW, L_SCOTTS], [H_MCDOW, -111.97], [33.32, -111.97], [33.32, -112.05], [H_S, -112.05], [H_S, -112.18], [33.40, -112.18], [33.40, L_91ST], [33.48, L_91ST], [33.48, L_43RD], [33.64, L_43RD], [33.64, L_43RD]] },
+            { name: "Scottsdale", coords: [[33.86, L_SCOTTS], [33.86, -111.75], [33.55, -111.75], [33.55, L_PRICE], [H_MCDOW, L_PRICE], [H_MCDOW, L_SCOTTS]] },
+            { name: "Tempe", coords: [[H_MCDOW, -111.97], [H_MCDOW, L_PRICE], [H_BASE, L_PRICE], [H_BASE, -111.97]] },
+            { name: "Mesa", coords: [[H_MCDOW, L_PRICE], [H_MCDOW, -111.55], [H_BASE, -111.55], [H_BASE, L_PRICE]] },
+            { name: "Chandler", coords: [[H_BASE, -111.97], [H_BASE, L_GILBERT], [H_S, L_GILBERT], [H_S, -111.97]] },
+            { name: "Gilbert", coords: [[H_BASE, L_GILBERT], [H_BASE, L_MESA_E], [H_S, L_MESA_E], [H_S, L_GILBERT]] },
+            { name: "Glendale", coords: [[H_BELL, L_115TH], [H_BELL, L_43RD], [H_CAMEL, L_43RD], [H_CAMEL, L_115TH]] },
+            { name: "Peoria", coords: [[33.82, L_115TH], [33.82, L_43RD], [H_BELL, L_43RD], [H_BELL, L_115TH]] },
+            { name: "Surprise", coords: [[33.82, L_ESTRELLA], [33.82, L_115TH], [33.55, L_115TH], [33.55, L_ESTRELLA]] },
+            { name: "Sun City", coords: [[33.64, L_115TH], [33.64, L_EL_MIRAGE], [33.58, L_EL_MIRAGE], [33.58, L_115TH]] },
+            { name: "Queen Creek", coords: [[33.30, L_MESA_E], [33.30, -111.48], [33.15, -111.48], [33.15, L_MESA_E]] },
+            { name: "Avondale", coords: [[H_CAMEL, L_DYSART], [H_CAMEL, L_115TH], [33.40, L_115TH], [33.40, L_DYSART]] },
+            { name: "Goodyear", coords: [[H_CAMEL, L_ESTRELLA], [H_CAMEL, L_DYSART], [H_S, L_DYSART], [H_S, L_ESTRELLA]] },
+            { name: "Buckeye", coords: [[H_CAMEL, -112.75], [H_CAMEL, L_ESTRELLA], [H_S, L_ESTRELLA], [H_S, -112.75]] },
+            { name: "Maricopa", coords: [[33.10, -112.18], [33.10, -111.97], [32.95, -111.97], [32.95, -112.18]] },
+            { name: "Apache Junction", coords: [[33.48, -111.55], [33.48, -111.45], [33.35, -111.45], [33.35, -111.55]] },
+            { name: "San Tan Valley", coords: [[33.25, -111.55], [33.25, -111.42], [33.10, -111.42], [33.10, -111.55]] },
+            { name: "Paradise Valley", coords: [[33.58, -111.97], [33.58, -111.93], [33.52, -111.93], [33.52, -111.97]] },
+            { name: "Fountain Hills", coords: [[33.65, -111.75], [33.65, -111.68], [33.58, -111.68], [33.58, -111.75]] },
+            { name: "Cave Creek", coords: [[H_CAVE_CREEK, -112.02], [H_CAVE_CREEK, -111.95], [33.82, -111.95], [33.82, -112.02]] }
+        ];
+
+        const AZ_CITIES = [
+            { name: "Phoenix", coords: [33.448, -112.074] }, { name: "Tucson", coords: [32.222, -110.974] },
+            { name: "Flagstaff", coords: [35.198, -111.651] }, { name: "Yuma", coords: [32.692, -114.627] },
+            { name: "Prescott", coords: [34.540, -112.468] }, { name: "Prescott Valley", coords: [34.590, -112.330] },
+            { name: "Sedona", coords: [34.869, -111.761] }, { name: "Kingman", coords: [35.189, -114.053] },
+            { name: "Lake Havasu City", coords: [34.483, -114.322] }, { name: "Page", coords: [36.914, -111.455] },
+            { name: "Payson", coords: [34.230, -111.325] }, { name: "Winslow", coords: [35.024, -110.697] },
+            { name: "Bullhead City", coords: [35.148, -114.568] }, { name: "Sierra Vista", coords: [31.554, -110.303] },
+            { name: "Bisbee", coords: [31.448, -109.928] }, { name: "Wickenburg", coords: [33.970, -112.730] },
+            { name: "Safford", coords: [32.834, -109.708] }, { name: "Douglas", coords: [31.344, -109.545] },
+            { name: "Nogales", coords: [31.340, -110.934] }, { name: "Globe", coords: [33.394, -110.786] }
+        ];
+
+        const FREEWAY_DATA = [
+            { name: "I-10", path: [[33.66, -114.23], [33.46, -112.45], [33.46, -112.07], [33.43, -112.00], [33.38, -111.97], [32.87, -111.75], [32.22, -110.97], [32.20, -109.20]] },
+            { name: "I-17", path: [[33.42, -112.07], [33.85, -112.12], [34.20, -112.10], [34.50, -111.90], [35.19, -111.65]] },
+            { name: "I-40", path: [[34.80, -114.60], [35.18, -114.05], [35.25, -112.20], [35.19, -111.65], [35.02, -110.70], [35.15, -109.05]] },
+            { name: "I-8", path: [[32.69, -114.62], [32.75, -112.70], [32.87, -111.75]] },
+            { name: "Loop 101", path: [[33.66, -112.24], [33.66, -112.10], [33.66, -111.92], [33.45, -111.89], [33.28, -111.89]] },
+            { name: "Loop 202", path: [[33.45, -112.00], [33.45, -111.65], [33.28, -111.65], [33.28, -111.95]] }
+        ];
+
+        // --- CORE GAME ENGINE ---
+        let map, tileLayer, targets = [], currentTargetIndex = 0, correctCount = 0, attempts = 0, currentMistakes = 0, featureLayers = [];
+
+        function initMap() {
+            map = L.map('map', { center: PHOENIX_CENTER, zoom: 10, zoomControl: false, attributionControl: false, tap: true });
+            tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+            map.on('click', (e) => {
+                const r = document.createElement('div'); r.className = 'ripple'; r.style.left = e.containerPoint.x + 'px'; r.style.top = e.containerPoint.y + 'px';
+                document.getElementById('map').appendChild(r); setTimeout(() => r.remove(), 500);
+            });
+        }
+
+        function startGame(mode) {
+            currentGameMode = mode;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            document.getElementById('game-over').classList.add('hidden');
+
+            currentTargetIndex = 0; correctCount = 0; attempts = 0; currentMistakes = 0; featureLayers = [];
+            resetTimer(); startTimer();
+
+            map.eachLayer(l => { if (l !== tileLayer) map.removeLayer(l); });
+
+            if (mode === 'phx_cities') setupPhxCities();
+            else if (mode === 'az_cities') setupAzCities();
+            else if (mode === 'freeways') setupFreeways();
+
+            shuffleArray(targets);
+            updateStats();
+            setTimeout(() => { map.invalidateSize(); nextTurn(); }, 100);
+        }
+
+        function retryGame() { startGame(currentGameMode); }
+
+        function returnToMenu() {
+            stopTimer();
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('game-over').classList.add('hidden');
+            map.eachLayer(l => { if (l !== tileLayer) map.removeLayer(l); });
+            map.setView(PHOENIX_CENTER, 10);
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval); seconds = 0;
+            timerInterval = setInterval(() => {
+                seconds++;
+                const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('timer-display').innerText = `${m}:${s}`;
+            }, 1000);
+        }
+        function stopTimer() { clearInterval(timerInterval); }
+        function resetTimer() { document.getElementById('timer-display').innerText = "00:00"; }
+
+        function setupPhxCities() {
+            targets = [...PHX_CITY_POLYS];
+            targets.forEach(city => {
+                const p = L.polygon(city.coords, { color: '#1e293b', weight: 3, fillColor: '#f8fafc', fillOpacity: 0.12 }).addTo(map);
+                p.isFound = false; p.featureName = city.name;
+                p.on('click', (e) => { L.DomEvent.stopPropagation(e); handleInput(p); });
+                featureLayers.push(p);
+            });
+            map.fitBounds(L.featureGroup(featureLayers).getBounds(), { padding: [20, 120] });
+        }
+
+        function setupAzCities() {
+            targets = [...AZ_CITIES];
+            targets.forEach(city => {
+                const hit = L.circleMarker(city.coords, { radius: 35, color: 'transparent', fillOpacity: 0 }).addTo(map);
+                const dot = L.circleMarker(city.coords, { radius: 8, fillColor: '#1e293b', color: '#fff', weight: 2.5, fillOpacity: 1, interactive: false }).addTo(map);
+                hit.isFound = false; hit.featureName = city.name; hit.visualLayer = dot;
+                hit.on('click', (e) => { L.DomEvent.stopPropagation(e); handleInput(hit); });
+                featureLayers.push(hit);
+            });
+            map.fitBounds(L.featureGroup(featureLayers).getBounds(), { padding: [120, 50] });
+        }
+
+        function setupFreeways() {
+            targets = [...FREEWAY_DATA];
+            targets.forEach(road => {
+                const v = L.polyline(road.path, { color: '#94a3b8', weight: 10, opacity: 0.7, lineCap: 'round', interactive: false }).addTo(map);
+                const h = L.polyline(road.path, { color: 'transparent', weight: 55, opacity: 0 }).addTo(map);
+                h.isFound = false; h.featureName = road.name; h.visualLayer = v;
+                h.on('click', (e) => { L.DomEvent.stopPropagation(e); handleInput(h); });
+                featureLayers.push(h);
+            });
+            map.fitBounds(L.featureGroup(featureLayers.map(l => l.visualLayer)).getBounds(), { padding: [120, 40] });
+        }
+
+        function nextTurn() {
+            if (currentTargetIndex >= targets.length) { endGame(); return; }
+            const t = targets[currentTargetIndex];
+            document.getElementById('target-name').innerText = t.name;
+            currentMistakes = 0;
+            const active = featureLayers.find(l => l.featureName === t.name);
+            if (active) {
+                active.bringToFront();
+                if (active.visualLayer && active.visualLayer.bringToFront) active.visualLayer.bringToFront();
+            }
+        }
+
+        function handleInput(layer) {
+            if (layer.isFound) return;
+            const current = targets[currentTargetIndex];
+            const v = layer.visualLayer || layer;
+
+            if (layer.featureName === current.name) {
+                if (currentMistakes === 0) correctCount++;
+                layer.isFound = true; v.isFound = true;
+                if (v instanceof L.CircleMarker) v.setStyle({ fillColor: '#10b981', color: '#064e3b', radius: 10 });
+                else v.setStyle({ color: '#10b981', opacity: 0.9, weight: (v.options.weight || 2) + 4 });
+
+                v.bindTooltip(layer.featureName, { permanent: true, direction: 'center' }).openTooltip();
+                attempts++; currentTargetIndex++; updateStats(); nextTurn();
+            } else {
+                currentMistakes++; document.getElementById('prompt-box').classList.add('shake');
+                setTimeout(() => document.getElementById('prompt-box').classList.remove('shake'), 400);
+                const oldStyle = { color: v.options.color, opacity: v.options.opacity };
+                v.setStyle({ color: '#ef4444', opacity: 0.8 });
+                setTimeout(() => { if (!v.isFound) v.setStyle(oldStyle); }, 400);
+                if (currentMistakes >= 3) showHint(current.name);
+            }
+        }
+
+        function showHint(n) {
+            const l = featureLayers.find(x => x.featureName === n);
+            if (l) {
+                const v = l.visualLayer || l;
+                v.setStyle({ color: '#fbbf24', opacity: 1, weight: 14 }); v.bringToFront();
+            }
+        }
+
+        function updateStats() {
+            const p = attempts === 0 ? 0 : Math.round((correctCount / attempts) * 100);
+            document.getElementById('score-display').innerText = p + '%';
+            document.getElementById('current-count').innerText = currentTargetIndex;
+            document.getElementById('total-count').innerText = targets.length;
+        }
+
+        function endGame() {
+            stopTimer();
+            const score = attempts === 0 ? 0 : Math.round((correctCount / attempts) * 100);
+            document.getElementById('final-score').innerText = score + '%';
+            document.getElementById('final-time').innerText = document.getElementById('timer-display').innerText;
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('game-over').classList.remove('hidden');
+        }
+
+        function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[arr[i], arr[j]] = [arr[j], arr[i]]; } }
+        window.onload = initMap;
+    </script>
+</body>
+
+</html>

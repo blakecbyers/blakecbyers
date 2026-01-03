@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Prompt Press - AI Barista Training</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="bg-[#FDFCF8] text-[#2C2C2C] min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Custom Lucide Icon Component for Standalone Use
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconData = lucide[name];
+            if (!iconData) return null;
+            return (
+                <svg
+                    width={size}
+                    height={size}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={className}
+                >
+                    {iconData.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs }))}
+                </svg>
+            );
+        };
+
+        const Coffee = (props) => <Icon name="Coffee" {...props} />;
+        const Terminal = (props) => <Icon name="Terminal" {...props} />;
+        const Zap = (props) => <Icon name="Zap" {...props} />;
+        const BookOpen = (props) => <Icon name="BookOpen" {...props} />;
+        const ArrowRight = (props) => <Icon name="ArrowRight" {...props} />;
+        const ChevronLeft = (props) => <Icon name="ChevronLeft" {...props} />;
+        const CheckCircle = (props) => <Icon name="CheckCircle" {...props} />;
+        const Award = (props) => <Icon name="Award" {...props} />;
+        const PenTool = (props) => <Icon name="PenTool" {...props} />;
+        const RefreshCw = (props) => <Icon name="RefreshCw" {...props} />;
+        const PlayCircle = (props) => <Icon name="PlayCircle" {...props} />;
+        const Star = (props) => <Icon name="Star" {...props} />;
+
+        const SYLLABUS = [
+            {
+                id: 1,
+                tier: "The Green Bean",
+                title: "The AI Essentials",
+                source: "Google AI Essentials",
+                concept: "Foundations & Productivity",
+                lesson: "Understand how generative models work. Use AI to brainstorm ideas, turn them into outlines, and draft communications.",
+                challenge: "Write a prompt to brainstorm 3 creative names for a new 'lavender-infused' espresso blend. Context: We are a high-end minimalist cafe.",
+                criteria: ["Creativity", "Context provided", "Bullet points"],
+                gradingInstruction: "Grade based on whether they provided context about the minimalist cafe and if they asked for exactly 3 names."
+            },
+            {
+                id: 2,
+                tier: "The Green Bean",
+                title: "Summarization",
+                source: "Google AI Essentials",
+                concept: "Information Synthesis",
+                lesson: "Learn to summarize long documents or complex topics into bite-sized highlights.",
+                challenge: "Paste a long paragraph about coffee history and ask for a 1-sentence summary suitable for a 10-year-old.",
+                criteria: ["Brevity", "Simplicity", "Accuracy"],
+                gradingInstruction: "Grade on whether it's truly one sentence and simple enough for a child."
+            },
+            {
+                id: 3,
+                tier: "The Green Bean",
+                title: "The Quick Steam",
+                source: "Google AI Essentials",
+                concept: "Email & Communication",
+                lesson: "Use AI to draft professional emails, adjust tone, and fix grammar.",
+                challenge: "Draft a polite email to a regular customer named 'Mr. Bean' letting him know we are out of oat milk today.",
+                criteria: ["Polished Tone", "Clarity", "Brief"],
+                gradingInstruction: "Check for customer service excellence and mentions of 'no oat milk'."
+            },
+            {
+                id: 10,
+                tier: "Micro-Foamer",
+                title: "The Persona Pour",
+                source: "Coursera: Prompt Engineering for ChatGPT",
+                concept: "Role Prompting",
+                lesson: "Assigning a specific persona to the AI (e.g., 'You are a world-class coder') dramatically improves results.",
+                challenge: "Prompt the AI to act as a 1920s Noir Detective. Have it describe a spilled cup of coffee in that style.",
+                criteria: ["Strong Voice", "Sensory detail", "Noir vocabulary"],
+                gradingInstruction: "Does it sound like a hardboiled detective? Look for 'dame', 'streets', or 'bitter brew'."
+            },
+            {
+                id: 11,
+                tier: "Micro-Foamer",
+                title: "Zero-Shot vs Few-Shot",
+                source: "DeepLearning.AI: ChatGPT Prompt Engineering",
+                concept: "Few-Shot Learning",
+                lesson: "Providing examples (few-shot) helps the AI understand the pattern better than just instructions (zero-shot).",
+                challenge: "Provide 2 examples of animal noises (Cat: Meow, Dog: Bark) then ask for the noise of a 'Coffee Machine'.",
+                criteria: ["Pattern matching", "Creativity"],
+                gradingInstruction: "Did they use the format 'Animal: Sound' or 'Object: Sound' correctly before asking for the machine?"
+            },
+            {
+                id: 20,
+                tier: "Head Roaster",
+                title: "Chain of Thought",
+                source: "OpenAI Documentation",
+                concept: "Logical Reasoning",
+                lesson: "Asking the AI to 'work step by step' reduces hallucinations and improves complex reasoning.",
+                challenge: "Ask a math-based coffee inventory question and explicitly tell the AI to 'think step by step' before answering.",
+                criteria: ["Step-by-step instruction", "Clarity"],
+                gradingInstruction: "Did they include the magic phrase 'step by step' or equivalent instructions?"
+            }
+        ];
+
+        const App = () => {
+            const [view, setView] = useState('home');
+            const [progress, setProgress] = useState({
+                completed: [],
+                stamps: 0,
+                currentLevel: 1
+            });
+            const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || "");
+            const [selectedLevel, setSelectedLevel] = useState(null);
+            const [userPrompt, setUserPrompt] = useState("");
+            const [isGrading, setIsGrading] = useState(false);
+            const [gradeResult, setGradeResult] = useState(null);
+            const [showSettings, setShowSettings] = useState(false);
+
+            useEffect(() => {
+                localStorage.setItem('gemini_api_key', apiKey);
+            }, [apiKey]);
+
+            const gradePrompt = async () => {
+                if (!userPrompt.trim()) return;
+                setIsGrading(true);
+                setGradeResult(null);
+
+                const systemPrompt = `You are the "Head Roaster" at The Prompt Press, an AI education app. 
+                Your job is to evaluate if a student's prompt successfully applies the following concept: ${selectedLevel.concept}.
+                
+                Student Task: ${selectedLevel.challenge}
+                Grading Rules: ${selectedLevel.gradingInstruction}
+                
+                Return a JSON object with:
+                {
+                  "passed": boolean,
+                  "score": number (0-100),
+                  "feedback": "A short, encouraging barista-themed explanation of what they did well or how to improve.",
+                  "ai_response": "A simulated response showing how an AI would react to their prompt."
+                }`;
+
+                try {
+                    let delay = 1000;
+                    for (let i = 0; i < 5; i++) {
+                        try {
+                            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+                            const response = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    contents: [{ parts: [{ text: userPrompt }] }],
+                                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                                    generationConfig: {
+                                        response_mime_type: "application/json",
+                                        temperature: 0.7
+                                    }
+                                })
+                            });
+                            const result = await response.json();
+                            if (result.error) throw new Error(result.error.message);
+
+                            const evaluationText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                            const evaluation = JSON.parse(evaluationText);
+                            setGradeResult(evaluation);
+
+                            if (evaluation.passed && !progress.completed.includes(selectedLevel.id)) {
+                                setProgress(prev => ({
+                                    ...prev,
+                                    completed: [...prev.completed, selectedLevel.id],
+                                    stamps: prev.stamps + 1,
+                                    currentLevel: Math.max(prev.currentLevel, selectedLevel.id + 1)
+                                }));
+                            }
+                            break;
+                        } catch (e) {
+                            console.error("Attempt failed:", i, e);
+                            if (i === 4) throw e;
+                            await new Promise(res => setTimeout(res, delay));
+                            delay *= 2;
+                        }
+                    }
+                } catch (error) {
+                    setGradeResult({
+                        passed: false,
+                        feedback: "The roaster is busy. Please ensure your API key is correct and try pouring again in a moment.",
+                        score: 0,
+                        ai_response: "ERROR: " + error.message
+                    });
+                } finally {
+                    setIsGrading(false);
+                }
+            };
+
+            const renderHome = () => (
+                <div className="max-w-4xl mx-auto pt-20 px-6 animate-slide-up">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="w-16 h-16 bg-[#E89D6A] rounded-2xl flex items-center justify-center shadow-lg rotate-3">
+                            <Coffee className="text-white shrink-0" size={32} />
+                        </div>
+                        <div>
+                            <h1 className="text-5xl font-bold text-[#4A3428] tracking-tight">The Prompt Press</h1>
+                            <p className="text-lg text-[#8C7A6B]">Master the art of prompt engineering, one cup at a time.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8 mb-12">
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-[#EBE3D5] flex flex-col justify-between">
+                            <div>
+                                <h3 className="text-2xl font-bold text-[#4A3428] mb-4">Start Your Shift</h3>
+                                <p className="text-[#8C7A6B] mb-6">Work through levels from Green Bean to Head Roaster. Learn real skills from Google, Coursera, and OpenAI.</p>
+                            </div>
+                            <button
+                                onClick={() => setView('journey')}
+                                className="w-full py-4 bg-[#4A3428] text-white rounded-2xl font-semibold flex items-center justify-center gap-2 hover:bg-[#5D4435] transition-all transform hover:scale-105"
+                            >
+                                Enter the Lab <ArrowRight size={20} />
+                            </button>
+                        </div>
+
+                        <div className="bg-[#EBE3D5]/30 p-8 rounded-3xl border border-dashed border-[#8C7A6B] flex flex-col items-center justify-center text-center">
+                            <Award className="text-[#E89D6A] mb-4" size={48} />
+                            <h3 className="text-xl font-bold text-[#4A3428]">Your Progress</h3>
+                            <div className="text-4xl font-bold text-[#4A3428] my-2">{progress.stamps}</div>
+                            <p className="text-[#8C7A6B]">Stamps Collected</p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                        <button
+                            onClick={() => setShowSettings(!showSettings)}
+                            className="text-sm text-[#8C7A6B] hover:text-[#4A3428] flex items-center gap-1"
+                        >
+                            <Terminal size={14} /> {apiKey ? "Update API Key" : "Add API Key to Enable AI Grading"}
+                        </button>
+                    </div>
+
+                    {showSettings && (
+                        <div className="mt-4 p-4 glass rounded-2xl max-w-sm mx-auto">
+                            <input
+                                type="password"
+                                placeholder="Enter Gemini API Key"
+                                className="w-full p-2 rounded-lg border border-[#EBE3D5] mb-2"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                            />
+                            <p className="text-[10px] text-[#8C7A6B]">You can get a free key at aistudio.google.com</p>
+                        </div>
+                    )}
+                </div>
+            );
+
+            const renderJourney = () => (
+                <div className="max-w-5xl mx-auto pt-12 px-6 pb-20 animate-slide-up">
+                    <button
+                        onClick={() => setView('home')}
+                        className="flex items-center gap-2 text-[#8C7A6B] hover:text-[#4A3428] mb-12"
+                    >
+                        <ChevronLeft size={20} /> Back to Entry
+                    </button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {SYLLABUS.map((level, idx) => {
+                            const isCompleted = progress.completed.includes(level.id);
+                            const isUnlocked = level.id === 1 || progress.completed.includes(SYLLABUS[idx - 1]?.id);
+
+                            return (
+                                <div
+                                    key={level.id}
+                                    onClick={() => isUnlocked && setSelectedLevel(level)}
+                                    className={`
+                                        p-6 rounded-3xl border-2 transition-all cursor-pointer relative overflow-hidden
+                                        ${isUnlocked ? 'bg-white border-[#EBE3D5] hover:border-[#E89D6A] hover:shadow-xl' : 'bg-gray-50 border-gray-200 opacity-60 grayscale'}
+                                        ${selectedLevel?.id === level.id ? 'border-[#E89D6A] shadow-lg ring-2 ring-[#E89D6A]/20' : ''}
+                                    `}
+                                >
+                                    {isCompleted && (
+                                        <div className="absolute top-2 right-2 bg-[#4ADE80] text-white p-1 rounded-full">
+                                            <CheckCircle size={16} />
+                                        </div>
+                                    )}
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isUnlocked ? 'bg-[#EBE3D5] text-[#4A3428]' : 'bg-gray-200 text-gray-400'}`}>
+                                            {level.id}
+                                        </div>
+                                        <div>
+                                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#E89D6A]">{level.tier}</div>
+                                            <h3 className="font-bold text-[#4A3428] leading-tight">{level.title}</h3>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-[#8C7A6B] line-clamp-2 mb-4">{level.concept}</p>
+                                    <div className="flex items-center justify-between mt-auto">
+                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-medium">{level.source}</span>
+                                        {!isUnlocked && <Zap size={14} className="text-gray-400" />}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {selectedLevel && (
+                        <div className="fixed inset-0 bg-[#4A3428]/20 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={() => !isGrading && setSelectedLevel(null)}>
+                            <div className="bg-white rounded-[40px] w-full max-w-3xl overflow-hidden shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+                                <div className="grid md:grid-cols-2 h-full max-h-[90vh]">
+                                    <div className="p-10 bg-[#FAF7F2]">
+                                        <div className="text-sm font-bold text-[#E89D6A] mb-2 uppercase tracking-widest">{selectedLevel.tier}</div>
+                                        <h2 className="text-3xl font-bold text-[#4A3428] mb-6 underline decoration-[#E89D6A] underline-offset-8">{selectedLevel.title}</h2>
+
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h4 className="text-sm font-bold flex items-center gap-2 text-[#4A3428] mb-2">
+                                                    <BookOpen size={16} /> THE LESSON
+                                                </h4>
+                                                <p className="text-[#8C7A6B] text-sm leading-relaxed">{selectedLevel.lesson}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold flex items-center gap-2 text-[#4A3428] mb-2">
+                                                    <Zap size={16} /> THE ORDER
+                                                </h4>
+                                                <div className="bg-white p-4 rounded-2xl border border-[#EBE3D5] text-sm italic text-[#4A3428]">
+                                                    "{selectedLevel.challenge}"
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-10 flex flex-col">
+                                        <h4 className="text-sm font-bold text-[#4A3428] mb-4">DRAFT YOUR PROMPT</h4>
+                                        <textarea
+                                            className="custom-scrollbar w-full flex-1 p-6 bg-[#FAF7F2] rounded-3xl border-2 border-transparent focus:border-[#E89D6A] outline-none transition-all text-[#4A3428] resize-none"
+                                            placeholder="Type your response here..."
+                                            value={userPrompt}
+                                            onChange={(e) => setUserPrompt(e.target.value)}
+                                            disabled={isGrading}
+                                        />
+
+                                        <div className="mt-6">
+                                            {!apiKey ? (
+                                                <p className="text-xs text-red-500 mb-4 text-center">Add a Gemini key in settings to brew this prompt.</p>
+                                            ) : (
+                                                <button
+                                                    onClick={gradePrompt}
+                                                    disabled={isGrading || !userPrompt.trim()}
+                                                    className={`
+                                                        w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all
+                                                        ${isGrading ? 'bg-gray-100 text-gray-400' : 'bg-[#E89D6A] text-white hover:bg-[#D98B58] shadow-lg hover:shadow-xl'}
+                                                    `}
+                                                >
+                                                    {isGrading ? (
+                                                        <><RefreshCw size={20} className="animate-spin" /> Steaming Milk...</>
+                                                    ) : (
+                                                        <><PlayCircle size={20} /> Brew Prompt</>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {gradeResult && (
+                                    <div className={`p-8 animate-slide-up border-t ${gradeResult.passed ? 'bg-green-50' : 'bg-red-50'}`}>
+                                        <div className="flex items-start gap-6">
+                                            <div className="text-4xl">{gradeResult.passed ? "🍵" : "☕"}</div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h3 className={`font-bold text-xl ${gradeResult.passed ? 'text-green-800' : 'text-red-800'}`}>
+                                                        {gradeResult.passed ? 'Perfect Pour!' : 'Bittersweet...'}
+                                                    </h3>
+                                                    <div className="text-2xl font-black">{gradeResult.score}%</div>
+                                                </div>
+                                                <p className="text-sm text-gray-700 mb-4 leading-relaxed">{gradeResult.feedback}</p>
+                                                {gradeResult.ai_response && (
+                                                    <div className="bg-white/50 p-4 rounded-xl border border-black/10">
+                                                        <div className="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-widest">AI Response Simulation</div>
+                                                        <div className="text-xs italic text-gray-600">"{gradeResult.ai_response}"</div>
+                                                    </div>
+                                                )}
+                                                {gradeResult.passed && (
+                                                    <button
+                                                        onClick={() => { setSelectedLevel(null); setGradeResult(null); setUserPrompt(""); }}
+                                                        className="mt-4 bg-green-600 text-white px-6 py-2 rounded-xl text-sm font-bold"
+                                                    >
+                                                        Next Level
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen">
+                    <nav className="fixed top-0 w-full z-40 bg-white/70 backdrop-blur-md border-b border-[#EBE3D5] px-6 py-4 flex justify-between items-center">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
+                            <div className="bg-[#4A3428] p-1.5 rounded-lg text-white">
+                                <Coffee size={18} />
+                            </div>
+                            <span className="font-bold text-[#4A3428] text-xl">The Press</span>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-1.5 bg-[#FAF7F2] px-4 py-1.5 rounded-full border border-[#EBE3D5]">
+                                <Star size={14} className="text-[#E89D6A] fill-[#E89D6A]" />
+                                <span className="text-xs font-bold text-[#4A3428] uppercase tracking-widest">{progress.stamps} Points</span>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {view === 'home' ? renderHome() : renderJourney()}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

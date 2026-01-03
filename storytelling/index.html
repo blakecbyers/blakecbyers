@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Arc - Masterclass Storytelling</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --accent: #FFD600;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        @keyframes flash {
+            0% {
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .animate-flash {
+            animation: flash 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px) rotate(-1deg);
+            }
+
+            75% {
+                transform: translateX(10px) rotate(1deg);
+            }
+        }
+
+        .animate-shake-harsh {
+            animation: shake 0.2s ease-in-out infinite;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 10px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Custom Lucide Icon Component for Standalone Use
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconData = lucide[name];
+            if (!iconData) return null;
+            return (
+                <svg
+                    width={size}
+                    height={size}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={className}
+                >
+                    {iconData.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs }))}
+                </svg>
+            );
+        };
+
+        const Book = (props) => <Icon name="Book" {...props} />;
+        const ChevronRight = (props) => <Icon name="ChevronRight" {...props} />;
+        const Zap = (props) => <Icon name="Zap" {...props} />;
+        const ArrowRight = (props) => <Icon name="ArrowRight" {...props} />;
+        const RotateCcw = (props) => <Icon name="RotateCcw" {...props} />;
+        const PenTool = (props) => <Icon name="PenTool" {...props} />;
+        const Trash2 = (props) => <Icon name="Trash2" {...props} />;
+        const Sparkles = (props) => <Icon name="Sparkles" {...props} />;
+        const CheckCircle = (props) => <Icon name="CheckCircle" {...props} />;
+        const Lock = (props) => <Icon name="Lock" {...props} />;
+        const Play = (props) => <Icon name="Play" {...props} />;
+        const Info = (props) => <Icon name="Info" {...props} />;
+
+        const RULES = [
+            { id: 1, title: "The Hook", desc: "Why must we tell this story NOW? What is the burning fire that refuses to be extinguished?", mission: "Identify the 'Why' behind your leading character's first decision." },
+            { id: 2, title: "The Crucible", desc: "Character is defined by pressure. Strip away their comforts until only the truth remains.", mission: "Remove 5 unnecessary words from this scene to reveal its core emotion." },
+            { id: 3, title: "The Mirror", desc: "A character's flaw is their greatest strength, inverted. The battle is internal.", mission: "Write one sentence where the character's virtue becomes their downfall." },
+            { id: 4, title: "The Arc", desc: "Change is the only constant. If they end where they began, you have failed.", mission: "Map the emotional shift from Scene A to Scene B." }
+        ];
+
+        const GlobalStyles = () => (
+            <style>{`
+                @keyframes arc-float {
+                    0%, 100% { transform: translateY(0) rotate(0deg); }
+                    50% { transform: translateY(-20px) rotate(2deg); }
+                }
+                .arc-node { animation: arc-float 6s ease-in-out infinite; }
+            `}</style>
+        );
+
+        const StaticRule = ({ rule, onComplete }) => {
+            useEffect(() => {
+                const timer = setTimeout(() => onComplete(), 8000);
+                return () => clearTimeout(timer);
+            }, []);
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full text-center px-6 animate-flash">
+                    <div className="text-8xl font-serif italic text-white/5 absolute top-1/2 -translate-y-1/2 -z-10 select-none">Rule {rule.id}</div>
+                    <div className="w-16 h-1 bg-[#FFD600] mb-8" />
+                    <h2 className="text-6xl font-serif font-bold mb-6 tracking-tight text-white">{rule.title}</h2>
+                    <p className="max-w-xl text-2xl text-white/60 font-light italic leading-relaxed">
+                        "{rule.desc}"
+                    </p>
+                </div>
+            );
+        }
+
+        const TheCrucible = ({ onComplete }) => {
+            const [text, setText] = useState("The heavy rain fell down upon the cold, wet pavement as he walked sadly towards the dark house.");
+            const [isHarsh, setIsHarsh] = useState(false);
+            const words = text.split(" ");
+            const targetCount = words.length - 5;
+
+            const handleWordClick = (index) => {
+                const newWords = words.filter((_, i) => i !== index);
+                if (newWords.length < targetCount) {
+                    setIsHarsh(true);
+                    setTimeout(() => setIsHarsh(false), 500);
+                    return;
+                }
+                setText(newWords.join(" "));
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full px-6">
+                    <div className="text-8xl font-serif italic text-white/5 absolute top-1/2 -translate-y-1/2 -z-10 select-none">Rule 2</div>
+                    <div className={`max-w-3xl glass-panel p-16 rounded-[40px] text-center transition-all ${isHarsh ? 'animate-shake-harsh border-red-500/50' : 'border-white/10'}`} id="crucible-container">
+                        <h3 className="text-xs font-bold uppercase tracking-[0.4em] text-white/40 mb-12">The Crucible: Simplify</h3>
+                        <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
+                            {words.map((word, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => handleWordClick(i)}
+                                    className="text-3xl md:text-4xl font-serif hover:text-[#FFD600] hover:line-through transition-all opacity-80"
+                                >
+                                    {word}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-16 text-sm font-bold text-white/20 uppercase tracking-widest">
+                            Cut {words.length - targetCount} more to reveal the soul
+                        </div>
+                        {words.length === targetCount && (
+                            <button onClick={onComplete} className="mt-8 bg-[#FFD600] text-black px-8 py-3 rounded-full font-bold uppercase tracking-widest animate-bounce">
+                                Truth Found
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const TheCut = ({ onComplete }) => {
+            const [ideas, setIdeas] = useState([]);
+            const [current, setCurrent] = useState("");
+
+            const handleAdd = (e) => {
+                if (e.key === 'Enter' && current.trim()) {
+                    setIdeas([current, ...ideas]);
+                    setCurrent("");
+                }
+            };
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full px-6">
+                    <div className="text-8xl font-serif italic text-white/5 absolute top-1/2 -translate-y-1/2 -z-10 select-none">Rule 1</div>
+                    <div className="max-w-xl w-full">
+                        <h3 className="text-center font-serif text-4xl mb-12 italic text-white/80">"Kill your darlings."</h3>
+                        <input
+                            autoFocus
+                            className="w-full bg-transparent border-b-2 border-white/20 p-4 text-2xl font-serif italic outline-none focus:border-[#FFD600] transition-colors"
+                            placeholder={ideas.length === 0 ? "First thought..." : "Next distraction..."}
+                            value={current}
+                            onChange={(e) => setCurrent(e.target.value)}
+                            onKeyDown={handleAdd}
+                        />
+                        <div className="mt-12 space-y-4">
+                            {ideas.map((idea, i) => (
+                                <div key={i} className="flex items-center justify-between group animate-fade-in opacity-40 hover:opacity-100 transition-opacity">
+                                    <span className="text-xl font-serif italic text-white/60 line-through decoration-white/30">{idea}</span>
+                                    <button onClick={() => setIdeas(ideas.filter((_, idx) => idx !== i))}>
+                                        <Trash2 size={18} className="text-white/20 group-hover:text-red-500 transition-colors" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        {ideas.length >= 3 && (
+                            <button onClick={onComplete} className="w-full mt-16 text-[#FFD600] border border-[#FFD600]/30 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#FFD600] hover:text-black transition-all">
+                                Clear for Takeoff
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const TheMirror = ({ onComplete }) => {
+            const [val, setVal] = useState("");
+            const [weight, setWeight] = useState(300);
+
+            useEffect(() => {
+                const newWeight = 300 + (val.length * 5);
+                setWeight(Math.min(newWeight, 900));
+            }, [val]);
+
+            return (
+                <div className="flex flex-col items-center justify-center h-full px-6">
+                    <div className="text-8xl font-serif italic text-white/5 absolute top-1/2 -translate-y-1/2 -z-10 select-none">Rule 3</div>
+                    <div className="max-w-2xl w-full text-center">
+                        <h2 className="text-2xl font-serif italic text-white/40 mb-8">Character is Virtue + Vise</h2>
+                        <textarea
+                            autoFocus
+                            className="w-full h-64 bg-transparent border border-white/5 p-12 text-4xl font-serif italic outline-none transition-all resize-none text-center"
+                            style={{ fontWeight: weight }}
+                            placeholder="Her courage was a wall..."
+                            value={val}
+                            onChange={(e) => setVal(e.target.value)}
+                        />
+                        {val.length > 50 && (
+                            <button onClick={onComplete} className="mt-12 bg-white text-black px-12 py-4 rounded-full font-bold uppercase tracking-widest hover:invert transition-all">
+                                Gaze Deeply
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const Dashboard = () => {
+            const nodes = useMemo(() => [...Array(24)].map((_, i) => ({
+                id: i,
+                x: Math.random() * 100,
+                y: Math.random() * 100,
+                size: Math.random() * 4 + 1,
+                delay: Math.random() * 5
+            })), []);
+
+            const density = Math.floor(Math.random() * 100);
+
+            return (
+                <div className="h-full relative overflow-hidden bg-[#0A0A0A]">
+                    <div className="absolute inset-0 opacity-20">
+                        {nodes.map(node => (
+                            <div
+                                key={node.id}
+                                className="arc-node absolute bg-white rounded-full transition-all duration-1000"
+                                style={{
+                                    left: `${node.x}%`,
+                                    top: `${node.y}%`,
+                                    width: node.size,
+                                    height: node.size,
+                                    animationDelay: `${node.delay}s`,
+                                    boxShadow: '0 0 10px rgba(255,255,255,0.5)'
+                                }}
+                            />
+                        ))}
+                    </div>
+                    <div className="flex flex-col items-center justify-center h-full relative z-10 px-6">
+                        <span className="text-xs font-bold text-[#FFD600] uppercase tracking-[0.5em] mb-4">Final Masterclass</span>
+                        <h1 className="text-8xl font-serif font-bold text-white mb-8 tracking-tighter">The Arc</h1>
+                        <p className="max-w-lg text-center text-white/40 text-lg font-light leading-relaxed mb-12">
+                            A narrative is a living organism. It breathes through conflict and survives through truth.
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl">
+                            {['Pace', 'Conflict', 'Theme', 'Verse'].map(stat => (
+                                <div key={stat} className="glass-panel p-6 rounded-2xl text-center border-white/5">
+                                    <div className="text-xs text-white/30 uppercase tracking-widest mb-2">{stat}</div>
+                                    <div className="text-2xl font-serif text-white italic">{Math.floor(Math.random() * 100)}%</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-8 py-3 glass-panel rounded-full border-white/10 flex items-center gap-4">
+                        <div className="w-2 h-2 bg-[#FFD600] rounded-full animate-pulse" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">Live Draft Density: {density}%</span>
+                    </div>
+                </div>
+            );
+        };
+
+        const TheArcApp = () => {
+            const [currentRule, setCurrentRule] = useState(0);
+            const [mode, setMode] = useState('intro'); // intro, static, active, complete
+            const [showFlash, setShowFlash] = useState(false);
+
+            const handleCompleteRule = () => {
+                setShowFlash(true);
+                setTimeout(() => {
+                    if (currentRule + 1 < RULES.length) {
+                        setCurrentRule(currentRule + 1);
+                        setMode('static');
+                    } else {
+                        setMode('complete');
+                    }
+                    setShowFlash(false);
+                }, 1500);
+            };
+
+            const renderContent = () => {
+                if (mode === 'intro') {
+                    return (
+                        <div className="flex flex-col items-center justify-center h-full text-center px-6">
+                            <h1 className="text-7xl font-serif font-bold mb-8 animate-fade-in group cursor-default">
+                                <span className="opacity-40 group-hover:opacity-100 transition-opacity">The</span> <span className="text-[#FFD600]">Arc</span>
+                            </h1>
+                            <button
+                                onClick={() => setMode('static')}
+                                className="group flex flex-col items-center gap-4"
+                            >
+                                <div className="w-16 h-16 rounded-full border border-white/20 flex items-center justify-center group-hover:border-[#FFD600] group-hover:scale-110 transition-all">
+                                    <Play size={24} className="group-hover:text-[#FFD600] translate-x-0.5" />
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30 group-hover:text-[#FFD600]">Begin Training</span>
+                            </button>
+                        </div>
+                    );
+                }
+
+                if (mode === 'static') {
+                    return <StaticRule rule={RULES[currentRule]} onComplete={() => setMode('active')} />;
+                }
+
+                if (mode === 'active') {
+                    const RuleComponent = [TheCut, TheCrucible, TheMirror, Dashboard][currentRule];
+                    return <RuleComponent onComplete={handleCompleteRule} />;
+                }
+
+                if (mode === 'complete') {
+                    return <Dashboard />;
+                }
+            };
+
+            return (
+                <div className="h-screen w-full relative">
+                    <GlobalStyles />
+                    {showFlash && (
+                        <div className="fixed inset-0 bg-white z-[100] animate-flash pointer-events-none" />
+                    )}
+
+                    <nav className="fixed top-0 w-full p-8 flex justify-between items-center z-50">
+                        <div className="flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-full bg-[#FFD600] flex items-center justify-center">
+                                <Book size={16} className="text-black" />
+                            </div>
+                            <span className="font-serif italic text-xl">The Arc</span>
+                        </div>
+                        <div className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                            {RULES.map((r, i) => (
+                                <div key={r.id} className={`flex items-center gap-2 ${i === currentRule ? 'text-[#FFD600]' : ''}`}>
+                                    <span className={i < currentRule ? 'line-through opacity-20' : ''}>{r.title}</span>
+                                    {i === currentRule && <div className="w-1 h-1 bg-[#FFD600] rounded-full" />}
+                                </div>
+                            ))}
+                        </div>
+                    </nav>
+
+                    <main className="h-full pt-20">
+                        {renderContent()}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<TheArcApp />);
+    </script>
+</body>
+
+</html>
