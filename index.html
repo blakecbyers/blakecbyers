@@ -217,7 +217,7 @@
       </a>
 
       <!-- Prompt Press -->
-      <a href="prompt-press/index.html"
+      <a href="prompt-press/"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -236,7 +236,7 @@
       </a>
 
       <!-- Furniture Styles -->
-      <a href="furniture-styles/index.html"
+      <a href="furniture-styles/"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -255,7 +255,7 @@
       </a>
 
       <!-- Storytelling -->
-      <a href="storytelling/index.html"
+      <a href="storytelling/"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -274,7 +274,7 @@
       </a>
 
       <!-- Roundabouts -->
-      <a href="roundabouts/index.html"
+      <a href="roundabouts/"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -293,7 +293,7 @@
       </a>
 
       <!-- AZ Mapper -->
-      <a href="az-mapper/index.html"
+      <a href="az-mapper/"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -312,7 +312,7 @@
       </a>
 
       <!-- Asana 2 Harvest -->
-      <a href="asana-2-harvest/index.html"
+      <a href="asana-2-harvest/"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -357,7 +357,7 @@
     const alphabet = " ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // Included space
     const container = document.getElementById('machine');
     const reelLength = 20; // Reduced for faster load
-    let audioCtx = null;
+
 
     // Build the machine
     const slots = targetWord.split('').map((targetChar) => {
@@ -394,21 +394,7 @@
       return (1 - t) ** 3 * 0 + 3 * (1 - t) ** 2 * t * p1 + 3 * (1 - t) * t ** 2 * p2 + t ** 3 * 1;
     }
 
-    function playTick() {
-      if (navigator.vibrate) navigator.vibrate(2);
-      if (!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.05);
-    }
+
 
     function triggerTicks(steps) {
       if (!audioCtx) return;
@@ -426,7 +412,7 @@
         const targetStep = Math.floor(progress * steps);
 
         if (targetStep > currentStep) {
-          playTick();
+          // Play tick removed
           currentStep = targetStep;
         }
         requestAnimationFrame(check);
@@ -435,12 +421,6 @@
     }
 
     function play() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
       spin();
     }
 
