@@ -69,19 +69,17 @@ class TiltLogic {
         // Convert to radians
         const b = beta * (Math.PI / 180);
         const g = gamma * (Math.PI / 180);
-
-        // Gravity vector in device coordinates (assuming unit gravity)
-        const gx = -Math.sin(g);
-        const gy = Math.sin(b) * Math.cos(g);
         const gz = Math.cos(b) * Math.cos(g);
 
-        // Normalize device-relative gravity to the plane of play (landscape)
-        // In "Heads Up" mode (phone on forehead), the action is a "nod".
-        // This is a rotation around the device's long axis (if landscape).
+        // This gives -90 to 90 with 0 being perfectly vertical
+        let rawPitch = -Math.asin(gz) * (180 / Math.PI);
 
-        // We use Math.atan2 to get a full 360 range and avoid gimbal lock issues.
-        // For landscape forehead play, we care about the relationship between gy and gz.
-        let rawPitch = Math.atan2(gy, gz) * (180 / Math.PI);
+        // Disambiguate forward/backward using gamma's sign
+        // In landscape, gamma is the primary tilt axis.
+        if (gamma < 0) {
+            if (rawPitch > 0) rawPitch = 180 - rawPitch;
+            else rawPitch = -180 - rawPitch;
+        }
 
         // Apply smoothing
         this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
