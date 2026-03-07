@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Fidget</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            /* slate-900 */
+            color: white;
+            margin: 0;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: none;
+            /* Prevent scroll on mobile */
+        }
+
+        .ghost-home {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            opacity: 0.6;
+        }
+
+        .ghost-home:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        /* The big interactive button */
+        .fidget-btn {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #3b82f6, #2563eb);
+            /* blue-500 to blue-600 */
+            box-shadow:
+                0 30px 60px rgba(37, 99, 235, 0.4),
+                inset 0 10px 20px rgba(255, 255, 255, 0.3),
+                inset 0 -10px 20px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.1s ease, filter 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .fidget-btn:active,
+        .fidget-btn.pressed {
+            transform: scale(0.92) translateY(10px);
+            box-shadow:
+                0 10px 20px rgba(37, 99, 235, 0.2),
+                inset 0 20px 30px rgba(0, 0, 0, 0.3),
+                inset 0 -5px 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .fidget-btn::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #60a5fa, #1d4ed8);
+            z-index: -1;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            transition: opacity 0.3s ease;
+        }
+
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            will-change: transform, opacity;
+            z-index: 5;
+        }
+
+        /* Background Ripple */
+        .ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            border: 2px solid rgba(59, 130, 246, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes ripple-anim {
+            0% {
+                width: 240px;
+                height: 240px;
+                opacity: 0.8;
+                border-width: 6px;
+            }
+
+            100% {
+                width: 600px;
+                height: 600px;
+                opacity: 0;
+                border-width: 1px;
+            }
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            bottom: -300px;
+            left: 0;
+            right: 0;
+            background: rgba(30, 41, 59, 0.85);
+            /* slate-800 */
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top-left-radius: 32px;
+            border-top-right-radius: 32px;
+            padding: 24px;
+            transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 100;
+        }
+
+        .settings-panel.open {
+            bottom: 0;
+        }
+
+        .theme-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .theme-btn:active {
+            transform: scale(0.9);
+        }
+
+        .theme-btn.active {
+            border-color: white;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+
+<body class="flex flex-col items-center justify-center min-h-screen">
+
+    <a href="../" class="ghost-home" title="Go Home" onmousedown="triggerHaptic('selection')">
+        <i data-lucide="home" class="w-6 h-6"></i>
+    </a>
+
+    <!-- Settings Toggle -->
+    <button id="settings-toggle"
+        class="fixed top-5 right-5 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/70 hover:text-white transition-all active:scale-90"
+        onmousedown="triggerHaptic('selection')">
+        <i data-lucide="settings" class="w-6 h-6"></i>
+    </button>
+
+    <!-- Main Container -->
+    <main class="relative flex flex-col items-center justify-center w-full h-full flex-grow">
+
+        <!-- Score/Combo UI -->
+        <div class="absolute top-24 flex flex-col items-center opacity-0 transition-opacity duration-300"
+            id="score-container">
+            <span
+                class="text-6xl font-black text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] italic tracking-tighter"
+                id="combo-text">1x</span>
+            <span class="text-sm font-bold text-white/50 uppercase tracking-widest mt-1">Combo</span>
+        </div>
+
+        <!-- The Button Core -->
+        <div class="relative flex items-center justify-center">
+            <div id="fidget" class="fidget-btn" tabindex="0">
+                <!-- Inner Icon/Text -->
+                <i data-lucide="zap" class="w-20 h-20 text-white/80 transition-transform duration-200"
+                    id="center-icon"></i>
+            </div>
+            <!-- Ripples container -->
+            <div id="ripples-container" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            </div>
+        </div>
+
+        <div
+            class="absolute bottom-12 text-center text-white/40 text-sm font-bold tracking-widest uppercase pointer-events-none">
+            Tap roughly to Fidget
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-panel" class="settings-panel pb-10">
+        <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+        <h2 class="text-2xl font-black mb-6 text-center tracking-tight">Vibes</h2>
+
+        <div class="space-y-6 max-w-sm mx-auto">
+            <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Color Theme</p>
+                <div class="flex justify-between px-2">
+                    <button class="theme-btn active" style="background: linear-gradient(145deg, #3b82f6, #2563eb);"
+                        data-theme="blue" data-glow="#60a5fa" onmousedown="setTheme(this)"></button>
+                    <button class="theme-btn" style="background: linear-gradient(145deg, #ef4444, #dc2626);"
+                        data-theme="red" data-glow="#f87171" onmousedown="setTheme(this)"></button>
+                    <button class="theme-btn" style="background: linear-gradient(145deg, #10b981, #059669);"
+                        data-theme="green" data-glow="#34d399" onmousedown="setTheme(this)"></button>
+                    <button class="theme-btn" style="background: linear-gradient(145deg, #8b5cf6, #7c3aed);"
+                        data-theme="purple" data-glow="#a78bfa" onmousedown="setTheme(this)"></button>
+                    <button class="theme-btn" style="background: linear-gradient(145deg, #f59e0b, #d97706);"
+                        data-theme="orange" data-glow="#fbbf24" onmousedown="setTheme(this)"></button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
+                <div>
+                    <p class="font-bold text-white">Audio Synthesizer</p>
+                    <p class="text-xs text-slate-400">Satisfying pops & ticks</p>
+                </div>
+                <button id="audio-toggle"
+                    class="w-14 h-8 bg-blue-500 rounded-full relative transition-colors duration-300"
+                    onclick="toggleAudio()">
+                    <div class="w-6 h-6 bg-white rounded-full absolute top-1 right-1 shadow-md transition-transform duration-300"
+                        id="audio-knob"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../haptics.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // --- DOM Elements ---
+        const btn = document.getElementById('fidget');
+        const icon = document.getElementById('center-icon');
+        const ripples = document.getElementById('ripples-container');
+        const comboText = document.getElementById('combo-text');
+        const scoreContainer = document.getElementById('score-container');
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsPanel = document.getElementById('settings-panel');
+        const audioKnob = document.getElementById('audio-knob');
+        const audioToggleBtn = document.getElementById('audio-toggle');
+
+        // --- State ---
+        let combo = 0;
+        let comboTimer = null;
+        let lastTapTime = 0;
+        let isAudioEnabled = true;
+        let audioCtx = null;
+        let currentTheme = 'blue';
+
+        // --- Audio Context ---
+        const initAudio = () => {
+            if (!audioCtx && isAudioEnabled) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) {
+                    audioCtx = new AC();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        };
+
+        const playPop = (intensity = 1) => {
+            if (!isAudioEnabled || !audioCtx) return;
+
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            // Frequency rises with combo intensity
+            const baseFreq = 200 + (Math.min(intensity, 20) * 15);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(baseFreq, t);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq * 2, t + 0.05);
+
+            gain.gain.setValueAtTime(0.3, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+            osc.start(t);
+            osc.stop(t + 0.1);
+        };
+
+        const toggleAudio = () => {
+            triggerHaptic('selection');
+            isAudioEnabled = !isAudioEnabled;
+            if (isAudioEnabled) {
+                initAudio();
+                audioToggleBtn.classList.replace('bg-slate-600', 'bg-blue-500');
+                audioKnob.style.transform = 'translateX(0px)';
+            } else {
+                audioToggleBtn.classList.replace('bg-blue-500', 'bg-slate-600');
+                audioKnob.style.transform = 'translateX(-24px)';
+            }
+        };
+
+        // --- Haptics Wrapper ---
+        const triggerHaptic = (type) => {
+            if (window.haptics) window.haptics.trigger(type);
+            if (navigator.vibrate) {
+                if (type === 'heavy') navigator.vibrate(50);
+                else if (type === 'medium') navigator.vibrate(20);
+                else if (type === 'light') navigator.vibrate(10);
+                else if (type === 'success') navigator.vibrate([15, 30, 20]);
+                else if (type === 'selection') navigator.vibrate(5);
+            }
+        };
+
+        // --- VFX ---
+        const createRipple = () => {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+
+            // Match border color to theme
+            const activeThemeBtn = document.querySelector('.theme-btn.active');
+            if (activeThemeBtn) {
+                ripple.style.borderColor = activeThemeBtn.getAttribute('data-glow');
+            }
+
+            ripple.style.animation = 'ripple-anim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+            ripples.appendChild(ripple);
+            setTimeout(() => {
+                if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
+            }, 600);
+        };
+
+        const createParticles = (x, y, count = 8) => {
+            const activeThemeBtn = document.querySelector('.theme-btn.active');
+            const color = activeThemeBtn ? activeThemeBtn.getAttribute('data-glow') : '#60a5fa';
+
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+
+                const size = 6 + Math.random() * 8;
+                p.style.width = `${size}px`;
+                p.style.height = `${size}px`;
+                p.style.backgroundColor = color;
+                p.style.left = `${x - size / 2}px`;
+                p.style.top = `${y - size / 2}px`;
+
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = 50 + Math.random() * 100 + (combo * 2);
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity;
+
+                // Animate via Web Animations API for performance
+                p.animate([
+                    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+                    { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+                ], {
+                    duration: 400 + Math.random() * 300,
+                    easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                    fill: 'forwards'
+                });
+
+                document.body.appendChild(p);
+                setTimeout(() => { if (p.parentNode) p.parentNode.removeChild(p); }, 800);
+            }
+        };
+
+        // --- Interaction Logic ---
+        const handlePress = (e) => {
+            if (e.target.closest('#settings-panel') || e.target.closest('#settings-toggle')) return;
+
+            initAudio();
+
+            const now = performance.now();
+            const dt = now - lastTapTime;
+            lastTapTime = now;
+
+            // Increment combo if fast enough
+            if (dt < 400) {
+                combo++;
+            } else {
+                combo = 1;
+            }
+
+            // UI Updates
+            if (combo > 1) {
+                scoreContainer.style.opacity = '1';
+                comboText.innerText = `${combo}x`;
+                // Pulse effect on text
+                comboText.style.transform = `scale(${1 + Math.min(combo * 0.05, 0.5)})`;
+                setTimeout(() => comboText.style.transform = 'scale(1)', 50);
+            }
+
+            // Clear old timer
+            if (comboTimer) clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                scoreContainer.style.opacity = '0';
+                combo = 0;
+            }, 800);
+
+            // Audio & Haptics based on combo intensity
+            if (combo % 10 === 0) {
+                // Milestone pop
+                triggerHaptic('success');
+                playPop(combo + 20);
+                createRipple();
+                createRipple(); // Double ripple
+                icon.style.transform = 'scale(1.5) rotate(180deg)';
+            } else {
+                // Normal pop
+                const intensityType = combo > 15 ? 'heavy' : (combo > 5 ? 'medium' : 'light');
+                triggerHaptic(intensityType);
+                playPop(combo);
+                createRipple();
+                icon.style.transform = `scale(${0.8 + Math.random() * 0.4}) rotate(${(Math.random() - 0.5) * 30}deg)`;
+            }
+
+            // Particles from center of button
+            const rect = btn.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            createParticles(cx, cy, Math.min(4 + Math.floor(combo / 2), 20));
+
+            btn.classList.add('pressed');
+        };
+
+        const handleRelease = () => {
+            btn.classList.remove('pressed');
+            icon.style.transform = 'scale(1) rotate(0deg)';
+        };
+
+        // Event Listeners for the Button
+        btn.addEventListener('mousedown', handlePress);
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent double firing w/ mouse events
+            handlePress(e);
+        }, { passive: false });
+
+        window.addEventListener('mouseup', handleRelease);
+        window.addEventListener('touchend', handleRelease);
+
+        // --- Settings Menu ---
+        settingsToggle.addEventListener('click', () => {
+            settingsPanel.classList.toggle('open');
+            triggerHaptic('light');
+        });
+
+        // Close settings when clicking outside
+        document.addEventListener('mousedown', (e) => {
+            if (settingsPanel.classList.contains('open') &&
+                !settingsPanel.contains(e.target) &&
+                !settingsToggle.contains(e.target)) {
+                settingsPanel.classList.remove('open');
+                triggerHaptic('selection');
+            }
+        });
+
+        // Theme switching (exposed to global for inline onclick)
+        window.setTheme = (btnEl) => {
+            triggerHaptic('selection');
+
+            // Update active class
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            btnEl.classList.add('active');
+
+            // Apply styles
+            const bg = btnEl.style.background;
+            const glow = btnEl.getAttribute('data-glow');
+
+            btn.style.background = bg;
+
+            // Update pseudo element styling safely by replacing stylesheet rule
+            const styleId = 'dynamic-theme';
+            let styleEl = document.getElementById(styleId);
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = styleId;
+                document.head.appendChild(styleEl);
+            }
+
+            styleEl.innerHTML = `
+                .fidget-btn::after {
+                    background: ${bg} !important;
+                    box-shadow: 0 0 25px ${glow} !important;
+                }
+                .fidget-btn {
+                    box-shadow: 0 30px 60px ${glow}40, inset 0 10px 20px rgba(255,255,255,0.3), inset 0 -10px 20px rgba(0,0,0,0.2) !important;
+                }
+                .fidget-btn:active, .fidget-btn.pressed {
+                    box-shadow: 0 10px 20px ${glow}20, inset 0 20px 30px rgba(0,0,0,0.3), inset 0 -5px 10px rgba(255,255,255,0.1) !important;
+                }
+            `;
+        };
+    </script>
+</body>
+
+</html>
