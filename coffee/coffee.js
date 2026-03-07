@@ -87,6 +87,7 @@
 
     // -- CORE FUNCTIONS --
     function setMethod(key, resetValues = true) {
+        if (window.haptics) window.haptics.trigger('selection');
         currentKey = key;
         const d = DATA[key];
 
@@ -159,6 +160,7 @@
     }
 
     function modifyVal(type, amount) {
+        if (window.haptics) window.haptics.trigger('light');
         const input = els.inputs[type];
         let val = parseFloat(input.value) || 0;
         val += amount;
@@ -199,6 +201,7 @@
     // -- TIMER FUNCTIONS --
     function startTimer() {
         if (timerInt || !currentKey) return;
+        if (window.haptics) window.haptics.trigger('medium');
         secondsLeft = DATA[currentKey].time;
         if (!secondsLeft) return;
 
@@ -218,6 +221,7 @@
     function resetTimer(uiUpdate = true) {
         clearInterval(timerInt);
         timerInt = null;
+        if (uiUpdate && window.haptics) window.haptics.trigger('light');
         if (currentKey && uiUpdate) {
             els.displays.timer.innerText = fmtTime(DATA[currentKey].time);
         }

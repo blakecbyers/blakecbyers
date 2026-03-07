@@ -40,13 +40,11 @@
                 if (navigator.vibrate) navigator.vibrate(50);
 
                 // Go Home (check if we are in a subdir or root)
-                // If we are in root (index.html), maybe do nothing or reload?
-                // Assuming we are in subdirs mostly. "Up one level" is safer.
-                // But if we are deeper? best to just go to root.
-                // Assuming site structure is flat subfolders.
-
                 setTimeout(() => {
-                    window.location.href = '../';
+                    const scripts = document.getElementsByTagName('script');
+                    const me = Array.from(scripts).find(s => s.src.includes('gestures.js'));
+                    const rootPath = me ? me.src.split('gestures.js')[0] : '../';
+                    window.location.href = rootPath;
                 }, 100);
             }
         }

@@ -168,6 +168,7 @@
 
 <body>
     <!-- Pinch to home enabled via script -->
+    <script src="../haptics.js"></script>
     <script src="../gestures.js"></script>
     <div id="root"></div>
 
@@ -371,10 +372,17 @@
                 if (res.success) {
                     setResult(res.data);
                     if (res.data.length > 0 && level.check(res.data)) {
+                        if (window.haptics) window.haptics.trigger('success');
                         setSuccess(true);
                         confetti({ colors: ['#A97142', '#D4A373', '#FFFFFF'], particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                    } else { triggerSpill("Order incorrect! Taste is awful."); }
-                } else { triggerSpill(res.error); }
+                    } else { 
+                        if (window.haptics) window.haptics.trigger('warning');
+                        triggerSpill("Order incorrect! Taste is awful."); 
+                    }
+                } else { 
+                    if (window.haptics) window.haptics.trigger('error');
+                    triggerSpill(res.error); 
+                }
             };
             const triggerSpill = (msg) => { setResult(null); setError(msg); setIsCleaning(true); setTimeout(() => setIsCleaning(false), 3000); };
             const insert = (txt) => { if (!isCleaning) setInput(prev => prev + txt + " "); };

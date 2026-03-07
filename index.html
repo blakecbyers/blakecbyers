@@ -127,7 +127,7 @@
     <header class="mb-16 animate-enter flex flex-col md:flex-row md:items-center gap-6">
       <div
         class="w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden border border-gray-100 flex-shrink-0 shadow-sm">
-        <img src="pic.png" alt="Blake Byers" class="w-full h-full object-cover">
+        <img src="pic.jpg" alt="Blake Byers" class="w-full h-full object-cover">
       </div>
       <div>
         <div id="machine" class="slot-container mb-2" onclick="play()"></div>
@@ -141,7 +141,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
       <!-- Hedzup -->
-      <a href="hedzup/"
+      <a href="hedzup/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-100">
         <div class="flex items-center justify-between">
           <div>
@@ -160,7 +160,7 @@
       </a>
 
       <!-- Coffee -->
-      <a href="coffee/"
+      <a href="coffee/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-200">
         <div class="flex items-center justify-between">
           <div>
@@ -179,7 +179,7 @@
       </a>
 
       <!-- Dog Baseball -->
-      <a href="dog-baseball/"
+      <a href="dog-baseball/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -198,7 +198,7 @@
       </a>
 
       <!-- SQL -->
-      <a href="sql/"
+      <a href="sql/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -338,7 +338,7 @@
     <!-- Footer -->
     <footer
       class="mt-20 border-t border-gray-100 pt-8 flex justify-between items-center text-sm animate-enter delay-300">
-      <span class="text-gray-400">© 2025</span>
+      <span class="text-gray-400">© 2026</span>
       <div class="flex gap-6">
         <a href="https://x.com/blakecbyers" class="text-gray-400 hover:text-black transition-colors">X</a>
         <a href="mailto:blakecbyers@gmail.com" class="text-gray-400 hover:text-black transition-colors">Email</a>
@@ -348,6 +348,7 @@
   </main>
 
   <!-- Scripts -->
+  <script src="haptics.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     lucide.createIcons();
@@ -394,7 +395,22 @@
       return (1 - t) ** 3 * 0 + 3 * (1 - t) ** 2 * t * p1 + 3 * (1 - t) * t ** 2 * p2 + t ** 3 * 1;
     }
 
-
+    function playTick() {
+      if (window.haptics) window.haptics.trigger('selection');
+      if (navigator.vibrate) navigator.vibrate(2);
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.05);
+    }
 
     function triggerTicks(steps) {
       if (!audioCtx) return;
@@ -421,6 +437,13 @@
     }
 
     function play() {
+      if (window.haptics) window.haptics.trigger('medium');
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
       spin();
     }
 
@@ -451,6 +474,13 @@
           const offset = slot.finalIndex * cardHeight;
           slot.reel.style.transform = `translateY(-${offset}px)`;
           triggerTicks(slot.finalIndex);
+
+          // Settled haptic after the last reel stops
+          if (i === slots.length - 1) {
+            setTimeout(() => {
+              if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
+            }, 2500);
+          }
         }, delay);
       });
     }

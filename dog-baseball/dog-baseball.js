@@ -216,6 +216,7 @@ function spawnTarget(randomPosition = false) {
 }
 
 function throwBall(origin, targetPos, speedMultiplier = 1.0) {
+    if (window.haptics) window.haptics.trigger(speedMultiplier > 1.5 ? 'heavy' : 'medium');
     shots++;
     // Synth whoosh sound freq higher for faster shots
     playSfx(450 + (speedMultiplier * 100), 'sine', 0.1, 0.08);
