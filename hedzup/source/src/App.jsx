@@ -6,6 +6,17 @@ import TiltLogic from './utils/tilt-logic';
 const TILT_THRESHOLD = 45;
 const NEUTRAL_ZONE = 20;
 const SMOOTHING = 0.3;
+
+// --- GLOBAL AUDIO CONTEXT ---
+let globalAudioCtx = null;
+const getAudioContext = () => {
+    if (!globalAudioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) globalAudioCtx = new AC();
+    }
+    return globalAudioCtx;
+};
+
 const Button = ({ onClick, children, className = "" }) => (
     <button
         onClick={onClick}
@@ -27,6 +38,7 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
     const handleAction = useCallback((type) => {
         if (status !== 'active') return;
 
+        if (window.haptics) window.haptics.trigger(type === 'correct' ? 'success' : 'medium');
         playSound(type === 'correct' ? 'success' : 'pass');
         setStatus(type);
 
@@ -187,6 +199,12 @@ const Menu = ({ onSelect }) => (
 
 const Instructions = ({ deck, onStart }) => {
     const handleStart = async () => {
+        // Unlock audio context on user interaction
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+            await ctx.resume();
+        }
+
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const res = await DeviceOrientationEvent.requestPermission();
@@ -312,9 +330,10 @@ export default function App() {
     const [cal, setCal] = useState({ pitch: 0 });
 
     const playSound = (type) => {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        const ctx = new AC();
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') ctx.resume();
+
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);

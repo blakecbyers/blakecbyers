@@ -127,7 +127,7 @@
     </div>
 
     <div id="video-container">
-        <video id="input-video" playsinline></video>
+        <video id="input-video" autoplay muted playsinline></video>
     </div>
 
     <div id="ui-layer" class="fixed inset-0 pointer-events-none z-10 p-6 flex flex-col justify-between pt-24">
@@ -157,6 +157,7 @@
         </div>
     </div>
 
+    <script src="../haptics.js"></script>
     <script src="dog-baseball.js"></script>
     <script>
         lucide.createIcons();
