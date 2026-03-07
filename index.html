@@ -22,80 +22,31 @@
       transform: translateY(10px);
     }
 
-    /* Flip Clock Styles */
-    :root {
-      --slot-bg: #f5f5f7;
-      --text-color: #1d1d1f;
-      --card-height: 50px;
-      /* Reduced to fit header */
-      --card-width: 36px;
-      --font-size: 32px;
-    }
+    @keyframes jiggle {
+      0% {
+        transform: rotate(0deg);
+      }
 
-    @media (min-width: 768px) {
-      :root {
-        --card-height: 64px;
-        --card-width: 44px;
-        --font-size: 42px;
+      25% {
+        transform: rotate(-5deg);
+      }
+
+      50% {
+        transform: rotate(5deg);
+      }
+
+      75% {
+        transform: rotate(-5deg);
+      }
+
+      100% {
+        transform: rotate(0deg);
       }
     }
 
-    .slot-container {
-      display: flex;
-      gap: 2px;
-      cursor: pointer;
+    .jiggle {
+      animation: jiggle 0.3s ease-in-out;
     }
-
-    .slot-window {
-      position: relative;
-      width: var(--card-width);
-      height: var(--card-height);
-      background: var(--slot-bg);
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .reel {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      will-change: transform;
-    }
-
-    .char {
-      height: var(--card-height);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: var(--font-size);
-      font-weight: 600;
-      color: var(--text-color);
-      letter-spacing: -0.02em;
-      line-height: var(--card-height);
-    }
-
-    .slot-window::before,
-    .slot-window::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 30%;
-      z-index: 2;
-      pointer-events: none;
-    }
-
-    .slot-window::before {
-      top: 0;
-      background: linear-gradient(to bottom, var(--slot-bg) 0%, rgba(245, 245, 247, 0) 100%);
-    }
-
-    .slot-window::after {
-      bottom: 0;
-      background: linear-gradient(to top, var(--slot-bg) 0%, rgba(245, 245, 247, 0) 100%);
-    }
-
 
     @keyframes enter {
       to {
@@ -130,7 +81,8 @@
         <img src="pic.png" alt="Blake Byers" class="w-full h-full object-cover">
       </div>
       <div>
-        <div id="machine" class="slot-container mb-2" onclick="play()"></div>
+        <h1 id="name-title" class="text-3xl md:text-4xl font-semibold mb-2 cursor-pointer inline-block"
+          onclick="jiggleName()">Blake Byers</h1>
         <p class="text-xl text-gray-500 font-normal">
           AZ/OK
         </p>
@@ -139,25 +91,6 @@
 
     <!-- Projects List -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      <!-- Hedzup -->
-      <a href="hedzup/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
-        class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-100">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-xl font-medium text-black group-hover:text-black transition-colors mb-1">
-              Heads Up
-            </h3>
-            <p class="text-gray-500 text-sm leading-relaxed max-w-sm">
-              Party game.
-            </p>
-          </div>
-          <div
-            class="w-10 h-10 rounded-full bg-gray-50 group-hover:bg-white border border-gray-100 flex items-center justify-center transition-all group-hover:scale-105 group-hover:shadow-sm">
-            <i data-lucide="smartphone" class="w-5 h-5 text-gray-400 group-hover:text-black transition-colors"></i>
-          </div>
-        </div>
-      </a>
 
       <!-- Fidget -->
       <a href="fidget/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
@@ -213,147 +146,21 @@
   </main>
 
   <!-- Scripts -->
-  <script src="haptics.js"></script>
+  <script type="module" src="haptics.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     lucide.createIcons();
 
-    /* Animation Logic */
-    const targetWord = "BLAKE BYERS";
-    const alphabet = " ABCDEFGHIJKLMNOPQRSTUVWXYZ"; // Included space
-    const container = document.getElementById('machine');
-    const reelLength = 20; // Reduced for faster load
+    /* Jiggle Logic */
+    function jiggleName() {
+      const nameEl = document.getElementById('name-title');
+      nameEl.classList.remove('jiggle');
+      void nameEl.offsetWidth; // trigger reflow
+      nameEl.classList.add('jiggle');
 
-
-    // Build the machine
-    const slots = targetWord.split('').map((targetChar) => {
-      const windowEl = document.createElement('div');
-      windowEl.className = 'slot-window';
-
-      // Handle spaces visually (optional, but keeping structure uniform)
-      if (targetChar === ' ') {
-        windowEl.style.background = 'transparent';
-        windowEl.style.boxShadow = 'none';
-      }
-
-      const reel = document.createElement('div');
-      reel.className = 'reel';
-      const strip = [' '];
-      // Random chars
-      for (let i = 0; i < reelLength; i++) {
-        strip.push(alphabet[Math.floor(Math.random() * alphabet.length)]);
-      }
-      strip.push(targetChar);
-
-      strip.forEach(char => {
-        const charEl = document.createElement('div');
-        charEl.className = 'char';
-        charEl.textContent = char;
-        reel.appendChild(charEl);
-      });
-      windowEl.appendChild(reel);
-      container.appendChild(windowEl);
-      return { reel, finalIndex: strip.length - 1, isSpace: targetChar === ' ' };
-    });
-
-    function cubicBezier(t, p1, p2) {
-      return (1 - t) ** 3 * 0 + 3 * (1 - t) ** 2 * t * p1 + 3 * (1 - t) * t ** 2 * p2 + t ** 3 * 1;
-    }
-
-    function playTick() {
       if (window.haptics) window.haptics.trigger('selection');
-      if (navigator.vibrate) navigator.vibrate(2);
-      if (!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.05);
-      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.05);
+      if (navigator.vibrate) navigator.vibrate(10);
     }
-
-    function triggerTicks(steps) {
-      if (!audioCtx) return;
-      const duration = 2500; // Match CSS transition roughly
-      let currentStep = 0;
-      const startTime = performance.now();
-
-      function check() {
-        const now = performance.now();
-        const elapsed = now - startTime;
-        if (elapsed > duration) return;
-
-        const t = Math.min(elapsed / duration, 1);
-        const progress = cubicBezier(t, 0.2, 1);
-        const targetStep = Math.floor(progress * steps);
-
-        if (targetStep > currentStep) {
-          playTick();
-          currentStep = targetStep;
-        }
-        requestAnimationFrame(check);
-      }
-      requestAnimationFrame(check);
-    }
-
-    function play() {
-      if (window.haptics) window.haptics.trigger('medium');
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      spin();
-    }
-
-    function spin() {
-      // Need to get live height
-      const firstChar = document.querySelector('.char');
-      if (!firstChar) return;
-      const cardHeight = firstChar.offsetHeight;
-
-      slots.forEach((slot, i) => {
-        if (slot.isSpace) return; // Don't animate space
-
-        // Reset transform to 0 (optional, requires handling loop, for now just one-shot or style reset)
-        // To make it re-runnable without complex logic, we assume it starts at 0 or we rebuild.
-        // Simplified: Just add transition class and go.
-
-        // Actually, for re-runnability, we'd need to reset the reel. 
-        // Simple approach: Reset to 0 instantly, then spin again.
-        slot.reel.style.transition = 'none';
-        slot.reel.style.transform = 'translateY(0px)';
-
-        // Force reflow
-        void slot.reel.offsetWidth;
-
-        const delay = i * 60; // Stagger
-        setTimeout(() => {
-          slot.reel.style.transition = 'transform 2.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
-          const offset = slot.finalIndex * cardHeight;
-          slot.reel.style.transform = `translateY(-${offset}px)`;
-          triggerTicks(slot.finalIndex);
-
-          // Settled haptic after the last reel stops
-          if (i === slots.length - 1) {
-            setTimeout(() => {
-              if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
-            }, 2500);
-          }
-        }, delay);
-      });
-    }
-
-    // Auto-play on load with a slight delay
-    window.addEventListener('load', () => {
-      setTimeout(play, 500);
-    });
 
   </script>
 </body>

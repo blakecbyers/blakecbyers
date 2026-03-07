@@ -184,13 +184,13 @@ async function init() {
         const log = document.getElementById('error-log');
         if (log) {
             log.innerHTML = `
-                <div class="mb-4">Camera Error: ${err.message}</div>
-                <button onclick="location.reload()" class="bg-red-500/20 px-4 py-2 rounded-full border border-red-500 text-red-500 font-bold uppercase text-[10px]">Retry</button>
+                <div class="mb-4">Camera Error: ${err.message}.<br>Swipe up to throw instead!</div>
             `;
             log.style.opacity = "1";
+            setTimeout(() => { log.style.opacity = "0"; }, 6000);
         }
         document.getElementById('loading').style.display = 'none';
-        document.getElementById('tap-to-start').style.display = 'flex'; // Show start screen again
+        animate(); // Still run the game without camera
     }
 }
 
@@ -386,16 +386,49 @@ function animate() {
 }
 
 // Mobile Helper: Swipe/Tap to throw for devices without gesture capability or for backup
+let touchStartY = 0;
 window.addEventListener('touchstart', (e) => {
     if (document.getElementById('tap-to-start').style.display !== 'none') {
         startApp();
         return;
     }
 
+    if (e.touches.length > 0) touchStartY = e.touches[0].clientY;
+
     // Simple tap-to-throw at crosshair for mobile ease
     if (crosshair && crosshair.visible) {
         const throwOrigin = new THREE.Vector3(0, -10, -5);
         throwBall(throwOrigin, crosshair.position);
+    }
+});
+
+window.addEventListener('touchend', (e) => {
+    if (document.getElementById('tap-to-start').style.display !== 'none') return;
+    if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+    const touchEndY = e.changedTouches[0].clientY;
+    const dy = touchStartY - touchEndY; // Positive if swiped up
+
+    if (dy > 30) {
+        const throwOrigin = new THREE.Vector3(0, -10, -5);
+
+        let aimPos = new THREE.Vector3(0, 5, -35);
+        if (crosshair && crosshair.visible) {
+            aimPos.copy(crosshair.position);
+        } else if (targets.length > 0) {
+            let closest = targets[0];
+            let minDist = Math.abs(closest.position.x);
+            targets.forEach(t => {
+                if (Math.abs(t.position.x) < minDist) {
+                    minDist = Math.abs(t.position.x);
+                    closest = t;
+                }
+            });
+            aimPos.copy(closest.position);
+        }
+
+        const multiplier = 1.0 + Math.min(dy / 150, 2.0);
+        throwBall(throwOrigin, aimPos, multiplier);
     }
 });
 
