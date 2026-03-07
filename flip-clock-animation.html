@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blake - Minimalist Animation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap');
+
+        :root {
+            --bg-color: #ffffff;
+            --slot-bg: #f5f5f7;
+            --text-color: #1d1d1f;
+            --card-height: 140px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.9);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 0.5s ease;
+        }
+
+        .slot-container {
+            display: flex;
+            gap: 4px;
+        }
+
+        .slot-window {
+            position: relative;
+            width: 90px;
+            height: var(--card-height);
+            background: var(--slot-bg);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        .reel {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            transition: transform 3.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: transform;
+        }
+
+        .char {
+            height: var(--card-height);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 80px;
+            font-weight: 700;
+            color: var(--text-color);
+            letter-spacing: -0.02em;
+        }
+
+        .slot-window::before,
+        .slot-window::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 35%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .slot-window::before {
+            top: 0;
+            background: linear-gradient(to bottom, var(--slot-bg) 0%, rgba(245, 245, 247, 0) 100%);
+        }
+
+        .slot-window::after {
+            bottom: 0;
+            background: linear-gradient(to top, var(--slot-bg) 0%, rgba(245, 245, 247, 0) 100%);
+        }
+
+        @media (max-width: 640px) {
+            :root { --card-height: 90px; }
+            .slot-window { width: 60px; height: 90px; border-radius: 12px; }
+            .char { font-size: 52px; }
+            .slot-container { gap: 4px; }
+        }
+    </style>
+</head>
+<body onclick="initAudio()">
+
+    <div id="overlay">
+        <div class="text-gray-400 text-sm font-medium animate-pulse">Click to Reveal</div>
+    </div>
+
+    <div class="slot-container" id="machine"></div>
+
+    <script>
+        const targetWord = "BLAKE";
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const container = document.getElementById('machine');
+        const reelLength = 30; 
+        let audioCtx = null;
+
+        function playTick() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        const slots = targetWord.split('').map((targetChar) => {
+            const windowEl = document.createElement('div');
+            windowEl.className = 'slot-window';
+            const reel = document.createElement('div');
+            reel.className = 'reel';
+            const strip = [' '];
+            for(let i = 0; i < reelLength; i++) {
+                strip.push(alphabet[Math.floor(Math.random() * alphabet.length)]);
+            }
+            strip.push(targetChar);
+            strip.forEach(char => {
+                const charEl = document.createElement('div');
+                charEl.className = 'char';
+                charEl.textContent = char;
+                reel.appendChild(charEl);
+            });
+            windowEl.appendChild(reel);
+            container.appendChild(windowEl);
+            return { reel, finalIndex: strip.length - 1 };
+        });
+
+        function cubicBezier(t, p1, p2) {
+            // Simplified version for cubic-bezier(0.2, 0.8, 0.2, 1)
+            return (1-t)**3 * 0 + 3*(1-t)**2 * t * p1 + 3*(1-t)*t**2 * p2 + t**3 * 1;
+        }
+
+        function triggerTicks(i) {
+            const duration = 3500;
+            const steps = reelLength;
+            let currentStep = 0;
+            const startTime = performance.now();
+
+            function check() {
+                const now = performance.now();
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const progress = cubicBezier(t, 0.8, 1); // Approx mapping for the easing
+                const targetStep = Math.floor(progress * steps);
+
+                if (targetStep > currentStep) {
+                    playTick();
+                    currentStep = targetStep;
+                }
+
+                if (t < 1) requestAnimationFrame(check);
+            }
+            requestAnimationFrame(check);
+        }
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('overlay').remove();
+                spin();
+            }, 500);
+        }
+
+        function spin() {
+            const cardHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height'));
+            slots.forEach((slot, i) => {
+                const delay = i * 100;
+                setTimeout(() => {
+                    const offset = slot.finalIndex * cardHeight;
+                    slot.reel.style.transform = `translateY(-${offset}px)`;
+                    triggerTicks(i);
+                }, delay);
+            });
+        }
+    </script>
+</body>
+</html>
