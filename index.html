@@ -93,7 +93,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
       <!-- Heads Up -->
-      <a href="hedzup/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
+      <a href="hedzup/" aria-label="Heads Up party game" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -112,7 +112,7 @@
       </a>
 
       <!-- Fidget -->
-      <a href="fidget/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
+      <a href="fidget/" aria-label="Fidget toy" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -120,7 +120,7 @@
               Fidget
             </h3>
             <p class="text-gray-500 text-sm leading-relaxed max-w-sm">
-              Satisfying clicks & haptics.
+              Coffee-style tactile fidgets & haptics.
             </p>
           </div>
           <div
@@ -132,7 +132,7 @@
       </a>
 
       <!-- Dog Baseball -->
-      <a href="dog-baseball/" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
+      <a href="dog-baseball/" aria-label="Dog Baseball game" onmousedown="if(navigator.vibrate) navigator.vibrate(10)"
         class="group block p-6 rounded-2xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all duration-300 animate-enter delay-300">
         <div class="flex items-center justify-between">
           <div>
@@ -164,12 +164,10 @@
 
   </main>
 
-  <!-- Scripts -->
+  <!-- Scripts: Lucide must load before createIcons() -->
+  <script src="https://unpkg.com/lucide@latest" onload="lucide.createIcons()"></script>
   <script type="module" src="haptics.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
   <script>
-    lucide.createIcons();
-
     /* Jiggle Logic */
     function jiggleName() {
       const nameEl = document.getElementById('name-title');

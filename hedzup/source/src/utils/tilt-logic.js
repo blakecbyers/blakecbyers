@@ -27,10 +27,15 @@ class TiltLogic {
 
     /**
      * Start the sensor listeners.
+     * Prefers `deviceorientationabsolute` (Chrome/Android) and falls back to
+     * `deviceorientation` (Safari/iOS).
      */
     start() {
         if (this.isActive) return;
-        window.addEventListener('deviceorientation', this.handleOrientation);
+        // Safari only fires `deviceorientation`; Chrome fires both but
+        // `deviceorientationabsolute` is more stable for heading.
+        // For our use case (relative tilt only) `deviceorientation` is fine.
+        window.addEventListener('deviceorientation', this.handleOrientation, true);
         this.isActive = true;
     }
 
@@ -39,7 +44,7 @@ class TiltLogic {
      */
     stop() {
         if (!this.isActive) return;
-        window.removeEventListener('deviceorientation', this.handleOrientation);
+        window.removeEventListener('deviceorientation', this.handleOrientation, true);
         this.isActive = false;
     }
 
@@ -84,9 +89,19 @@ class TiltLogic {
         // Apply smoothing
         this.smoothed.pitch = this.lerp(this.smoothed.pitch || rawPitch, rawPitch, this.options.smoothing);
 
-        // Orientation aware flip (handle landscape-primary vs landscape-secondary)
-        const orientation = (screen.orientation || {}).type || window.orientation || 'landscape-primary';
-        const isSecondary = String(orientation).includes('secondary') || orientation === -90 || orientation === 270;
+        // Orientation-aware flip (landscape-primary vs landscape-secondary).
+        // screen.orientation.type is unsupported in Safari < 16.4, so we
+        // fall back to the legacy window.orientation (0 / 90 / -90 / 180).
+        let orientationType = 'landscape-primary';
+        if (screen.orientation && screen.orientation.type) {
+            orientationType = screen.orientation.type;
+        } else if (typeof window.orientation === 'number') {
+            // window.orientation: 90 = landscape-left, -90 = landscape-right
+            orientationType = (window.orientation === -90 || window.orientation === 270)
+                ? 'landscape-secondary'
+                : 'landscape-primary';
+        }
+        const isSecondary = orientationType === 'landscape-secondary';
 
         // Calculate delta from calibration
         let calibratedPitch = this.smoothed.pitch - this.calibration.pitch;

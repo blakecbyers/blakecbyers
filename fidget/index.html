@@ -1,520 +1,797 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Fidget</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Fidget</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
 
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f172a;
-            /* slate-900 */
-            color: white;
-            margin: 0;
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            touch-action: none;
-            /* Prevent scroll on mobile */
-        }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .ghost-home {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 50;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            opacity: 0.6;
-        }
+    :root {
+      --cream:    #f2ebe0;
+      --parchment:#e8ddd0;
+      --latte:    #c9a87c;
+      --caramel:  #b07d52;
+      --espresso: #3d2314;
+      --roast:    #5c3317;
+      --steam:    rgba(242,235,224,0.6);
+    }
 
-        .ghost-home:hover {
-            opacity: 1;
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.05);
-        }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--cream);
+      color: var(--espresso);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: none;
+    }
 
-        /* The big interactive button */
-        .fidget-btn {
-            position: relative;
-            width: 240px;
-            height: 240px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #3b82f6, #2563eb);
-            /* blue-500 to blue-600 */
-            box-shadow:
-                0 30px 60px rgba(37, 99, 235, 0.4),
-                inset 0 10px 20px rgba(255, 255, 255, 0.3),
-                inset 0 -10px 20px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.1s ease, filter 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
+    /* Subtle paper grain */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0;
+    }
 
-        .fidget-btn:active,
-        .fidget-btn.pressed {
-            transform: scale(0.92) translateY(10px);
-            box-shadow:
-                0 10px 20px rgba(37, 99, 235, 0.2),
-                inset 0 20px 30px rgba(0, 0, 0, 0.3),
-                inset 0 -5px 10px rgba(255, 255, 255, 0.1);
-        }
+    /* ── Layout ── */
+    #app {
+      position: relative;
+      width: 100vw; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      z-index: 1;
+    }
 
-        .fidget-btn::after {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #60a5fa, #1d4ed8);
-            z-index: -1;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-            transition: opacity 0.3s ease;
-        }
+    /* ── Nav ── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      z-index: 50;
+    }
+    .nav-btn {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(61,35,20,0.08);
+      border: 1px solid rgba(61,35,20,0.12);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: var(--espresso);
+      text-decoration: none;
+      font-size: 16px;
+    }
+    .nav-btn:hover { background: rgba(61,35,20,0.14); }
 
-        /* Floating particles */
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            pointer-events: none;
-            will-change: transform, opacity;
-            z-index: 5;
-        }
+    /* ── Title ── */
+    .title-area {
+      position: fixed; top: 64px; left: 0; right: 0;
+      text-align: center;
+      pointer-events: none;
+    }
+    .title-area h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(13px, 2.5vw, 18px);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--caramel);
+      font-weight: 400;
+    }
 
-        /* Background Ripple */
-        .ripple {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 240px;
-            height: 240px;
-            border-radius: 50%;
-            border: 2px solid rgba(59, 130, 246, 0.5);
-            opacity: 0;
-            pointer-events: none;
-            z-index: 1;
-        }
+    /* ── Fidget widgets grid ── */
+    #widgets {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(20px, 5vw, 56px);
+      flex-wrap: wrap;
+      padding: 100px 24px 100px;
+      max-width: 680px;
+    }
 
-        @keyframes ripple-anim {
-            0% {
-                width: 240px;
-                height: 240px;
-                opacity: 0.8;
-                border-width: 6px;
-            }
+    /* ── WIDGET: Coffee Press ── */
+    .press-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .press-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--caramel);
+      font-weight: 500;
+    }
+    .press-body {
+      position: relative;
+      width: 72px;
+      height: 110px;
+    }
+    /* Glass cylinder */
+    .press-glass {
+      position: absolute;
+      left: 12px; right: 12px; bottom: 0;
+      height: 86px;
+      border: 2px solid var(--caramel);
+      border-radius: 4px 4px 6px 6px;
+      background: rgba(201,168,124,0.1);
+      overflow: hidden;
+    }
+    /* Coffee liquid fill */
+    .press-liquid {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 60%;
+      background: linear-gradient(to top, var(--espresso), var(--roast));
+      border-radius: 0 0 4px 4px;
+      transition: height 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+    /* Plunger rod */
+    .press-rod {
+      position: absolute;
+      left: 50%; top: 0;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 42px;
+      background: var(--caramel);
+      border-radius: 2px;
+      transform-origin: top center;
+      transition: height 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    /* Plunger disk */
+    .press-disk {
+      position: absolute;
+      left: 14px; right: 14px;
+      height: 6px;
+      background: var(--caramel);
+      border-radius: 3px;
+      top: 40px;
+      transition: top 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    /* Handle */
+    .press-handle {
+      position: absolute;
+      left: 50%; top: 0;
+      transform: translateX(-50%);
+      width: 26px; height: 10px;
+      border: 2px solid var(--caramel);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+    }
+    .press-body.pressed .press-rod   { height: 74px; }
+    .press-body.pressed .press-disk  { top: 72px; }
+    .press-body.pressed .press-liquid { height: 68%; }
 
-            100% {
-                width: 600px;
-                height: 600px;
-                opacity: 0;
-                border-width: 1px;
-            }
-        }
+    /* ── WIDGET: Spinning bean ── */
+    .bean-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: grab;
+    }
+    .bean-wrap:active { cursor: grabbing; }
+    .bean-canvas-wrap {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: rgba(201,168,124,0.12);
+      border: 1.5px solid rgba(201,168,124,0.3);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    #bean-canvas {
+      display: block;
+    }
 
-        /* Settings Panel */
-        .settings-panel {
-            position: fixed;
-            bottom: -300px;
-            left: 0;
-            right: 0;
-            background: rgba(30, 41, 59, 0.85);
-            /* slate-800 */
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            border-top-left-radius: 32px;
-            border-top-right-radius: 32px;
-            padding: 24px;
-            transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 100;
-        }
+    /* ── WIDGET: Bubble row ── */
+    .bubbles-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .bubbles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .bubble {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.7), rgba(201,168,124,0.5));
+      border: 1.5px solid rgba(201,168,124,0.6);
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.3s;
+      position: relative;
+    }
+    .bubble::after {
+      content: '';
+      position: absolute;
+      top: 6px; left: 6px;
+      width: 8px; height: 8px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+    }
+    .bubble.popped {
+      opacity: 0;
+      transform: scale(1.6);
+      pointer-events: none;
+    }
 
-        .settings-panel.open {
-            bottom: 0;
-        }
+    /* ── WIDGET: Drip toggle ── */
+    .drip-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .drip-body {
+      position: relative;
+      width: 56px; height: 80px;
+    }
+    .drip-cup {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 44px; height: 30px;
+      border: 2px solid var(--caramel);
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      background: rgba(201,168,124,0.1);
+      overflow: hidden;
+    }
+    .drip-fill {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 0%;
+      background: linear-gradient(to top, var(--espresso), var(--roast));
+      border-radius: 0 0 12px 12px;
+      transition: height 1.2s cubic-bezier(0.16,1,0.3,1);
+    }
+    .drip-stream {
+      position: absolute;
+      left: 50%; top: 0;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 0;
+      background: linear-gradient(to bottom, var(--roast), transparent);
+      border-radius: 2px;
+      transition: height 0.4s ease;
+      opacity: 0;
+    }
+    .drip-body.dripping .drip-stream {
+      height: 50px;
+      opacity: 1;
+    }
+    .drip-body.dripping .drip-fill {
+      height: 70%;
+    }
 
-        .theme-btn {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            transition: transform 0.2s, border-color 0.2s;
-        }
+    /* ── Combo counter ── */
+    #combo-area {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #combo-area.show { opacity: 1; }
+    #combo-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 52px;
+      line-height: 1;
+      color: var(--espresso);
+      letter-spacing: -0.02em;
+    }
+    #combo-label {
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--caramel);
+      font-weight: 500;
+    }
 
-        .theme-btn:active {
-            transform: scale(0.9);
-        }
+    /* ── Lottie steam container ── */
+    #steam-container {
+      position: fixed;
+      bottom: 140px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      height: 100px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
 
-        .theme-btn.active {
-            border-color: white;
-            transform: scale(1.1);
-        }
-    </style>
+    /* ── CSS steam fallback (shown if Lottie doesn't load) ── */
+    .steam-puff {
+      position: absolute;
+      bottom: 0;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--parchment);
+      filter: blur(3px);
+      animation: steam-rise 2.2s ease-in infinite;
+      opacity: 0;
+    }
+    .steam-puff:nth-child(1) { left: 30%; animation-delay: 0s; }
+    .steam-puff:nth-child(2) { left: 50%; animation-delay: 0.7s; }
+    .steam-puff:nth-child(3) { left: 70%; animation-delay: 1.4s; }
+    @keyframes steam-rise {
+      0%   { transform: translateY(0) scaleX(1); opacity: 0.7; }
+      50%  { transform: translateY(-30px) scaleX(1.4); opacity: 0.4; }
+      100% { transform: translateY(-60px) scaleX(0.6); opacity: 0; }
+    }
+
+    /* ── Footer hint ── */
+    #hint {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--caramel);
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+
+    /* ── Particle ── */
+    .crumb {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      will-change: transform, opacity;
+      background: var(--caramel);
+    }
+
+    /* ── Ring burst ── */
+    .ring-burst {
+      position: fixed;
+      border-radius: 50%;
+      border: 2px solid var(--latte);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+  </style>
 </head>
+<body>
 
-<body class="flex flex-col items-center justify-center min-h-screen">
+<div id="app">
 
-    <a href="../" class="ghost-home" title="Go Home" onmousedown="triggerHaptic('selection')">
-        <i data-lucide="home" class="w-6 h-6"></i>
-    </a>
+  <!-- Nav -->
+  <nav class="nav">
+    <a href="../" class="nav-btn" aria-label="Home" id="home-btn">←</a>
+    <div class="nav-btn" id="sound-btn" aria-label="Toggle sound" title="Toggle audio" style="font-size:18px;">♪</div>
+  </nav>
 
-    <!-- Settings Toggle -->
-    <button id="settings-toggle"
-        class="fixed top-5 right-5 z-50 p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/70 hover:text-white transition-all active:scale-90"
-        onmousedown="triggerHaptic('selection')">
-        <i data-lucide="settings" class="w-6 h-6"></i>
-    </button>
+  <div class="title-area">
+    <h1 id="page-title">Daily Fidget</h1>
+  </div>
 
-    <!-- Main Container -->
-    <main class="relative flex flex-col items-center justify-center w-full h-full flex-grow">
+  <!-- Steam (Lottie or CSS fallback) -->
+  <div id="steam-container">
+    <div class="steam-puff"></div>
+    <div class="steam-puff"></div>
+    <div class="steam-puff"></div>
+  </div>
 
-        <!-- Score/Combo UI -->
-        <div class="absolute top-24 flex flex-col items-center opacity-0 transition-opacity duration-300"
-            id="score-container">
-            <span
-                class="text-6xl font-black text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] italic tracking-tighter"
-                id="combo-text">1x</span>
-            <span class="text-sm font-bold text-white/50 uppercase tracking-widest mt-1">Combo</span>
+  <!-- Widgets -->
+  <div id="widgets">
+
+    <!-- Coffee Press -->
+    <div class="press-wrap" id="press-widget" aria-label="Coffee press fidget" tabindex="0">
+      <div class="press-body" id="press-body">
+        <div class="press-handle"></div>
+        <div class="press-rod"></div>
+        <div class="press-disk"></div>
+        <div class="press-glass">
+          <div class="press-liquid"></div>
         </div>
-
-        <!-- The Button Core -->
-        <div class="relative flex items-center justify-center">
-            <div id="fidget" class="fidget-btn" tabindex="0">
-                <!-- Inner Icon/Text -->
-                <i data-lucide="zap" class="w-20 h-20 text-white/80 transition-transform duration-200"
-                    id="center-icon"></i>
-            </div>
-            <!-- Ripples container -->
-            <div id="ripples-container" class="absolute inset-0 pointer-events-none flex items-center justify-center">
-            </div>
-        </div>
-
-        <div
-            class="absolute bottom-12 text-center text-white/40 text-sm font-bold tracking-widest uppercase pointer-events-none">
-            Tap roughly to Fidget
-        </div>
-    </main>
-
-    <!-- Settings Modal -->
-    <div id="settings-panel" class="settings-panel pb-10">
-        <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
-        <h2 class="text-2xl font-black mb-6 text-center tracking-tight">Vibes</h2>
-
-        <div class="space-y-6 max-w-sm mx-auto">
-            <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Color Theme</p>
-                <div class="flex justify-between px-2">
-                    <button class="theme-btn active" style="background: linear-gradient(145deg, #3b82f6, #2563eb);"
-                        data-theme="blue" data-glow="#60a5fa" onmousedown="setTheme(this)"></button>
-                    <button class="theme-btn" style="background: linear-gradient(145deg, #ef4444, #dc2626);"
-                        data-theme="red" data-glow="#f87171" onmousedown="setTheme(this)"></button>
-                    <button class="theme-btn" style="background: linear-gradient(145deg, #10b981, #059669);"
-                        data-theme="green" data-glow="#34d399" onmousedown="setTheme(this)"></button>
-                    <button class="theme-btn" style="background: linear-gradient(145deg, #8b5cf6, #7c3aed);"
-                        data-theme="purple" data-glow="#a78bfa" onmousedown="setTheme(this)"></button>
-                    <button class="theme-btn" style="background: linear-gradient(145deg, #f59e0b, #d97706);"
-                        data-theme="orange" data-glow="#fbbf24" onmousedown="setTheme(this)"></button>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
-                <div>
-                    <p class="font-bold text-white">Audio Synthesizer</p>
-                    <p class="text-xs text-slate-400">Satisfying pops & ticks</p>
-                </div>
-                <button id="audio-toggle"
-                    class="w-14 h-8 bg-blue-500 rounded-full relative transition-colors duration-300"
-                    onclick="toggleAudio()">
-                    <div class="w-6 h-6 bg-white rounded-full absolute top-1 right-1 shadow-md transition-transform duration-300"
-                        id="audio-knob"></div>
-                </button>
-            </div>
-        </div>
+      </div>
+      <span class="press-label">Press</span>
     </div>
 
-    <!-- Scripts -->
-    <script type="module" src="../haptics.js"></script>
-    <script>
-        lucide.createIcons();
+    <!-- Spinning Coffee Bean -->
+    <div class="bean-wrap" id="bean-widget" aria-label="Spin the coffee bean" tabindex="0">
+      <div class="bean-canvas-wrap">
+        <canvas id="bean-canvas" width="88" height="88"></canvas>
+      </div>
+      <span class="press-label">Spin</span>
+    </div>
 
-        // --- DOM Elements ---
-        const btn = document.getElementById('fidget');
-        const icon = document.getElementById('center-icon');
-        const ripples = document.getElementById('ripples-container');
-        const comboText = document.getElementById('combo-text');
-        const scoreContainer = document.getElementById('score-container');
-        const settingsToggle = document.getElementById('settings-toggle');
-        const settingsPanel = document.getElementById('settings-panel');
-        const audioKnob = document.getElementById('audio-knob');
-        const audioToggleBtn = document.getElementById('audio-toggle');
+    <!-- Bubble wrap -->
+    <div class="bubbles-wrap" id="bubbles-widget" aria-label="Pop the bubbles" tabindex="0">
+      <div class="bubbles-grid" id="bubbles-grid"></div>
+      <span class="press-label">Pop</span>
+    </div>
 
-        // --- State ---
-        let combo = 0;
-        let comboTimer = null;
-        let lastTapTime = 0;
-        let isAudioEnabled = true;
-        let audioCtx = null;
-        let currentTheme = 'blue';
+    <!-- Drip pour -->
+    <div class="drip-wrap" id="drip-widget" aria-label="Pour coffee" tabindex="0">
+      <div class="drip-body" id="drip-body">
+        <div class="drip-stream"></div>
+        <div class="drip-cup">
+          <div class="drip-fill"></div>
+        </div>
+      </div>
+      <span class="press-label">Pour</span>
+    </div>
 
-        // --- Audio Context ---
-        const initAudio = () => {
-            if (!audioCtx && isAudioEnabled) {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                if (AC) {
-                    audioCtx = new AC();
-                }
-            }
-            if (audioCtx && audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        };
+  </div>
 
-        const playPop = (intensity = 1) => {
-            if (!isAudioEnabled || !audioCtx) return;
+  <!-- Combo counter -->
+  <div id="combo-area">
+    <div id="combo-num">1</div>
+    <div id="combo-label">taps</div>
+  </div>
 
-            const t = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
+  <div id="hint">tap anything</div>
 
-            // Frequency rises with combo intensity
-            const baseFreq = 200 + (Math.min(intensity, 20) * 15);
+</div>
 
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+<!-- Lottie web player -->
+<script src="https://unpkg.com/@lottiefiles/lottie-player@2/dist/lottie-player.js"></script>
 
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(baseFreq, t);
-            osc.frequency.exponentialRampToValueAtTime(baseFreq * 2, t + 0.05);
+<!-- pretext for adaptive combo text sizing -->
+<script type="module">
+  // Attempt to load pretext for precise text measurement
+  let pretextReady = false;
+  let pretextLayout = null;
+  try {
+    const mod = await import('https://esm.sh/@chenglou/pretext@0.2.3');
+    pretextLayout = mod.layout;
+    pretextReady = true;
+  } catch (_) { /* falls back to plain CSS */ }
 
-            gain.gain.setValueAtTime(0.3, t);
-            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+  // ── web-haptics via haptics.js module ──
+  // (loads window.haptics from the shared module)
+  // We'll check window.haptics before each trigger.
 
-            osc.start(t);
-            osc.stop(t + 0.1);
-        };
+  // ── Audio ──
+  let audioCtx = null;
+  let soundOn = true;
 
-        const toggleAudio = () => {
-            triggerHaptic('selection');
-            isAudioEnabled = !isAudioEnabled;
-            if (isAudioEnabled) {
-                initAudio();
-                audioToggleBtn.classList.replace('bg-slate-600', 'bg-blue-500');
-                audioKnob.style.transform = 'translateX(0px)';
-            } else {
-                audioToggleBtn.classList.replace('bg-blue-500', 'bg-slate-600');
-                audioKnob.style.transform = 'translateX(-24px)';
-            }
-        };
+  function getAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
 
-        // --- Haptics Wrapper ---
-        const triggerHaptic = (type) => {
-            if (window.haptics) window.haptics.trigger(type);
-            if (navigator.vibrate) {
-                if (type === 'heavy') navigator.vibrate(50);
-                else if (type === 'medium') navigator.vibrate(20);
-                else if (type === 'light') navigator.vibrate(10);
-                else if (type === 'success') navigator.vibrate([15, 30, 20]);
-                else if (type === 'selection') navigator.vibrate(5);
-            }
-        };
+  function playTone(freq, type = 'sine', dur = 0.12, gain = 0.18) {
+    if (!soundOn) return;
+    const ctx = getAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    const t = ctx.currentTime;
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + dur);
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.start(t); osc.stop(t + dur);
+  }
 
-        // --- VFX ---
-        const createRipple = () => {
-            const ripple = document.createElement('div');
-            ripple.className = 'ripple';
+  function playPress()  { playTone(380, 'sine',     0.18, 0.15); }
+  function playPop()    { playTone(520, 'triangle', 0.08, 0.22); }
+  function playSpin()   { playTone(280, 'sine',     0.25, 0.10); }
+  function playPour()   { playTone(240, 'sawtooth', 0.35, 0.08); }
 
-            // Match border color to theme
-            const activeThemeBtn = document.querySelector('.theme-btn.active');
-            if (activeThemeBtn) {
-                ripple.style.borderColor = activeThemeBtn.getAttribute('data-glow');
-            }
+  // ── Haptics ──
+  function haptic(type) {
+    if (window.haptics) {
+      try { window.haptics.trigger(type); } catch(_) {}
+    }
+    if (navigator.vibrate) {
+      const map = { light: 8, medium: 18, heavy: 40, success: [12, 20, 14], selection: 4 };
+      const v = map[type];
+      if (v) navigator.vibrate(v);
+    }
+  }
 
-            ripple.style.animation = 'ripple-anim 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards';
-            ripples.appendChild(ripple);
-            setTimeout(() => {
-                if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
-            }, 600);
-        };
+  // ── Particles ──
+  function burst(x, y, n = 6, color = '#b07d52') {
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('div');
+      el.className = 'crumb';
+      const s = 3 + Math.random() * 5;
+      el.style.cssText = `width:${s}px;height:${s}px;left:${x}px;top:${y}px;background:${color};`;
+      document.body.appendChild(el);
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 40 + Math.random() * 80;
+      el.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${Math.cos(ang)*spd}px,${Math.sin(ang)*spd}px) scale(0)`, opacity: 0 }
+      ], { duration: 500 + Math.random()*300, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' })
+        .onfinish = () => el.remove();
+    }
+  }
 
-        const createParticles = (x, y, count = 8) => {
-            const activeThemeBtn = document.querySelector('.theme-btn.active');
-            const color = activeThemeBtn ? activeThemeBtn.getAttribute('data-glow') : '#60a5fa';
+  function ring(x, y) {
+    const el = document.createElement('div');
+    el.className = 'ring-burst';
+    const sz = 20;
+    el.style.cssText = `width:${sz}px;height:${sz}px;left:${x}px;top:${y}px;`;
+    document.body.appendChild(el);
+    el.animate([
+      { width: sz+'px', height: sz+'px', opacity: 0.8 },
+      { width: '120px', height: '120px', opacity: 0 }
+    ], { duration: 500, easing: 'ease-out', fill: 'forwards' })
+      .onfinish = () => el.remove();
+  }
 
-            for (let i = 0; i < count; i++) {
-                const p = document.createElement('div');
-                p.className = 'particle';
+  // ── Combo counter ──
+  let combo = 0, comboTimer = null;
+  const comboArea  = document.getElementById('combo-area');
+  const comboNum   = document.getElementById('combo-num');
+  const comboLabel = document.getElementById('combo-label');
+  const hint       = document.getElementById('hint');
 
-                const size = 6 + Math.random() * 8;
-                p.style.width = `${size}px`;
-                p.style.height = `${size}px`;
-                p.style.backgroundColor = color;
-                p.style.left = `${x - size / 2}px`;
-                p.style.top = `${y - size / 2}px`;
+  function bumpCombo(x, y) {
+    combo++;
+    comboArea.classList.add('show');
+    hint.style.opacity = '0';
 
-                const angle = Math.random() * Math.PI * 2;
-                const velocity = 50 + Math.random() * 100 + (combo * 2);
-                const tx = Math.cos(angle) * velocity;
-                const ty = Math.sin(angle) * velocity;
+    // Use pretext to fit the number if available
+    if (pretextReady && pretextLayout) {
+      try {
+        const txt = String(combo);
+        const prepared = pretextLayout(txt, '52px DM Serif Display', 120);
+        // pretext confirms it fits — just update text
+        comboNum.textContent = txt;
+      } catch (_) {
+        comboNum.textContent = combo;
+      }
+    } else {
+      comboNum.textContent = combo;
+    }
+    comboLabel.textContent = combo === 1 ? 'tap' : 'taps';
 
-                // Animate via Web Animations API for performance
-                p.animate([
-                    { transform: 'translate(0,0) scale(1)', opacity: 1 },
-                    { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
-                ], {
-                    duration: 400 + Math.random() * 300,
-                    easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-                    fill: 'forwards'
-                });
+    comboNum.animate([
+      { transform: 'scale(1.3)', opacity: 1 },
+      { transform: 'scale(1)', opacity: 1 }
+    ], { duration: 180, easing: 'cubic-bezier(0.16,1,0.3,1)' });
 
-                document.body.appendChild(p);
-                setTimeout(() => { if (p.parentNode) p.parentNode.removeChild(p); }, 800);
-            }
-        };
+    clearTimeout(comboTimer);
+    comboTimer = setTimeout(() => {
+      comboArea.classList.remove('show');
+      combo = 0;
+      hint.style.opacity = '1';
+    }, 1400);
 
-        // --- Interaction Logic ---
-        const handlePress = (e) => {
-            if (e.target.closest('#settings-panel') || e.target.closest('#settings-toggle')) return;
+    if (x !== undefined) burst(x, y, 4 + Math.min(combo, 10));
+  }
 
-            initAudio();
+  // ── WIDGET 1: Coffee Press ──
+  const pressBody = document.getElementById('press-body');
+  let pressDown = false;
 
-            const now = performance.now();
-            const dt = now - lastTapTime;
-            lastTapTime = now;
+  function doPress(e) {
+    if (pressDown) return;
+    pressDown = true;
+    pressBody.classList.add('pressed');
+    haptic('heavy');
+    playPress();
+    const r = pressBody.getBoundingClientRect();
+    bumpCombo(r.left + r.width/2, r.top + r.height*0.7);
+    ring(r.left + r.width/2, r.top + r.height*0.7);
+  }
+  function undoPress() {
+    if (!pressDown) return;
+    pressDown = false;
+    pressBody.classList.remove('pressed');
+  }
 
-            // Increment combo if fast enough
-            if (dt < 400) {
-                combo++;
-            } else {
-                combo = 1;
-            }
+  const pw = document.getElementById('press-widget');
+  pw.addEventListener('mousedown', doPress);
+  pw.addEventListener('touchstart', e => { e.preventDefault(); doPress(e); }, { passive: false });
+  window.addEventListener('mouseup', undoPress);
+  window.addEventListener('touchend', undoPress);
 
-            // UI Updates
-            if (combo > 1) {
-                scoreContainer.style.opacity = '1';
-                comboText.innerText = `${combo}x`;
-                // Pulse effect on text
-                comboText.style.transform = `scale(${1 + Math.min(combo * 0.05, 0.5)})`;
-                setTimeout(() => comboText.style.transform = 'scale(1)', 50);
-            }
+  // ── WIDGET 2: Spinning Bean (canvas) ──
+  const beanCanvas = document.getElementById('bean-canvas');
+  const bctx = beanCanvas.getContext('2d');
+  const W = 88, H = 88;
+  let beanAngle = 0, beanVel = 0, lastBeanT = null;
+  let beanDragging = false, beanLastX = null;
 
-            // Clear old timer
-            if (comboTimer) clearTimeout(comboTimer);
-            comboTimer = setTimeout(() => {
-                scoreContainer.style.opacity = '0';
-                combo = 0;
-            }, 800);
+  function drawBean(angle) {
+    bctx.clearRect(0, 0, W, H);
+    bctx.save();
+    bctx.translate(W/2, H/2);
+    bctx.rotate(angle);
 
-            // Audio & Haptics based on combo intensity
-            if (combo % 10 === 0) {
-                // Milestone pop
-                triggerHaptic('success');
-                playPop(combo + 20);
-                createRipple();
-                createRipple(); // Double ripple
-                icon.style.transform = 'scale(1.5) rotate(180deg)';
-            } else {
-                // Normal pop
-                const intensityType = combo > 15 ? 'heavy' : (combo > 5 ? 'medium' : 'light');
-                triggerHaptic(intensityType);
-                playPop(combo);
-                createRipple();
-                icon.style.transform = `scale(${0.8 + Math.random() * 0.4}) rotate(${(Math.random() - 0.5) * 30}deg)`;
-            }
+    // Bean shape
+    bctx.fillStyle = '#3d2314';
+    bctx.beginPath();
+    bctx.ellipse(0, 0, 22, 14, 0, 0, Math.PI * 2);
+    bctx.fill();
 
-            // Particles from center of button
-            const rect = btn.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            createParticles(cx, cy, Math.min(4 + Math.floor(combo / 2), 20));
+    // Crease
+    bctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    bctx.lineWidth = 1.5;
+    bctx.beginPath();
+    bctx.moveTo(0, -12);
+    bctx.bezierCurveTo(8, -4, 8, 4, 0, 12);
+    bctx.stroke();
 
-            btn.classList.add('pressed');
-        };
+    // Shine
+    bctx.fillStyle = 'rgba(255,255,255,0.12)';
+    bctx.beginPath();
+    bctx.ellipse(-7, -5, 5, 3, -0.5, 0, Math.PI * 2);
+    bctx.fill();
 
-        const handleRelease = () => {
-            btn.classList.remove('pressed');
-            icon.style.transform = 'scale(1) rotate(0deg)';
-        };
+    bctx.restore();
+  }
 
-        // Event Listeners for the Button
-        btn.addEventListener('mousedown', handlePress);
-        btn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent double firing w/ mouse events
-            handlePress(e);
-        }, { passive: false });
+  function beanLoop(ts) {
+    if (lastBeanT !== null) {
+      const dt = Math.min((ts - lastBeanT) / 1000, 0.05);
+      if (!beanDragging) {
+        beanVel *= Math.pow(0.92, dt * 60);
+        beanAngle += beanVel * dt;
+      }
+    }
+    lastBeanT = ts;
+    drawBean(beanAngle);
+    requestAnimationFrame(beanLoop);
+  }
+  requestAnimationFrame(beanLoop);
 
-        window.addEventListener('mouseup', handleRelease);
-        window.addEventListener('touchend', handleRelease);
+  function beanFlick(delta) {
+    beanVel += delta * 0.04;
+    haptic('light');
+    playSpin();
+    bumpCombo();
+  }
 
-        // --- Settings Menu ---
-        settingsToggle.addEventListener('click', () => {
-            settingsPanel.classList.toggle('open');
-            triggerHaptic('light');
-        });
+  const bw = document.getElementById('bean-widget');
+  bw.addEventListener('mousedown', e => { beanDragging = true; beanLastX = e.clientX; });
+  bw.addEventListener('touchstart', e => { e.preventDefault(); beanDragging = true; beanLastX = e.touches[0].clientX; }, { passive: false });
+  window.addEventListener('mousemove', e => {
+    if (!beanDragging) return;
+    const dx = e.clientX - beanLastX;
+    beanAngle += dx * 0.03;
+    beanVel = dx * 0.04;
+    beanLastX = e.clientX;
+  });
+  window.addEventListener('touchmove', e => {
+    if (!beanDragging) return;
+    const dx = e.touches[0].clientX - beanLastX;
+    beanAngle += dx * 0.03;
+    beanVel = dx * 0.04;
+    beanLastX = e.touches[0].clientX;
+  }, { passive: true });
+  window.addEventListener('mouseup', () => {
+    if (beanDragging) { beanDragging = false; beanFlick(beanVel * 25); }
+  });
+  window.addEventListener('touchend', () => {
+    if (beanDragging) { beanDragging = false; haptic('light'); playSpin(); bumpCombo(); }
+  });
 
-        // Close settings when clicking outside
-        document.addEventListener('mousedown', (e) => {
-            if (settingsPanel.classList.contains('open') &&
-                !settingsPanel.contains(e.target) &&
-                !settingsToggle.contains(e.target)) {
-                settingsPanel.classList.remove('open');
-                triggerHaptic('selection');
-            }
-        });
+  // ── WIDGET 3: Bubble wrap ──
+  const grid = document.getElementById('bubbles-grid');
+  const BUBBLE_COUNT = 12;
+  let poppedCount = 0;
 
-        // Theme switching (exposed to global for inline onclick)
-        window.setTheme = (btnEl) => {
-            triggerHaptic('selection');
+  function refillBubbles() {
+    grid.innerHTML = '';
+    poppedCount = 0;
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      b.addEventListener('pointerdown', popBubble);
+      grid.appendChild(b);
+    }
+  }
 
-            // Update active class
-            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-            btnEl.classList.add('active');
+  function popBubble(e) {
+    const b = e.currentTarget;
+    if (b.classList.contains('popped')) return;
+    b.classList.add('popped');
+    haptic('medium');
+    playPop();
+    const r = b.getBoundingClientRect();
+    bumpCombo(r.left + r.width/2, r.top + r.height/2);
+    burst(r.left + r.width/2, r.top + r.height/2, 5, '#c9a87c');
 
-            // Apply styles
-            const bg = btnEl.style.background;
-            const glow = btnEl.getAttribute('data-glow');
+    poppedCount++;
+    if (poppedCount >= BUBBLE_COUNT) {
+      haptic('success');
+      setTimeout(refillBubbles, 700);
+    }
+  }
 
-            btn.style.background = bg;
+  refillBubbles();
 
-            // Update pseudo element styling safely by replacing stylesheet rule
-            const styleId = 'dynamic-theme';
-            let styleEl = document.getElementById(styleId);
-            if (!styleEl) {
-                styleEl = document.createElement('style');
-                styleEl.id = styleId;
-                document.head.appendChild(styleEl);
-            }
+  // ── WIDGET 4: Drip pour ──
+  const dripBody   = document.getElementById('drip-body');
+  let dripActive = false, dripTimer = null;
 
-            styleEl.innerHTML = `
-                .fidget-btn::after {
-                    background: ${bg} !important;
-                    box-shadow: 0 0 25px ${glow} !important;
-                }
-                .fidget-btn {
-                    box-shadow: 0 30px 60px ${glow}40, inset 0 10px 20px rgba(255,255,255,0.3), inset 0 -10px 20px rgba(0,0,0,0.2) !important;
-                }
-                .fidget-btn:active, .fidget-btn.pressed {
-                    box-shadow: 0 10px 20px ${glow}20, inset 0 20px 30px rgba(0,0,0,0.3), inset 0 -5px 10px rgba(255,255,255,0.1) !important;
-                }
-            `;
-        };
-    </script>
+  function startDrip(e) {
+    if (dripActive) return;
+    dripActive = true;
+    dripBody.classList.add('dripping');
+    haptic('medium');
+    playPour();
+    const r = dripBody.getBoundingClientRect();
+    bumpCombo(r.left + r.width/2, r.top + r.height/2);
+  }
+
+  function stopDrip() {
+    if (!dripActive) return;
+    clearTimeout(dripTimer);
+    dripTimer = setTimeout(() => {
+      dripBody.classList.remove('dripping');
+      dripActive = false;
+    }, 400);
+  }
+
+  const dw = document.getElementById('drip-widget');
+  dw.addEventListener('mousedown', e => { e.preventDefault(); startDrip(e); });
+  dw.addEventListener('touchstart', e => { e.preventDefault(); startDrip(e); }, { passive: false });
+  window.addEventListener('mouseup', stopDrip);
+  window.addEventListener('touchend', stopDrip);
+
+  // ── Sound toggle ──
+  const soundBtn = document.getElementById('sound-btn');
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? '♪' : '♩';
+    soundBtn.style.opacity = soundOn ? '1' : '0.4';
+    haptic('selection');
+    getAudio(); // unlock on interaction
+  });
+
+  // ── Lottie steam (try to load; CSS fallback already visible) ──
+  try {
+    const player = document.createElement('lottie-player');
+    player.setAttribute('src', 'https://assets2.lottiefiles.com/packages/lf20_szLgfp.json');
+    player.setAttribute('background', 'transparent');
+    player.setAttribute('speed', '0.7');
+    player.setAttribute('loop', '');
+    player.setAttribute('autoplay', '');
+    player.style.cssText = 'width:140px;height:100px;';
+    const steamEl = document.getElementById('steam-container');
+    // Only replace CSS steam if Lottie loads successfully
+    player.addEventListener('ready', () => {
+      steamEl.innerHTML = '';
+      steamEl.appendChild(player);
+    });
+    // Append to check if it loads (will fire 'ready' or fail silently)
+    document.body.appendChild(player);
+    // Remove temp element if not used after 3s
+    setTimeout(() => { if (player.parentNode === document.body) player.remove(); }, 3000);
+  } catch (_) { /* keep CSS steam */ }
+
+</script>
+
+<!-- Load web-haptics shared module -->
+<script type="module" src="../haptics.js"></script>
+
 </body>
-
 </html>

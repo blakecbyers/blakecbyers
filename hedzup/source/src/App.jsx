@@ -57,6 +57,11 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
         }, 600);
     }, [status, index, cards, card, stats, playSound, onFinish]);
 
+    // Keep a stable ref to the latest handleAction so the tilt engine
+    // is never recreated mid-game (which caused double-triggers on Safari).
+    const handleActionRef = useRef(handleAction);
+    useEffect(() => { handleActionRef.current = handleAction; }, [handleAction]);
+
     // Swipe detection (Rotated for 90deg UI)
     const touchStart = useRef(null);
 
@@ -75,21 +80,23 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
         // Delta > 0 means swiping from left to right on the device.
         // On a 90deg rotated screen, this is 'down' towards the chin.
         if (delta > threshold) {
-            handleAction('correct'); // Swipe Down (Visual)
+            handleActionRef.current('correct'); // Swipe Down (Visual)
         } else if (delta < -threshold) {
-            handleAction('pass');    // Swipe Up (Visual)
+            handleActionRef.current('pass');    // Swipe Up (Visual)
         }
         touchStart.current = null;
     };
 
-    // Standalone Tilt Logic Integration
+    // Standalone Tilt Logic Integration.
+    // Only depends on `calibration` — the ref pattern above ensures the engine
+    // always calls the latest handleAction without needing to be recreated.
     useEffect(() => {
         const engine = new TiltLogic({
             threshold: TILT_THRESHOLD,
             neutralZone: NEUTRAL_ZONE,
             smoothing: SMOOTHING,
-            onYes: () => handleAction('correct'),
-            onSkip: () => handleAction('pass')
+            onYes: () => handleActionRef.current('correct'),
+            onSkip: () => handleActionRef.current('pass')
         });
 
         // Set the calibration from the countdown phase
@@ -97,7 +104,7 @@ const GameView = ({ deck, cards, onFinish, playSound, calibration }) => {
         engine.start();
 
         return () => engine.stop();
-    }, [calibration, handleAction]);
+    }, [calibration]); // calibration-only dep: engine lives for the whole round
 
     // Timer
     useEffect(() => {
@@ -199,18 +206,29 @@ const Menu = ({ onSelect }) => (
 
 const Instructions = ({ deck, onStart }) => {
     const handleStart = async () => {
-        // Unlock audio context on user interaction
-        const ctx = getAudioContext();
-        if (ctx && ctx.state === 'suspended') {
-            await ctx.resume();
-        }
-
+        // IMPORTANT: On iOS Safari, DeviceOrientationEvent.requestPermission()
+        // must be called BEFORE any awaits to stay within the user-gesture window.
+        let motionGranted = true;
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
                 const res = await DeviceOrientationEvent.requestPermission();
-                onStart(res === 'granted');
-            } catch (e) { onStart(false); }
-        } else { onStart(true); }
+                motionGranted = (res === 'granted');
+            } catch (e) {
+                motionGranted = false;
+            }
+        }
+
+        // Unlock audio AFTER the permission request (order matters on Safari)
+        const ctx = getAudioContext();
+        if (ctx) {
+            if (ctx.state === 'suspended') ctx.resume();
+        } else {
+            // Try creating a fresh context now that we're in a user gesture
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) globalAudioCtx = new AC();
+        }
+
+        onStart(motionGranted);
     };
 
     return (
