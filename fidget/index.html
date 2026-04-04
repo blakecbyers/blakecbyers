@@ -16,7 +16,6 @@
       --caramel:  #b07d52;
       --espresso: #3d2314;
       --roast:    #5c3317;
-      --steam:    rgba(242,235,224,0.6);
     }
 
     html, body {
@@ -27,18 +26,25 @@
       font-family: 'DM Sans', sans-serif;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
-      touch-action: none;
     }
 
-    /* Subtle paper grain */
-    body::before {
+    /* ── Background stain canvas ── */
+    #bg-canvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Paper grain overlay */
+    body::after {
       content: '';
       position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none; z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 1;
     }
 
-    /* ── Layout ── */
+    /* ── App shell ── */
     #app {
       position: relative;
       width: 100vw; height: 100vh;
@@ -46,8 +52,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0;
-      z-index: 1;
+      z-index: 2;
+      touch-action: none;
     }
 
     /* ── Nav ── */
@@ -56,6 +62,7 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 20px;
       z-index: 50;
+      pointer-events: none;
     }
     .nav-btn {
       width: 40px; height: 40px;
@@ -64,12 +71,14 @@
       border: 1px solid rgba(61,35,20,0.12);
       display: flex; align-items: center; justify-content: center;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.1s;
       color: var(--espresso);
       text-decoration: none;
-      font-size: 16px;
+      font-size: 15px;
+      pointer-events: all;
     }
-    .nav-btn:hover { background: rgba(61,35,20,0.14); }
+    .nav-btn:hover  { background: rgba(61,35,20,0.14); }
+    .nav-btn:active { transform: scale(0.92); }
 
     /* ── Title ── */
     .title-area {
@@ -79,730 +88,797 @@
     }
     .title-area h1 {
       font-family: 'DM Serif Display', serif;
-      font-size: clamp(13px, 2.5vw, 18px);
-      letter-spacing: 0.35em;
+      font-size: clamp(12px, 2.2vw, 17px);
+      letter-spacing: 0.38em;
       text-transform: uppercase;
       color: var(--caramel);
       font-weight: 400;
     }
 
-    /* ── Fidget widgets grid ── */
+    /* ── Widget row ── */
     #widgets {
       display: flex;
       flex-direction: row;
-      align-items: center;
+      align-items: flex-end;
       justify-content: center;
-      gap: clamp(20px, 5vw, 56px);
+      gap: clamp(16px, 4.5vw, 52px);
       flex-wrap: wrap;
-      padding: 100px 24px 100px;
-      max-width: 680px;
+      padding: 110px 20px 90px;
+      max-width: 700px;
+      width: 100%;
     }
 
-    /* ── WIDGET: Coffee Press ── */
-    .press-wrap {
+    .widget-col {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      cursor: pointer;
+      gap: 10px;
     }
-    .press-label {
-      font-size: 11px;
-      letter-spacing: 0.18em;
+    .widget-label {
+      font-size: 10px;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--caramel);
       font-weight: 500;
+      user-select: none;
     }
+
+    /* ── WIDGET 1: French Press ── */
+    #press-widget { cursor: pointer; }
     .press-body {
       position: relative;
-      width: 72px;
-      height: 110px;
+      width: 68px; height: 108px;
     }
-    /* Glass cylinder */
-    .press-glass {
-      position: absolute;
-      left: 12px; right: 12px; bottom: 0;
-      height: 86px;
-      border: 2px solid var(--caramel);
-      border-radius: 4px 4px 6px 6px;
-      background: rgba(201,168,124,0.1);
-      overflow: hidden;
-    }
-    /* Coffee liquid fill */
-    .press-liquid {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 60%;
-      background: linear-gradient(to top, var(--espresso), var(--roast));
-      border-radius: 0 0 4px 4px;
-      transition: height 0.6s cubic-bezier(0.16,1,0.3,1);
-    }
-    /* Plunger rod */
-    .press-rod {
-      position: absolute;
-      left: 50%; top: 0;
-      transform: translateX(-50%);
-      width: 3px;
-      height: 42px;
-      background: var(--caramel);
-      border-radius: 2px;
-      transform-origin: top center;
-      transition: height 0.25s cubic-bezier(0.4,0,0.2,1);
-    }
-    /* Plunger disk */
-    .press-disk {
-      position: absolute;
-      left: 14px; right: 14px;
-      height: 6px;
-      background: var(--caramel);
-      border-radius: 3px;
-      top: 40px;
-      transition: top 0.25s cubic-bezier(0.4,0,0.2,1);
-    }
-    /* Handle */
     .press-handle {
       position: absolute;
       left: 50%; top: 0;
       transform: translateX(-50%);
-      width: 26px; height: 10px;
+      width: 28px; height: 11px;
       border: 2px solid var(--caramel);
       border-bottom: none;
-      border-radius: 6px 6px 0 0;
+      border-radius: 7px 7px 0 0;
     }
-    .press-body.pressed .press-rod   { height: 74px; }
-    .press-body.pressed .press-disk  { top: 72px; }
-    .press-body.pressed .press-liquid { height: 68%; }
+    .press-rod {
+      position: absolute;
+      left: 50%; top: 9px;
+      transform: translateX(-50%);
+      width: 3px; height: 36px;
+      background: var(--caramel);
+      border-radius: 2px;
+      transition: height 0.22s cubic-bezier(0.4,0,0.2,1),
+                  top    0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+    .press-disk {
+      position: absolute;
+      left: 13px; right: 13px; height: 6px;
+      background: var(--caramel);
+      border-radius: 3px;
+      top: 43px;
+      transition: top 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+    .press-glass {
+      position: absolute;
+      left: 10px; right: 10px; bottom: 0;
+      height: 84px;
+      border: 2px solid var(--caramel);
+      border-radius: 3px 3px 7px 7px;
+      background: rgba(201,168,124,0.1);
+      overflow: hidden;
+    }
+    .press-liquid {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 55%;
+      background: linear-gradient(to top, var(--espresso), var(--roast));
+      transition: height 0.5s cubic-bezier(0.16,1,0.3,1);
+    }
+    /* pressed state */
+    #press-widget.pressed .press-rod    { height: 66px; }
+    #press-widget.pressed .press-disk   { top: 73px; }
+    #press-widget.pressed .press-liquid { height: 64%; }
 
-    /* ── WIDGET: Spinning bean ── */
-    .bean-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      cursor: grab;
-    }
-    .bean-wrap:active { cursor: grabbing; }
-    .bean-canvas-wrap {
-      width: 90px; height: 90px;
+    /* ── WIDGET 2: Coffee Bean (canvas) ── */
+    #bean-widget { cursor: grab; touch-action: none; }
+    #bean-widget:active { cursor: grabbing; }
+    .bean-ring {
+      width: 88px; height: 88px;
       border-radius: 50%;
-      background: rgba(201,168,124,0.12);
-      border: 1.5px solid rgba(201,168,124,0.3);
-      display: flex; align-items: center; justify-content: center;
+      background: rgba(201,168,124,0.1);
+      border: 1.5px solid rgba(176,125,82,0.25);
       overflow: hidden;
       position: relative;
     }
-    #bean-canvas {
-      display: block;
-    }
+    #bean-canvas { display: block; }
 
-    /* ── WIDGET: Bubble row ── */
-    .bubbles-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-    .bubbles-grid {
+    /* ── WIDGET 3: Bubble Wrap ── */
+    #bubbles-widget { cursor: default; }
+    .bubble-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
+      gap: 9px;
     }
     .bubble {
-      width: 32px; height: 32px;
+      width: 30px; height: 30px;
       border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.7), rgba(201,168,124,0.5));
-      border: 1.5px solid rgba(201,168,124,0.6);
+      background: radial-gradient(circle at 32% 32%,
+        rgba(255,255,255,0.75) 0%,
+        rgba(201,168,124,0.55) 60%,
+        rgba(176,125,82,0.3) 100%);
+      border: 1.5px solid rgba(176,125,82,0.5);
       cursor: pointer;
-      transition: transform 0.1s, opacity 0.3s;
+      transition: transform 0.08s, opacity 0.28s, box-shadow 0.08s;
       position: relative;
     }
+    .bubble:hover { box-shadow: 0 2px 8px rgba(176,125,82,0.3); }
+    .bubble:active { transform: scale(0.88); }
     .bubble::after {
       content: '';
       position: absolute;
-      top: 6px; left: 6px;
-      width: 8px; height: 8px;
+      top: 5px; left: 6px;
+      width: 7px; height: 5px;
       background: rgba(255,255,255,0.8);
       border-radius: 50%;
     }
     .bubble.popped {
       opacity: 0;
-      transform: scale(1.6);
+      transform: scale(1.5);
       pointer-events: none;
     }
 
-    /* ── WIDGET: Drip toggle ── */
-    .drip-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
+    /* ── WIDGET 4: Drip Pour ── */
+    #drip-widget { cursor: pointer; }
     .drip-body {
       position: relative;
-      width: 56px; height: 80px;
+      width: 54px; height: 78px;
+    }
+    .drip-nozzle {
+      position: absolute;
+      left: 50%; top: 0;
+      transform: translateX(-50%);
+      width: 18px; height: 10px;
+      border: 2px solid var(--caramel);
+      border-bottom: 2px solid var(--caramel);
+      border-radius: 3px 3px 5px 5px;
+      background: rgba(201,168,124,0.15);
+    }
+    .drip-stream {
+      position: absolute;
+      left: 50%; top: 10px;
+      transform: translateX(-50%);
+      width: 3px; height: 0;
+      background: linear-gradient(to bottom, var(--roast), transparent);
+      border-radius: 2px;
+      opacity: 0;
+      transition: height 0.35s ease, opacity 0.2s;
     }
     .drip-cup {
       position: absolute;
-      bottom: 0;
-      left: 50%;
+      bottom: 0; left: 50%;
       transform: translateX(-50%);
-      width: 44px; height: 30px;
+      width: 44px; height: 32px;
       border: 2px solid var(--caramel);
       border-top: none;
       border-radius: 0 0 14px 14px;
-      background: rgba(201,168,124,0.1);
+      background: rgba(201,168,124,0.08);
       overflow: hidden;
     }
     .drip-fill {
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      height: 0%;
+      height: 0;
       background: linear-gradient(to top, var(--espresso), var(--roast));
       border-radius: 0 0 12px 12px;
-      transition: height 1.2s cubic-bezier(0.16,1,0.3,1);
+      transition: height 1s cubic-bezier(0.16,1,0.3,1);
     }
-    .drip-stream {
+    #drip-widget.dripping .drip-stream { height: 48px; opacity: 1; }
+    #drip-widget.dripping .drip-fill   { height: 72%; }
+
+    /* ── WIDGET 5: Bell ── */
+    #bell-widget { cursor: pointer; }
+    .bell-body {
+      position: relative;
+      width: 58px; height: 68px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .bell-dome {
+      width: 50px; height: 44px;
+      border-radius: 25px 25px 0 0;
+      background: linear-gradient(160deg, #d4a76a 0%, var(--caramel) 50%, var(--roast) 100%);
+      border: 1.5px solid var(--caramel);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.06s;
+    }
+    .bell-dome::after {
+      content: '';
       position: absolute;
-      left: 50%; top: 0;
+      top: 6px; left: 10px;
+      width: 12px; height: 6px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 50%;
+    }
+    .bell-button {
+      width: 12px; height: 5px;
+      background: var(--caramel);
+      border-radius: 0 0 3px 3px;
+      margin-top: -1px;
+    }
+    .bell-base {
+      width: 100%; height: 7px;
+      background: var(--caramel);
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .bell-plunger {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--espresso);
+      border: 2px solid var(--caramel);
+      position: absolute;
+      bottom: 14px; left: 50%;
       transform: translateX(-50%);
-      width: 3px;
-      height: 0;
-      background: linear-gradient(to bottom, var(--roast), transparent);
-      border-radius: 2px;
-      transition: height 0.4s ease;
+      transition: transform 0.06s;
+    }
+    #bell-widget.ringing .bell-dome    { transform: scale(1.06) rotate(-3deg); }
+    #bell-widget.ringing .bell-plunger { transform: translateX(-50%) scale(1.3); }
+
+    /* Bell ring wave (CSS) */
+    .bell-wave {
+      position: fixed;
+      border-radius: 50%;
+      border: 1.5px solid var(--latte);
+      pointer-events: none;
       opacity: 0;
-    }
-    .drip-body.dripping .drip-stream {
-      height: 50px;
-      opacity: 1;
-    }
-    .drip-body.dripping .drip-fill {
-      height: 70%;
+      transform: translate(-50%, -50%);
     }
 
     /* ── Combo counter ── */
     #combo-area {
       position: fixed;
-      bottom: 80px;
-      left: 50%;
+      bottom: 72px; left: 50%;
       transform: translateX(-50%);
       text-align: center;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.25s;
+      min-width: 160px;
     }
     #combo-area.show { opacity: 1; }
     #combo-num {
       font-family: 'DM Serif Display', serif;
-      font-size: 52px;
+      font-size: 56px;
       line-height: 1;
       color: var(--espresso);
       letter-spacing: -0.02em;
+      display: block;
+      transition: font-size 0.15s;
     }
     #combo-label {
       font-size: 10px;
-      letter-spacing: 0.3em;
+      letter-spacing: 0.28em;
       text-transform: uppercase;
       color: var(--caramel);
       font-weight: 500;
+      margin-top: 2px;
     }
 
-    /* ── Lottie steam container ── */
-    #steam-container {
-      position: fixed;
-      bottom: 140px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 140px;
-      height: 100px;
-      pointer-events: none;
-      opacity: 0.5;
-    }
-
-    /* ── CSS steam fallback (shown if Lottie doesn't load) ── */
-    .steam-puff {
-      position: absolute;
-      bottom: 0;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--parchment);
-      filter: blur(3px);
-      animation: steam-rise 2.2s ease-in infinite;
-      opacity: 0;
-    }
-    .steam-puff:nth-child(1) { left: 30%; animation-delay: 0s; }
-    .steam-puff:nth-child(2) { left: 50%; animation-delay: 0.7s; }
-    .steam-puff:nth-child(3) { left: 70%; animation-delay: 1.4s; }
-    @keyframes steam-rise {
-      0%   { transform: translateY(0) scaleX(1); opacity: 0.7; }
-      50%  { transform: translateY(-30px) scaleX(1.4); opacity: 0.4; }
-      100% { transform: translateY(-60px) scaleX(0.6); opacity: 0; }
-    }
-
-    /* ── Footer hint ── */
+    /* ── Hint ── */
     #hint {
       position: fixed;
-      bottom: 28px;
-      left: 50%;
+      bottom: 24px; left: 50%;
       transform: translateX(-50%);
-      font-size: 11px;
-      letter-spacing: 0.25em;
+      font-size: 10px;
+      letter-spacing: 0.28em;
       text-transform: uppercase;
-      color: var(--caramel);
+      color: var(--latte);
       white-space: nowrap;
       pointer-events: none;
       transition: opacity 0.5s;
     }
 
-    /* ── Particle ── */
+    /* ── Particles ── */
     .crumb {
       position: fixed;
       border-radius: 50%;
       pointer-events: none;
       will-change: transform, opacity;
-      background: var(--caramel);
-    }
-
-    /* ── Ring burst ── */
-    .ring-burst {
-      position: fixed;
-      border-radius: 50%;
-      border: 2px solid var(--latte);
-      opacity: 0;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
     }
   </style>
 </head>
 <body>
 
+<!-- Coffee ring stain canvas (lives behind everything) -->
+<canvas id="bg-canvas"></canvas>
+
 <div id="app">
 
-  <!-- Nav -->
   <nav class="nav">
-    <a href="../" class="nav-btn" aria-label="Home" id="home-btn">←</a>
-    <div class="nav-btn" id="sound-btn" aria-label="Toggle sound" title="Toggle audio" style="font-size:18px;">♪</div>
+    <a href="../" class="nav-btn" aria-label="Home">←</a>
+    <button class="nav-btn" id="sound-btn" aria-label="Toggle sound" title="Toggle sound">♪</button>
   </nav>
 
-  <div class="title-area">
-    <h1 id="page-title">Daily Fidget</h1>
-  </div>
+  <div class="title-area"><h1>Daily Fidget</h1></div>
 
-  <!-- Steam (Lottie or CSS fallback) -->
-  <div id="steam-container">
-    <div class="steam-puff"></div>
-    <div class="steam-puff"></div>
-    <div class="steam-puff"></div>
-  </div>
-
-  <!-- Widgets -->
   <div id="widgets">
 
-    <!-- Coffee Press -->
-    <div class="press-wrap" id="press-widget" aria-label="Coffee press fidget" tabindex="0">
-      <div class="press-body" id="press-body">
+    <!-- 1. French Press -->
+    <div class="widget-col" id="press-widget" tabindex="0" aria-label="French press">
+      <div class="press-body">
         <div class="press-handle"></div>
         <div class="press-rod"></div>
         <div class="press-disk"></div>
-        <div class="press-glass">
-          <div class="press-liquid"></div>
-        </div>
+        <div class="press-glass"><div class="press-liquid"></div></div>
       </div>
-      <span class="press-label">Press</span>
+      <span class="widget-label">Press</span>
     </div>
 
-    <!-- Spinning Coffee Bean -->
-    <div class="bean-wrap" id="bean-widget" aria-label="Spin the coffee bean" tabindex="0">
-      <div class="bean-canvas-wrap">
+    <!-- 2. Spinning Bean -->
+    <div class="widget-col" id="bean-widget" tabindex="0" aria-label="Spin the coffee bean">
+      <div class="bean-ring">
         <canvas id="bean-canvas" width="88" height="88"></canvas>
       </div>
-      <span class="press-label">Spin</span>
+      <span class="widget-label">Spin</span>
     </div>
 
-    <!-- Bubble wrap -->
-    <div class="bubbles-wrap" id="bubbles-widget" aria-label="Pop the bubbles" tabindex="0">
-      <div class="bubbles-grid" id="bubbles-grid"></div>
-      <span class="press-label">Pop</span>
+    <!-- 3. Bubble Wrap -->
+    <div class="widget-col" id="bubbles-widget" tabindex="0" aria-label="Pop the bubbles">
+      <div class="bubble-grid" id="bubble-grid"></div>
+      <span class="widget-label">Pop</span>
     </div>
 
-    <!-- Drip pour -->
-    <div class="drip-wrap" id="drip-widget" aria-label="Pour coffee" tabindex="0">
-      <div class="drip-body" id="drip-body">
+    <!-- 4. Drip Pour -->
+    <div class="widget-col" id="drip-widget" tabindex="0" aria-label="Pour coffee">
+      <div class="drip-body">
+        <div class="drip-nozzle"></div>
         <div class="drip-stream"></div>
-        <div class="drip-cup">
-          <div class="drip-fill"></div>
-        </div>
+        <div class="drip-cup"><div class="drip-fill" id="drip-fill"></div></div>
       </div>
-      <span class="press-label">Pour</span>
+      <span class="widget-label">Pour</span>
+    </div>
+
+    <!-- 5. Service Bell -->
+    <div class="widget-col" id="bell-widget" tabindex="0" aria-label="Ring the bell">
+      <div class="bell-body">
+        <div class="bell-dome">
+          <div class="bell-plunger"></div>
+        </div>
+        <div class="bell-button"></div>
+        <div class="bell-base"></div>
+      </div>
+      <span class="widget-label">Ring</span>
     </div>
 
   </div>
 
-  <!-- Combo counter -->
-  <div id="combo-area">
-    <div id="combo-num">1</div>
+  <!-- Combo -->
+  <div id="combo-area" aria-live="polite">
+    <span id="combo-num">1</span>
     <div id="combo-label">taps</div>
   </div>
 
-  <div id="hint">tap anything</div>
+  <div id="hint">drag anywhere · tap to fidget</div>
 
 </div>
 
-<!-- Lottie web player -->
-<script src="https://unpkg.com/@lottiefiles/lottie-player@2/dist/lottie-player.js"></script>
-
-<!-- pretext: DOM-free text measurement for auto-fitting font sizes -->
 <script type="module">
-  // Load pretext. Once ready, the combo number auto-fits its container
-  // entirely without touching the DOM — no getBoundingClientRect, no reflow.
-  let pretextPrepare = null;
-  let pretextLayout  = null;
-  try {
-    const mod = await import('https://esm.sh/@chenglou/pretext');
-    pretextPrepare = mod.prepare;
-    pretextLayout  = mod.layout;
-  } catch (_) { /* CSS font-size fallback below */ }
 
-  // Given a text string, binary-search for the largest font-size (px) where
-  // the text still fits on a SINGLE line within `containerWidth` — all via
-  // pretext arithmetic, zero DOM reads.
-  function fitFontSize(text, containerWidth, minPx = 22, maxPx = 88) {
-    if (!pretextPrepare || !pretextLayout) return null; // fallback: CSS handles it
-    let lo = minPx, hi = maxPx;
-    while (hi - lo > 1) {
-      const mid = Math.floor((lo + hi) / 2);
-      const prepared = pretextPrepare(text, `${mid}px "DM Serif Display"`);
-      const { lineCount } = pretextLayout(prepared, containerWidth, mid * 1.25);
-      if (lineCount <= 1) lo = mid; // fits — try bigger
-      else hi = mid;               // overflows — try smaller
-    }
-    return lo;
+// ── pretext: DOM-free text measurement for auto-fitting the combo number ──
+let ptPrepare = null, ptLayout = null;
+try {
+  const m = await import('https://esm.sh/@chenglou/pretext');
+  ptPrepare = m.prepare; ptLayout = m.layout;
+} catch (_) {}
+
+// Binary-search the largest px font-size where `text` fits on one line
+// within `maxW` pixels — pure arithmetic, zero DOM reads.
+function fitPx(text, maxW, lo = 24, hi = 88) {
+  if (!ptPrepare || !ptLayout) return null;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    const { lineCount } = ptLayout(ptPrepare(text, `${mid}px "DM Serif Display"`), maxW, mid * 1.2);
+    if (lineCount <= 1) lo = mid; else hi = mid;
   }
+  return lo;
+}
 
-  // ── web-haptics via haptics.js module ──
-  // (loads window.haptics from the shared module)
-  // We'll check window.haptics before each trigger.
+// ── Audio ──
+let audioCtx = null;
+let soundOn = true;
 
-  // ── Audio ──
-  let audioCtx = null;
-  let soundOn = true;
-
-  function getAudio() {
-    if (!audioCtx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) audioCtx = new AC();
-    }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
+function getAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) audioCtx = new AC();
   }
+  if (audioCtx?.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
 
-  function playTone(freq, type = 'sine', dur = 0.12, gain = 0.18) {
-    if (!soundOn) return;
-    const ctx = getAudio();
-    if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.connect(g); g.connect(ctx.destination);
-    const t = ctx.currentTime;
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + dur);
-    g.gain.setValueAtTime(gain, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    osc.start(t); osc.stop(t + dur);
+function tone(freq, type, dur, vol) {
+  if (!soundOn) return;
+  const ctx = getAudio(); if (!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  const t = ctx.currentTime;
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.start(t); o.stop(t + dur);
+}
+
+// Bell: four partials tuned to a plausible bell spectrum, long decay
+function playBell() {
+  if (!soundOn) return;
+  const ctx = getAudio(); if (!ctx) return;
+  const partials = [
+    { f: 440,  v: 0.18, d: 2.8 },
+    { f: 1210, v: 0.10, d: 1.8 },
+    { f: 2145, v: 0.06, d: 1.2 },
+    { f: 3600, v: 0.03, d: 0.7 },
+  ];
+  const t = ctx.currentTime;
+  partials.forEach(({ f, v, d }) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(v, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.start(t); o.stop(t + d);
+  });
+}
+
+function playPress()  { tone(360, 'sine',     0.20, 0.14); }
+function playPop()    { tone(500, 'triangle', 0.09, 0.20); }
+function playPour()   { tone(230, 'sawtooth', 0.40, 0.07); }
+function playSpin(v)  { tone(260 + Math.abs(v) * 40, 'sine', 0.22, 0.09); }
+
+// ── Haptics ──
+function haptic(type) {
+  if (window.haptics) { try { window.haptics.trigger(type); } catch(_) {} }
+  if (navigator.vibrate) {
+    ({ light: () => navigator.vibrate(8),
+       medium: () => navigator.vibrate(18),
+       heavy: () => navigator.vibrate(40),
+       success: () => navigator.vibrate([12, 20, 14]),
+       selection: () => navigator.vibrate(4)
+    }[type] || (() => {}))();
   }
+}
 
-  function playPress()  { playTone(380, 'sine',     0.18, 0.15); }
-  function playPop()    { playTone(520, 'triangle', 0.08, 0.22); }
-  function playSpin()   { playTone(280, 'sine',     0.25, 0.10); }
-  function playPour()   { playTone(240, 'sawtooth', 0.35, 0.08); }
-
-  // ── Haptics ──
-  function haptic(type) {
-    if (window.haptics) {
-      try { window.haptics.trigger(type); } catch(_) {}
-    }
-    if (navigator.vibrate) {
-      const map = { light: 8, medium: 18, heavy: 40, success: [12, 20, 14], selection: 4 };
-      const v = map[type];
-      if (v) navigator.vibrate(v);
-    }
-  }
-
-  // ── Particles ──
-  function burst(x, y, n = 6, color = '#b07d52') {
-    for (let i = 0; i < n; i++) {
-      const el = document.createElement('div');
-      el.className = 'crumb';
-      const s = 3 + Math.random() * 5;
-      el.style.cssText = `width:${s}px;height:${s}px;left:${x}px;top:${y}px;background:${color};`;
-      document.body.appendChild(el);
-      const ang = Math.random() * Math.PI * 2;
-      const spd = 40 + Math.random() * 80;
-      el.animate([
-        { transform: 'translate(0,0) scale(1)', opacity: 1 },
-        { transform: `translate(${Math.cos(ang)*spd}px,${Math.sin(ang)*spd}px) scale(0)`, opacity: 0 }
-      ], { duration: 500 + Math.random()*300, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' })
-        .onfinish = () => el.remove();
-    }
-  }
-
-  function ring(x, y) {
+// ── Particles ──
+function burst(x, y, n = 6, color = '#b07d52') {
+  for (let i = 0; i < n; i++) {
     const el = document.createElement('div');
-    el.className = 'ring-burst';
-    const sz = 20;
-    el.style.cssText = `width:${sz}px;height:${sz}px;left:${x}px;top:${y}px;`;
+    el.className = 'crumb';
+    const s = 3 + Math.random() * 5;
+    el.style.cssText = `width:${s}px;height:${s}px;left:${x}px;top:${y}px;background:${color};`;
     document.body.appendChild(el);
+    const a = Math.random() * Math.PI * 2, spd = 35 + Math.random() * 75;
     el.animate([
-      { width: sz+'px', height: sz+'px', opacity: 0.8 },
-      { width: '120px', height: '120px', opacity: 0 }
-    ], { duration: 500, easing: 'ease-out', fill: 'forwards' })
-      .onfinish = () => el.remove();
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${Math.cos(a)*spd}px,${Math.sin(a)*spd}px) scale(0)`, opacity: 0 }
+    ], { duration: 420 + Math.random()*300, easing: 'cubic-bezier(0.16,1,0.3,1)', fill: 'forwards' })
+    .onfinish = () => el.remove();
   }
+}
 
-  // ── Combo counter ──
-  let combo = 0, comboTimer = null;
-  const comboArea  = document.getElementById('combo-area');
-  const comboNum   = document.getElementById('combo-num');
-  const comboLabel = document.getElementById('combo-label');
-  const hint       = document.getElementById('hint');
+function ringBurst(x, y, color = 'var(--latte)') {
+  const el = document.createElement('div');
+  el.className = 'bell-wave';
+  el.style.cssText = `left:${x}px;top:${y}px;width:20px;height:20px;border-color:${color};`;
+  document.body.appendChild(el);
+  el.animate([
+    { width: '20px', height: '20px', opacity: 0.9 },
+    { width: '110px', height: '110px', opacity: 0 }
+  ], { duration: 540, easing: 'ease-out', fill: 'forwards' })
+  .onfinish = () => el.remove();
+}
 
-  function bumpCombo(x, y) {
-    combo++;
-    comboArea.classList.add('show');
-    hint.style.opacity = '0';
+// ── Combo counter ──
+let combo = 0, comboTimer = null;
+const comboArea  = document.getElementById('combo-area');
+const comboNum   = document.getElementById('combo-num');
+const comboLabel = document.getElementById('combo-label');
+const hint       = document.getElementById('hint');
 
-    const txt = String(combo);
-    comboNum.textContent = txt;
-    comboLabel.textContent = combo === 1 ? 'tap' : 'taps';
+function bumpCombo(x, y, color) {
+  combo++;
+  comboArea.classList.add('show');
+  hint.style.opacity = '0';
+  const txt = String(combo);
+  comboNum.textContent = txt;
+  comboLabel.textContent = combo === 1 ? 'tap' : 'taps';
+  // pretext: fit the number in 160px without touching the DOM for measurement
+  const sz = fitPx(txt, 160);
+  if (sz) comboNum.style.fontSize = sz + 'px';
+  comboNum.animate([
+    { transform: 'scale(1.28)', opacity: 1 },
+    { transform: 'scale(1)',    opacity: 1 }
+  ], { duration: 160, easing: 'cubic-bezier(0.16,1,0.3,1)' });
+  clearTimeout(comboTimer);
+  comboTimer = setTimeout(() => {
+    comboArea.classList.remove('show');
+    combo = 0;
+    hint.style.opacity = '1';
+  }, 1500);
+  if (x != null) burst(x, y, 4 + Math.min(combo, 12), color || '#b07d52');
+}
 
-    // pretext: measure the number and set the largest font-size that fits
-    // the 160px container — no layout thrash, pure arithmetic.
-    const fitted = fitFontSize(txt, 160);
-    comboNum.style.fontSize = fitted ? fitted + 'px' : '';
-    // (If pretext didn't load, CSS font-size:52px in the stylesheet takes over)
+// ── WIDGET 1: French Press ──
+const pressEl = document.getElementById('press-widget');
+let pressActive = false;
 
-    comboNum.animate([
-      { transform: 'scale(1.3)', opacity: 1 },
-      { transform: 'scale(1)', opacity: 1 }
-    ], { duration: 180, easing: 'cubic-bezier(0.16,1,0.3,1)' });
+function pressDown(e) {
+  if (pressActive) return;
+  pressActive = true;
+  pressEl.classList.add('pressed');
+  haptic('heavy'); playPress();
+  const r = pressEl.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height * 0.65;
+  bumpCombo(cx, cy, '#5c3317');
+  ringBurst(cx, cy, 'var(--caramel)');
+}
+function pressUp() {
+  if (!pressActive) return;
+  pressActive = false;
+  pressEl.classList.remove('pressed');
+}
 
-    clearTimeout(comboTimer);
-    comboTimer = setTimeout(() => {
-      comboArea.classList.remove('show');
-      combo = 0;
-      hint.style.opacity = '1';
-    }, 1400);
+pressEl.addEventListener('mousedown',  pressDown);
+pressEl.addEventListener('touchstart', e => { e.preventDefault(); pressDown(e); }, { passive: false });
 
-    if (x !== undefined) burst(x, y, 4 + Math.min(combo, 10));
-  }
+// ── WIDGET 2: Spinning Bean ──
+const beanCanvas = document.getElementById('bean-canvas');
+const bc = beanCanvas.getContext('2d');
+const BW = 88, BH = 88;
+let bAngle = 0, bVel = 0, bLastT = null, bDrag = false, bLastX = 0, bLastVel = 0;
 
-  // ── WIDGET 1: Coffee Press ──
-  const pressBody = document.getElementById('press-body');
-  let pressDown = false;
+function drawBean(a) {
+  bc.clearRect(0, 0, BW, BH);
+  bc.save(); bc.translate(BW/2, BH/2); bc.rotate(a);
+  // body
+  bc.fillStyle = '#3d2314';
+  bc.beginPath(); bc.ellipse(0, 0, 22, 13, 0, 0, Math.PI*2); bc.fill();
+  // crease
+  bc.strokeStyle = 'rgba(255,255,255,0.18)'; bc.lineWidth = 1.5;
+  bc.beginPath(); bc.moveTo(0,-11); bc.bezierCurveTo(9,-3,9,3,0,11); bc.stroke();
+  // shine
+  bc.fillStyle = 'rgba(255,255,255,0.13)';
+  bc.beginPath(); bc.ellipse(-7,-4,5,3,-0.4,0,Math.PI*2); bc.fill();
+  bc.restore();
+}
 
-  function doPress(e) {
-    if (pressDown) return;
-    pressDown = true;
-    pressBody.classList.add('pressed');
-    haptic('heavy');
-    playPress();
-    const r = pressBody.getBoundingClientRect();
-    bumpCombo(r.left + r.width/2, r.top + r.height*0.7);
-    ring(r.left + r.width/2, r.top + r.height*0.7);
-  }
-  function undoPress() {
-    if (!pressDown) return;
-    pressDown = false;
-    pressBody.classList.remove('pressed');
-  }
-
-  const pw = document.getElementById('press-widget');
-  pw.addEventListener('mousedown', doPress);
-  pw.addEventListener('touchstart', e => { e.preventDefault(); doPress(e); }, { passive: false });
-  window.addEventListener('mouseup', undoPress);
-  window.addEventListener('touchend', undoPress);
-
-  // ── WIDGET 2: Spinning Bean (canvas) ──
-  const beanCanvas = document.getElementById('bean-canvas');
-  const bctx = beanCanvas.getContext('2d');
-  const W = 88, H = 88;
-  let beanAngle = 0, beanVel = 0, lastBeanT = null;
-  let beanDragging = false, beanLastX = null;
-
-  function drawBean(angle) {
-    bctx.clearRect(0, 0, W, H);
-    bctx.save();
-    bctx.translate(W/2, H/2);
-    bctx.rotate(angle);
-
-    // Bean shape
-    bctx.fillStyle = '#3d2314';
-    bctx.beginPath();
-    bctx.ellipse(0, 0, 22, 14, 0, 0, Math.PI * 2);
-    bctx.fill();
-
-    // Crease
-    bctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    bctx.lineWidth = 1.5;
-    bctx.beginPath();
-    bctx.moveTo(0, -12);
-    bctx.bezierCurveTo(8, -4, 8, 4, 0, 12);
-    bctx.stroke();
-
-    // Shine
-    bctx.fillStyle = 'rgba(255,255,255,0.12)';
-    bctx.beginPath();
-    bctx.ellipse(-7, -5, 5, 3, -0.5, 0, Math.PI * 2);
-    bctx.fill();
-
-    bctx.restore();
-  }
-
-  function beanLoop(ts) {
-    if (lastBeanT !== null) {
-      const dt = Math.min((ts - lastBeanT) / 1000, 0.05);
-      if (!beanDragging) {
-        beanVel *= Math.pow(0.92, dt * 60);
-        beanAngle += beanVel * dt;
-      }
+(function beanLoop(ts) {
+  if (bLastT !== null) {
+    const dt = Math.min((ts - bLastT) / 1000, 0.05);
+    if (!bDrag) {
+      bVel *= Math.pow(0.90, dt * 60); // friction
+      bAngle += bVel * dt;
     }
-    lastBeanT = ts;
-    drawBean(beanAngle);
-    requestAnimationFrame(beanLoop);
   }
+  bLastT = ts;
+  drawBean(bAngle);
   requestAnimationFrame(beanLoop);
+})(0);
 
-  function beanFlick(delta) {
-    beanVel += delta * 0.04;
+const beanEl = document.getElementById('bean-widget');
+beanEl.addEventListener('mousedown', e => { bDrag = true; bLastX = e.clientX; bLastVel = 0; });
+beanEl.addEventListener('touchstart', e => {
+  e.preventDefault(); bDrag = true; bLastX = e.touches[0].clientX; bLastVel = 0;
+}, { passive: false });
+
+window.addEventListener('mousemove', e => {
+  if (!bDrag) return;
+  const dx = e.clientX - bLastX;
+  bLastVel = dx;
+  bAngle += dx * 0.032;
+  bLastX = e.clientX;
+});
+window.addEventListener('touchmove', e => {
+  if (!bDrag) return;
+  const dx = e.touches[0].clientX - bLastX;
+  bLastVel = dx;
+  bAngle += dx * 0.032;
+  bLastX = e.touches[0].clientX;
+}, { passive: true });
+
+function beanRelease() {
+  if (!bDrag) return;
+  bDrag = false;
+  // carry the last drag velocity forward — no artificial boost
+  bVel = bLastVel * 0.18;
+  if (Math.abs(bVel) > 0.05) {
     haptic('light');
-    playSpin();
-    bumpCombo();
+    playSpin(bVel);
+    const r = beanEl.getBoundingClientRect();
+    bumpCombo(r.left + r.width/2, r.top + r.height/2, '#c9a87c');
   }
+}
+window.addEventListener('mouseup', beanRelease);
+window.addEventListener('touchend', beanRelease);
 
-  const bw = document.getElementById('bean-widget');
-  bw.addEventListener('mousedown', e => { beanDragging = true; beanLastX = e.clientX; });
-  bw.addEventListener('touchstart', e => { e.preventDefault(); beanDragging = true; beanLastX = e.touches[0].clientX; }, { passive: false });
-  window.addEventListener('mousemove', e => {
-    if (!beanDragging) return;
-    const dx = e.clientX - beanLastX;
-    beanAngle += dx * 0.03;
-    beanVel = dx * 0.04;
-    beanLastX = e.clientX;
-  });
-  window.addEventListener('touchmove', e => {
-    if (!beanDragging) return;
-    const dx = e.touches[0].clientX - beanLastX;
-    beanAngle += dx * 0.03;
-    beanVel = dx * 0.04;
-    beanLastX = e.touches[0].clientX;
-  }, { passive: true });
-  window.addEventListener('mouseup', () => {
-    if (beanDragging) { beanDragging = false; beanFlick(beanVel * 25); }
-  });
-  window.addEventListener('touchend', () => {
-    if (beanDragging) { beanDragging = false; haptic('light'); playSpin(); bumpCombo(); }
-  });
+// ── WIDGET 3: Bubble Wrap ──
+const bubbleGrid = document.getElementById('bubble-grid');
+const BUBBLES = 12;
+let poppedN = 0;
 
-  // ── WIDGET 3: Bubble wrap ──
-  const grid = document.getElementById('bubbles-grid');
-  const BUBBLE_COUNT = 12;
-  let poppedCount = 0;
-
-  function refillBubbles() {
-    grid.innerHTML = '';
-    poppedCount = 0;
-    for (let i = 0; i < BUBBLE_COUNT; i++) {
-      const b = document.createElement('div');
-      b.className = 'bubble';
-      b.addEventListener('pointerdown', popBubble);
-      grid.appendChild(b);
-    }
+function makeBubbles() {
+  bubbleGrid.innerHTML = ''; poppedN = 0;
+  for (let i = 0; i < BUBBLES; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    b.addEventListener('pointerdown', popBubble);
+    bubbleGrid.appendChild(b);
   }
+}
 
-  function popBubble(e) {
-    const b = e.currentTarget;
-    if (b.classList.contains('popped')) return;
-    b.classList.add('popped');
-    haptic('medium');
-    playPop();
-    const r = b.getBoundingClientRect();
-    bumpCombo(r.left + r.width/2, r.top + r.height/2);
-    burst(r.left + r.width/2, r.top + r.height/2, 5, '#c9a87c');
-
-    poppedCount++;
-    if (poppedCount >= BUBBLE_COUNT) {
-      haptic('success');
-      setTimeout(refillBubbles, 700);
-    }
+function popBubble(e) {
+  e.stopPropagation();
+  const b = e.currentTarget;
+  if (b.classList.contains('popped')) return;
+  b.classList.add('popped');
+  haptic('medium'); playPop();
+  const r = b.getBoundingClientRect();
+  bumpCombo(r.left + r.width/2, r.top + r.height/2, '#c9a87c');
+  burst(r.left + r.width/2, r.top + r.height/2, 5, '#d4a76a');
+  if (++poppedN >= BUBBLES) {
+    haptic('success');
+    setTimeout(makeBubbles, 650);
   }
+}
+makeBubbles();
 
-  refillBubbles();
+// ── WIDGET 4: Drip Pour (hold to pour) ──
+const dripEl   = document.getElementById('drip-widget');
+const dripFill = document.getElementById('drip-fill');
+let dripOn = false, dripStop = null;
 
-  // ── WIDGET 4: Drip pour ──
-  const dripBody   = document.getElementById('drip-body');
-  let dripActive = false, dripTimer = null;
+function startDrip() {
+  clearTimeout(dripStop); // cancel any pending stop
+  if (dripOn) return;
+  dripOn = true;
+  dripEl.classList.add('dripping');
+  haptic('medium'); playPour();
+  const r = dripEl.getBoundingClientRect();
+  bumpCombo(r.left + r.width/2, r.top + r.height/2, '#5c3317');
+}
 
-  function startDrip(e) {
-    if (dripActive) return;
-    dripActive = true;
-    dripBody.classList.add('dripping');
-    haptic('medium');
-    playPour();
-    const r = dripBody.getBoundingClientRect();
-    bumpCombo(r.left + r.width/2, r.top + r.height/2);
+function endDrip() {
+  if (!dripOn) return;
+  dripStop = setTimeout(() => {
+    dripEl.classList.remove('dripping');
+    // reset fill after transition completes
+    setTimeout(() => { dripFill.style.height = '0'; }, 50);
+    dripOn = false;
+  }, 320);
+}
+
+dripEl.addEventListener('mousedown',  e => { e.preventDefault(); startDrip(); });
+dripEl.addEventListener('touchstart', e => { e.preventDefault(); startDrip(); }, { passive: false });
+// Note: mouseup/touchend for drip are handled in global handlers below
+
+// ── WIDGET 5: Service Bell ──
+const bellEl = document.getElementById('bell-widget');
+let bellCool = false; // prevent re-trigger during ring animation
+
+function ringBell() {
+  if (bellCool) return;
+  bellCool = true;
+  bellEl.classList.add('ringing');
+  haptic('success'); playBell();
+  const r = bellEl.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  bumpCombo(cx, cy, '#d4a76a');
+  // three expanding rings with delay
+  ringBurst(cx, cy, 'var(--latte)');
+  setTimeout(() => ringBurst(cx, cy, 'var(--caramel)'), 180);
+  setTimeout(() => ringBurst(cx, cy, 'var(--latte)'), 360);
+  setTimeout(() => { bellEl.classList.remove('ringing'); bellCool = false; }, 500);
+}
+
+bellEl.addEventListener('mousedown',  e => { e.preventDefault(); ringBell(); });
+bellEl.addEventListener('touchstart', e => { e.preventDefault(); ringBell(); }, { passive: false });
+
+// ── Global up handlers ──
+window.addEventListener('mouseup', () => { pressUp(); endDrip(); });
+window.addEventListener('touchend', () => { pressUp(); endDrip(); });
+
+// ── Sound toggle ──
+document.getElementById('sound-btn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  const btn = document.getElementById('sound-btn');
+  btn.textContent = soundOn ? '♪' : '♩';
+  btn.style.opacity = soundOn ? '1' : '0.45';
+  haptic('selection');
+  if (soundOn) getAudio();
+});
+
+// ── Coffee Ring Stain Canvas ──
+// Drag anywhere on the page background to leave fading coffee ring marks.
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+const stains = [];
+let stainDrag = false, lastStainX = 0, lastStainY = 0, stainThrottle = 0;
+
+function resizeBg() {
+  bgCanvas.width  = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+function addStain(x, y) {
+  const r = 18 + Math.random() * 28;
+  stains.push({ x, y, r, born: Date.now(), life: 7000 + Math.random() * 5000 });
+}
+
+function drawStains(ts) {
+  bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+  const now = Date.now();
+  for (let i = stains.length - 1; i >= 0; i--) {
+    const s = stains[i];
+    const age = (now - s.born) / s.life;
+    if (age >= 1) { stains.splice(i, 1); continue; }
+    const alpha = 0.22 * (1 - age * age); // quadratic fade
+    bgCtx.save();
+    bgCtx.globalAlpha = alpha;
+    // outer ring (the dark ring of a coffee stain)
+    bgCtx.strokeStyle = '#8b5a32';
+    bgCtx.lineWidth = 2 + Math.random() * 0.5;
+    bgCtx.beginPath(); bgCtx.arc(s.x, s.y, s.r, 0, Math.PI*2); bgCtx.stroke();
+    // inner halo (lighter centre)
+    bgCtx.strokeStyle = '#c9a87c';
+    bgCtx.lineWidth = 0.8;
+    bgCtx.globalAlpha = alpha * 0.45;
+    bgCtx.beginPath(); bgCtx.arc(s.x, s.y, s.r * 0.68, 0, Math.PI*2); bgCtx.stroke();
+    bgCtx.restore();
   }
+  requestAnimationFrame(drawStains);
+}
+requestAnimationFrame(drawStains);
 
-  function stopDrip() {
-    if (!dripActive) return;
-    clearTimeout(dripTimer);
-    dripTimer = setTimeout(() => {
-      dripBody.classList.remove('dripping');
-      dripActive = false;
-    }, 400);
+// Only start a stain drag on the background (not on a widget)
+function isWidget(el) {
+  return el.closest('#widgets, .nav, #combo-area, #hint');
+}
+
+window.addEventListener('mousedown', e => {
+  if (isWidget(e.target)) return;
+  stainDrag = true; lastStainX = e.clientX; lastStainY = e.clientY;
+  addStain(e.clientX, e.clientY);
+});
+window.addEventListener('mousemove', e => {
+  if (!stainDrag) return;
+  const dx = e.clientX - lastStainX, dy = e.clientY - lastStainY;
+  if (dx*dx + dy*dy > 900 && Date.now() - stainThrottle > 80) {
+    addStain(e.clientX, e.clientY);
+    stainThrottle = Date.now();
+    lastStainX = e.clientX; lastStainY = e.clientY;
   }
+});
+window.addEventListener('mouseup', () => { stainDrag = false; });
 
-  const dw = document.getElementById('drip-widget');
-  dw.addEventListener('mousedown', e => { e.preventDefault(); startDrip(e); });
-  dw.addEventListener('touchstart', e => { e.preventDefault(); startDrip(e); }, { passive: false });
-  window.addEventListener('mouseup', stopDrip);
-  window.addEventListener('touchend', stopDrip);
-
-  // ── Sound toggle ──
-  const soundBtn = document.getElementById('sound-btn');
-  soundBtn.addEventListener('click', () => {
-    soundOn = !soundOn;
-    soundBtn.textContent = soundOn ? '♪' : '♩';
-    soundBtn.style.opacity = soundOn ? '1' : '0.4';
-    haptic('selection');
-    getAudio(); // unlock on interaction
-  });
-
-  // ── Lottie steam (try to load; CSS fallback already visible) ──
-  try {
-    const player = document.createElement('lottie-player');
-    player.setAttribute('src', 'https://assets2.lottiefiles.com/packages/lf20_szLgfp.json');
-    player.setAttribute('background', 'transparent');
-    player.setAttribute('speed', '0.7');
-    player.setAttribute('loop', '');
-    player.setAttribute('autoplay', '');
-    player.style.cssText = 'width:140px;height:100px;';
-    const steamEl = document.getElementById('steam-container');
-    // Only replace CSS steam if Lottie loads successfully
-    player.addEventListener('ready', () => {
-      steamEl.innerHTML = '';
-      steamEl.appendChild(player);
-    });
-    // Append to check if it loads (will fire 'ready' or fail silently)
-    document.body.appendChild(player);
-    // Remove temp element if not used after 3s
-    setTimeout(() => { if (player.parentNode === document.body) player.remove(); }, 3000);
-  } catch (_) { /* keep CSS steam */ }
+window.addEventListener('touchstart', e => {
+  if (isWidget(e.target)) return;
+  const t = e.touches[0];
+  stainDrag = true; lastStainX = t.clientX; lastStainY = t.clientY;
+  addStain(t.clientX, t.clientY);
+}, { passive: true });
+window.addEventListener('touchmove', e => {
+  if (!stainDrag) return;
+  const t = e.touches[0];
+  const dx = t.clientX - lastStainX, dy = t.clientY - lastStainY;
+  if (dx*dx + dy*dy > 900 && Date.now() - stainThrottle > 80) {
+    addStain(t.clientX, t.clientY);
+    stainThrottle = Date.now();
+    lastStainX = t.clientX; lastStainY = t.clientY;
+  }
+}, { passive: true });
+window.addEventListener('touchend', () => { stainDrag = false; });
 
 </script>
 
-<!-- Load web-haptics shared module -->
+<!-- web-haptics -->
 <script type="module" src="../haptics.js"></script>
 
 </body>
