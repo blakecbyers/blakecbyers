@@ -452,16 +452,33 @@
 <!-- Lottie web player -->
 <script src="https://unpkg.com/@lottiefiles/lottie-player@2/dist/lottie-player.js"></script>
 
-<!-- pretext for adaptive combo text sizing -->
+<!-- pretext: DOM-free text measurement for auto-fitting font sizes -->
 <script type="module">
-  // Attempt to load pretext for precise text measurement
-  let pretextReady = false;
-  let pretextLayout = null;
+  // Load pretext. Once ready, the combo number auto-fits its container
+  // entirely without touching the DOM — no getBoundingClientRect, no reflow.
+  let pretextPrepare = null;
+  let pretextLayout  = null;
   try {
-    const mod = await import('https://esm.sh/@chenglou/pretext@0.2.3');
-    pretextLayout = mod.layout;
-    pretextReady = true;
-  } catch (_) { /* falls back to plain CSS */ }
+    const mod = await import('https://esm.sh/@chenglou/pretext');
+    pretextPrepare = mod.prepare;
+    pretextLayout  = mod.layout;
+  } catch (_) { /* CSS font-size fallback below */ }
+
+  // Given a text string, binary-search for the largest font-size (px) where
+  // the text still fits on a SINGLE line within `containerWidth` — all via
+  // pretext arithmetic, zero DOM reads.
+  function fitFontSize(text, containerWidth, minPx = 22, maxPx = 88) {
+    if (!pretextPrepare || !pretextLayout) return null; // fallback: CSS handles it
+    let lo = minPx, hi = maxPx;
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2);
+      const prepared = pretextPrepare(text, `${mid}px "DM Serif Display"`);
+      const { lineCount } = pretextLayout(prepared, containerWidth, mid * 1.25);
+      if (lineCount <= 1) lo = mid; // fits — try bigger
+      else hi = mid;               // overflows — try smaller
+    }
+    return lo;
+  }
 
   // ── web-haptics via haptics.js module ──
   // (loads window.haptics from the shared module)
@@ -556,20 +573,15 @@
     comboArea.classList.add('show');
     hint.style.opacity = '0';
 
-    // Use pretext to fit the number if available
-    if (pretextReady && pretextLayout) {
-      try {
-        const txt = String(combo);
-        const prepared = pretextLayout(txt, '52px DM Serif Display', 120);
-        // pretext confirms it fits — just update text
-        comboNum.textContent = txt;
-      } catch (_) {
-        comboNum.textContent = combo;
-      }
-    } else {
-      comboNum.textContent = combo;
-    }
+    const txt = String(combo);
+    comboNum.textContent = txt;
     comboLabel.textContent = combo === 1 ? 'tap' : 'taps';
+
+    // pretext: measure the number and set the largest font-size that fits
+    // the 160px container — no layout thrash, pure arithmetic.
+    const fitted = fitFontSize(txt, 160);
+    comboNum.style.fontSize = fitted ? fitted + 'px' : '';
+    // (If pretext didn't load, CSS font-size:52px in the stylesheet takes over)
 
     comboNum.animate([
       { transform: 'scale(1.3)', opacity: 1 },
