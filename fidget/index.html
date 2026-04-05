@@ -383,6 +383,142 @@
       pointer-events: none;
       will-change: transform, opacity;
     }
+
+    /* ── WIDGET 6: Espresso Tamp ── */
+    #tamp-widget { cursor: pointer; }
+    .tamp-body {
+      position: relative;
+      width: 58px; height: 96px;
+    }
+    .tamp-handle {
+      position: absolute;
+      left: 50%; top: 0;
+      transform: translateX(-50%);
+      width: 36px; height: 14px;
+      background: linear-gradient(to bottom, #d4a76a, var(--caramel));
+      border-radius: 8px;
+    }
+    .tamp-stem {
+      position: absolute;
+      left: 50%; top: 13px;
+      transform: translateX(-50%);
+      width: 4px; height: 30px;
+      background: var(--caramel);
+      border-radius: 2px;
+      transition: height 0.16s cubic-bezier(0.4,0,0.2,1),
+                  top    0.16s cubic-bezier(0.4,0,0.2,1);
+    }
+    .tamp-foot {
+      position: absolute;
+      left: 50%; top: 41px;
+      transform: translateX(-50%);
+      width: 40px; height: 8px;
+      background: var(--caramel);
+      border-radius: 3px 3px 1px 1px;
+      transition: top 0.16s cubic-bezier(0.4,0,0.2,1);
+    }
+    .tamp-portafilter {
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 50px; height: 44px;
+      border: 2px solid var(--caramel);
+      border-radius: 5px 5px 10px 10px;
+      background: rgba(201,168,124,0.08);
+      overflow: hidden;
+    }
+    .tamp-grounds {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 58%;
+      background: linear-gradient(to top, var(--espresso), var(--roast));
+      border-radius: 0 0 8px 8px;
+      transition: height 0.22s cubic-bezier(0.16,1,0.3,1);
+    }
+    #tamp-widget.tamped .tamp-stem   { height: 46px; }
+    #tamp-widget.tamped .tamp-foot   { top: 57px; }
+    #tamp-widget.tamped .tamp-grounds { height: 44%; }
+
+    /* ── WIDGET 7: Knock Box ── */
+    #knock-widget { cursor: pointer; }
+    .knock-body {
+      position: relative;
+      width: 66px; height: 50px;
+    }
+    .knock-box {
+      width: 100%; height: 100%;
+      border: 2px solid var(--caramel);
+      border-radius: 8px;
+      background: rgba(201,168,124,0.08);
+      overflow: hidden;
+      position: relative;
+    }
+    .knock-bar {
+      position: absolute;
+      left: 8px; right: 8px;
+      top: 50%; transform: translateY(-50%);
+      height: 7px;
+      background: var(--caramel);
+      border-radius: 4px;
+    }
+    .knock-puck {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px; height: 12px;
+      background: linear-gradient(to bottom, var(--espresso), var(--roast));
+      border-radius: 4px;
+      opacity: 0.85;
+      transition: transform 0.08s, opacity 0.2s;
+    }
+    #knock-widget.knocking .knock-box {
+      animation: knock-shake 0.28s cubic-bezier(0.36,0.07,0.19,0.97);
+    }
+    #knock-widget.knocking .knock-puck {
+      opacity: 0;
+      transform: translate(-50%, -220%);
+      transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), opacity 0.18s;
+    }
+    @keyframes knock-shake {
+      0%,100% { transform: translate(0,0) rotate(0deg); }
+      18%     { transform: translate(-5px,-2px) rotate(-1.5deg); }
+      36%     { transform: translate(5px,2px) rotate(1.5deg); }
+      54%     { transform: translate(-3px,1px) rotate(-1deg); }
+      72%     { transform: translate(3px,-1px) rotate(0.8deg); }
+    }
+
+    /* ── Mobile responsive ── */
+    @media (max-width: 560px) {
+      html, body { overflow-y: auto; height: auto; }
+      #app {
+        height: auto;
+        min-height: 100dvh;
+        overflow-y: visible;
+        touch-action: pan-y pinch-zoom;
+      }
+      #widgets {
+        padding: 88px 14px 110px;
+        gap: 14px;
+        max-width: 100%;
+      }
+      .bubble-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+      }
+      .bubble { width: 26px; height: 26px; }
+      .bubble::after { top: 4px; left: 5px; width: 6px; height: 4px; }
+      #combo-area { bottom: 56px; }
+      #hint { bottom: 20px; }
+    }
+    @media (max-width: 380px) {
+      #widgets { gap: 10px; padding: 80px 10px 100px; }
+      .press-body  { width: 56px; height: 90px; }
+      .bean-ring   { width: 74px; height: 74px; }
+      #bean-canvas { width: 74px; height: 74px; }
+      .drip-body   { width: 46px; height: 66px; }
+      .tamp-body   { width: 50px; height: 82px; }
+      .knock-body  { width: 56px; height: 44px; }
+    }
   </style>
 </head>
 <body>
@@ -448,6 +584,28 @@
       <span class="widget-label">Ring</span>
     </div>
 
+    <!-- 6. Espresso Tamp -->
+    <div class="widget-col" id="tamp-widget" tabindex="0" aria-label="Tamp espresso">
+      <div class="tamp-body">
+        <div class="tamp-handle"></div>
+        <div class="tamp-stem"></div>
+        <div class="tamp-foot"></div>
+        <div class="tamp-portafilter"><div class="tamp-grounds"></div></div>
+      </div>
+      <span class="widget-label">Tamp</span>
+    </div>
+
+    <!-- 7. Knock Box -->
+    <div class="widget-col" id="knock-widget" tabindex="0" aria-label="Knock the portafilter">
+      <div class="knock-body">
+        <div class="knock-box">
+          <div class="knock-bar"></div>
+          <div class="knock-puck"></div>
+        </div>
+      </div>
+      <span class="widget-label">Knock</span>
+    </div>
+
   </div>
 
   <!-- Combo -->
@@ -464,21 +622,27 @@
 
 // ── pretext: DOM-free text measurement for auto-fitting the combo number ──
 let ptPrepare = null, ptLayout = null;
+let fontsReady = false;
+document.fonts.ready.then(() => { fontsReady = true; });
+
 try {
-  const m = await import('https://esm.sh/@chenglou/pretext');
-  ptPrepare = m.prepare; ptLayout = m.layout;
+  const m = await import('https://esm.sh/@chenglou/pretext@0.0.4');
+  ptPrepare = m.prepare ?? m.default?.prepare ?? null;
+  ptLayout  = m.layout  ?? m.default?.layout  ?? null;
 } catch (_) {}
 
 // Binary-search the largest px font-size where `text` fits on one line
 // within `maxW` pixels — pure arithmetic, zero DOM reads.
 function fitPx(text, maxW, lo = 24, hi = 88) {
-  if (!ptPrepare || !ptLayout) return null;
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    const { lineCount } = ptLayout(ptPrepare(text, `${mid}px "DM Serif Display"`), maxW, mid * 1.2);
-    if (lineCount <= 1) lo = mid; else hi = mid;
-  }
-  return lo;
+  if (!ptPrepare || !ptLayout || !fontsReady) return null;
+  try {
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      const { lineCount } = ptLayout(ptPrepare(text, `${mid}px "DM Serif Display"`), maxW, mid * 1.2);
+      if (lineCount <= 1) lo = mid; else hi = mid;
+    }
+    return lo;
+  } catch (_) { return null; }
 }
 
 // ── Audio ──
@@ -531,17 +695,37 @@ function playPress()  { tone(360, 'sine',     0.20, 0.14); }
 function playPop()    { tone(500, 'triangle', 0.09, 0.20); }
 function playPour()   { tone(230, 'sawtooth', 0.40, 0.07); }
 function playSpin(v)  { tone(260 + Math.abs(v) * 40, 'sine', 0.22, 0.09); }
+function playTamp()   { tone(140, 'sine', 0.18, 0.22); tone(280, 'sine', 0.06, 0.10); }
+function playKnock()  {
+  if (!soundOn) return;
+  const ctx = getAudio(); if (!ctx) return;
+  const t = ctx.currentTime;
+  // sharp percussive knock: short burst of noise filtered low
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+  const d   = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const flt = ctx.createBiquadFilter();
+  flt.type = 'lowpass'; flt.frequency.value = 280;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.38, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+  src.connect(flt); flt.connect(g); g.connect(ctx.destination);
+  src.start(t); src.stop(t + 0.08);
+}
 
 // ── Haptics ──
+// Use web-haptics (loaded via haptics.js) as primary; fall back to
+// navigator.vibrate() only when web-haptics isn't available.
+const VIBRATE = { light: 8, medium: 18, heavy: 40, success: [12,20,14], selection: 4 };
 function haptic(type) {
-  if (window.haptics) { try { window.haptics.trigger(type); } catch(_) {} }
+  if (window.haptics) {
+    try { window.haptics.trigger(type); return; } catch(_) {}
+  }
   if (navigator.vibrate) {
-    ({ light: () => navigator.vibrate(8),
-       medium: () => navigator.vibrate(18),
-       heavy: () => navigator.vibrate(40),
-       success: () => navigator.vibrate([12, 20, 14]),
-       selection: () => navigator.vibrate(4)
-    }[type] || (() => {}))();
+    const pat = VIBRATE[type];
+    if (pat != null) navigator.vibrate(pat);
   }
 }
 
@@ -779,9 +963,55 @@ function ringBell() {
 bellEl.addEventListener('mousedown',  e => { e.preventDefault(); ringBell(); });
 bellEl.addEventListener('touchstart', e => { e.preventDefault(); ringBell(); }, { passive: false });
 
+// ── WIDGET 6: Espresso Tamp ──
+const tampEl = document.getElementById('tamp-widget');
+let tampActive = false;
+
+function tampDown() {
+  if (tampActive) return;
+  tampActive = true;
+  tampEl.classList.add('tamped');
+  haptic('heavy'); playTamp();
+  const r = tampEl.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height * 0.7;
+  bumpCombo(cx, cy, '#3d2314');
+  burst(cx, cy, 5, '#5c3317');
+}
+function tampUp() {
+  if (!tampActive) return;
+  tampActive = false;
+  tampEl.classList.remove('tamped');
+}
+
+tampEl.addEventListener('mousedown',  tampDown);
+tampEl.addEventListener('touchstart', e => { e.preventDefault(); tampDown(); }, { passive: false });
+
+// ── WIDGET 7: Knock Box ──
+const knockEl = document.getElementById('knock-widget');
+let knockCool = false;
+
+function doKnock() {
+  if (knockCool) return;
+  knockCool = true;
+  knockEl.classList.add('knocking');
+  haptic('heavy'); playKnock();
+  const r = knockEl.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  bumpCombo(cx, cy, '#3d2314');
+  // Puck flies up as brown grounds burst
+  setTimeout(() => burst(cx, cy - 10, 8, '#5c3317'), 60);
+  setTimeout(() => {
+    knockEl.classList.remove('knocking');
+    knockCool = false;
+  }, 400);
+}
+
+knockEl.addEventListener('mousedown',  e => { e.preventDefault(); doKnock(); });
+knockEl.addEventListener('touchstart', e => { e.preventDefault(); doKnock(); }, { passive: false });
+
 // ── Global up handlers ──
-window.addEventListener('mouseup', () => { pressUp(); endDrip(); });
-window.addEventListener('touchend', () => { pressUp(); endDrip(); });
+window.addEventListener('mouseup', () => { pressUp(); endDrip(); tampUp(); });
+window.addEventListener('touchend', () => { pressUp(); endDrip(); tampUp(); });
 
 // ── Sound toggle ──
 document.getElementById('sound-btn').addEventListener('click', () => {
