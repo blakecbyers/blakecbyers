@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stories — Micro-Wiki</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+    
+    :root {
+      --main-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    
+    body {
+      font-family: var(--main-font);
+      background: #fafaf9;
+      color: #171717;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .story-card {
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .story-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+      border-color: #e5e5e5;
+    }
+
+    .icon-wrapper {
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .story-card:hover .icon-wrapper {
+      transform: scale(1.1) rotate(-5deg);
+    }
+
+    .animate-enter { animation: enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    @keyframes enter { 
+      from { opacity: 0; transform: translateY(16px); } 
+      to { opacity: 1; transform: none; } 
+    }
+    
+    /* Staggered animation classes generated dynamically */
+  </style>
+</head>
+<body class="min-h-screen p-6 md:p-12">
+
+  <main class="w-full max-w-4xl mx-auto">
+    <!-- Header -->
+    <header class="mb-16 pt-4 animate-enter flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="../" class="text-neutral-400 hover:text-neutral-900 transition-colors text-sm font-medium tracking-wide flex items-center gap-2">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
+        </a>
+        <span class="text-neutral-300">/</span>
+        <h1 class="text-2xl font-semibold tracking-tight">Micro-Wiki</h1>
+      </div>
+      <div class="text-sm font-medium text-neutral-400">
+        <span id="read-count">0</span> / 40 Read
+      </div>
+    </header>
+
+    <div class="mb-12 animate-enter" style="animation-delay: 50ms;">
+      <p class="text-neutral-500 text-lg leading-relaxed max-w-2xl">
+        A curated collection of exactly 40 stories. Dive in, interact, and track your progress as you read to the very bottom.
+      </p>
+    </div>
+
+    <!-- Stories Grid -->
+    <div id="stories-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- Generated via JS -->
+    </div>
+
+    <footer class="mt-24 border-t border-neutral-200/60 pt-8 pb-12 flex justify-between items-center text-sm text-neutral-400">
+      <span>Personal Collection</span>
+      <button onclick="localStorage.removeItem('stories_read'); location.reload();" class="hover:text-neutral-800 transition-colors">Reset Progress</button>
+    </footer>
+
+  </main>
+
+  <script src="data.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      
+      const grid = document.getElementById('stories-grid');
+      const readCountEl = document.getElementById('read-count');
+      
+      // Load read items from local storage
+      let readData = {};
+      try {
+        readData = JSON.parse(localStorage.getItem('stories_read') || '{}');
+      } catch (e) {
+         readData = {};
+      }
+
+      let readCount = 0;
+
+      // Render 40 stories
+      STORY_DATA.forEach((story, idx) => {
+        const isRead = !!readData[story.id];
+        if (isRead) readCount++;
+
+        const delay = Math.min(idx * 30 + 100, 800); // Stagger animation
+        
+        const a = document.createElement('a');
+        a.href = \`reader.html?id=\${story.id}\`;
+        a.className = \`story-card group block p-6 rounded-2xl bg-white border border-neutral-100 hover:bg-neutral-50 relative animate-enter\`;
+        a.style.animationDelay = \`\${delay}ms\`;
+        
+        // Haptics on click
+        a.onmousedown = () => { if (navigator.vibrate) navigator.vibrate(5); };
+
+        a.innerHTML = \`
+          <div class="flex items-start justify-between mb-6">
+            <div class="icon-wrapper w-12 h-12 rounded-full bg-neutral-50 group-hover:bg-white border border-neutral-100 flex items-center justify-center text-neutral-600 shadow-sm">
+              <i data-lucide="\${story.iconName}" class="w-5 h-5"></i>
+            </div>
+            \${isRead ? \`<div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center" aria-label="Read">
+              <i data-lucide="check" class="w-3.5 h-3.5" stroke-width="3"></i>
+            </div>\` : ''}
+          </div>
+          <h2 class="text-xl font-semibold text-neutral-900 mb-2">\${story.title}</h2>
+          <p class="text-neutral-400 text-sm font-medium flex items-center gap-1.5">
+            Story \${idx + 1} of 40
+          </p>
+        \`;
+        
+        grid.appendChild(a);
+      });
+
+      readCountEl.textContent = readCount;
+      
+      // Re-initialize lucide icons for newly injected DOM
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

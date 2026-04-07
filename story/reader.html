@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Reading... — Micro-Wiki</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+    
+    :root {
+      --main-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      font-family: var(--main-font);
+      background: #fafaf9;
+      color: #171717;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Shape Outside Core */
+    .article-container {
+      position: relative;
+      max-width: 680px;
+      margin: 0 auto;
+      text-align: justify;
+      line-height: 1.8;
+      font-size: 1.125rem; /* 18px */
+      color: #262626;
+      /* padding bottom so scrolling past bottom works */
+      padding-bottom: 20vh; 
+    }
+
+    /* 
+      This invisible floated element handles the text wrapping. 
+      It is updated dynamically to match the visual icon's position.
+    */
+    .wrap-shape {
+      float: left;
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      shape-outside: circle(50%);
+      margin-top: 0px;
+      margin-left: 0px;
+      /* transition helps smooth out rapid mouse movements */
+      transition: margin 0.05s linear;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* The Draggable Fidget Icon */
+    .fidget-icon {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 50%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      cursor: grab;
+      z-index: 50;
+      color: #404040;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+      user-select: none;
+      touch-action: none; /* Crucial for custom touch drag */
+    }
+
+    .fidget-icon:active {
+      cursor: grabbing;
+      transform: scale(1.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+
+    .lottie-container {
+      position: absolute;
+      pointer-events: none;
+      z-index: 40;
+      width: 150px;
+      height: 150px;
+      transform: translate(-50%, -50%);
+    }
+
+    .paragraphs p {
+      margin-bottom: 1.5em;
+    }
+
+    .read-success {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .read-success.visible {
+      opacity: 1;
+      transform: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Nav -->
+  <nav class="sticky top-0 z-40 bg-[#fafaf9]/90 backdrop-blur-md border-b border-neutral-200/50">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="index.html" class="text-neutral-500 hover:text-neutral-900 transition-colors text-sm font-medium flex items-center gap-2">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Wiki
+      </a>
+      <div id="status-badge" class="px-3 py-1 bg-neutral-100 text-neutral-500 rounded-full text-xs font-semibold flex items-center gap-1 opacity-0 transition-opacity">
+        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Read
+      </div>
+    </div>
+  </nav>
+
+  <main class="w-full max-w-4xl mx-auto px-6 pt-12">
+    <!-- Header -->
+    <header class="mb-12 max-w-[680px] mx-auto">
+      <h1 id="story-title" class="text-4xl md:text-5xl font-bold tracking-tight text-neutral-900 mb-4" style="font-family: 'DM Serif Display', serif;">
+        Loading...
+      </h1>
+      <p id="story-meta" class="text-neutral-400 font-medium tracking-wide">
+        Public Domain · Reading
+      </p>
+    </header>
+
+    <!-- Content Engine -->
+    <div class="article-container" id="article">
+      <!-- The dynamic shape for wrapping -->
+      <div class="wrap-shape" id="wrap-shape"></div>
+      
+      <!-- The visible interactive icon -->
+      <div class="fidget-icon" id="fidget-icon">
+        <i id="fidget-svg" data-lucide="star" class="w-8 h-8"></i>
+      </div>
+
+      <!-- The Text content -->
+      <div class="paragraphs text-neutral-600" id="story-content"></div>
+      
+      <!-- End of article marker for Intersection Observer -->
+      <div id="end-marker" class="h-20 w-full mt-12 flex items-center justify-center">
+        <div class="read-success flex flex-col items-center text-green-600">
+          <i data-lucide="check-circle-2" class="w-10 h-10 mb-2"></i>
+          <span class="font-medium text-sm">Story marked as read</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="data.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const storyId = params.get('id');
+      const story = STORY_DATA.find(s => s.id === storyId);
+
+      if (!story) {
+        document.getElementById('story-title').textContent = "Story not found";
+        document.getElementById('story-content').innerHTML = "<p>Please return to the main wiki index.</p>";
+        return;
+      }
+
+      // Populate Data
+      document.title = \`\${story.title} — Micro-Wiki\`;
+      document.getElementById('story-title').textContent = story.title;
+      document.getElementById('fidget-svg').setAttribute('data-lucide', story.iconName);
+      
+      // Load and insert text content
+      const contentEl = document.getElementById('story-content');
+      const paras = story.content.split('\\n\\n').filter(p => p.trim() !== '');
+      // duplicate the lorom ipsum paragraphs a few times to ensure scrollable height
+      const extendedParas = [...paras, ...paras, ...paras, ...paras];
+      contentEl.innerHTML = extendedParas.map(p => \`<p>\${p}</p>\`).join('');
+      
+      // Update read status badge
+      const readData = JSON.parse(localStorage.getItem('stories_read') || '{}');
+      if (readData[storyId]) {
+        document.getElementById('status-badge').classList.remove('opacity-0');
+        document.querySelector('.read-success').classList.add('visible');
+      }
+
+      lucide.createIcons();
+
+      // --- Minimal Lottie Ripples Setup ---
+      // We'll create a simple animated circle burst JSON payload locally
+      const createRippleJSON = () => {
+        return {
+          "v": "5.7.4", "fr": 60, "ip": 0, "op": 30, "w": 200, "h": 200, "nm": "Ripple",
+          "layers": [
+            {
+              "ty": 4, "nm": "Circle", "sr": 1, "ks": {
+                "o": { "a": 1, "k": [{ "i": {"x": [0.833], "y": [0.833]}, "o": {"x": [0.167], "y": [0.167]}, "t": 0, "s": [100] }, { "t": 30, "s": [0] }] },
+                "s": { "a": 1, "k": [{ "i": {"x": [0.4], "y": [1]}, "o": {"x": [0.2], "y": [0]}, "t": 0, "s": [0,0,100] }, { "t": 30, "s": [100,100,100] }] },
+                "p": { "a": 0, "k": [100, 100, 0] }
+              },
+              "shapes": [
+                {
+                  "ty": "el", "p": { "a": 0, "k": [0, 0] }, "s": { "a": 0, "k": [150, 150] }, "nm": "Ellipse"
+                },
+                {
+                  "ty": "st", "c": { "a": 0, "k": [0.8, 0.8, 0.8, 1] }, "o": { "a": 0, "k": 100 }, "w": { "a": 0, "k": 10 }, "nm": "Stroke"
+                }
+              ]
+            }
+          ]
+        };
+      };
+
+      const article = document.getElementById('article');
+      let lottieInstances = [];
+
+      const playHapticLottie = (x, y) => {
+        // Vibrate
+        if (navigator.vibrate) navigator.vibrate(10);
+        
+        // Spawn lottie container
+        const container = document.createElement('div');
+        container.className = 'lottie-container';
+        container.style.left = \`\${x}px\`;
+        container.style.top = \`\${y}px\`;
+        article.appendChild(container);
+
+        const anim = lottie.loadAnimation({
+          container: container,
+          renderer: 'svg',
+          loop: false,
+          autoplay: true,
+          animationData: createRippleJSON()
+        });
+
+        anim.addEventListener('complete', () => {
+          anim.destroy();
+          container.remove();
+        });
+      };
+
+
+      // --- Fidget Drag Engine (Shape Outside) ---
+      const icon = document.getElementById('fidget-icon');
+      const wrapShape = document.getElementById('wrap-shape');
+      
+      let isDragging = false;
+      let startX, startY, startLeft, startTop;
+
+      // Position top-right initially
+      let currentLeft = article.offsetWidth - 120;
+      let currentTop = 20;
+
+      const updatePositions = () => {
+        // Update visual icon
+        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px)\`;
+        // Update float shape (shape-outside)
+        wrapShape.style.marginLeft = \`\${currentLeft}px\`;
+        wrapShape.style.marginTop = \`\${currentTop}px\`;
+      };
+      
+      // Initialize layout
+      updatePositions();
+
+      const beginDrag = (clientX, clientY) => {
+        isDragging = true;
+        startX = clientX;
+        startY = clientY;
+        startLeft = currentLeft;
+        startTop = currentTop;
+        
+        // Ensure wrap-shape is instantly reactive during drag
+        wrapShape.style.transition = 'none';
+        
+        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px) scale(1.1)\`;
+        
+        // Haptic feedback
+        playHapticLottie(currentLeft + 50, currentTop + 50);
+      };
+
+      const moveDrag = (clientX, clientY) => {
+        if (!isDragging) return;
+        
+        const deltaX = clientX - startX;
+        const deltaY = clientY - startY;
+        
+        // Constrain to container boundaries
+        const maxLeft = article.offsetWidth - 100;
+        const maxTop = article.offsetHeight - 100;
+
+        currentLeft = Math.max(0, Math.min(maxLeft, startLeft + deltaX));
+        currentTop = Math.max(0, Math.min(maxTop, startTop + deltaY));
+
+        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px) scale(1.1)\`;
+        
+        wrapShape.style.marginLeft = \`\${currentLeft}px\`;
+        wrapShape.style.marginTop = \`\${currentTop}px\`;
+      };
+
+      const endDrag = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        wrapShape.style.transition = 'margin 0.05s linear';
+        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px)\`;
+        
+        // Final haptic
+        playHapticLottie(currentLeft + 50, currentTop + 50);
+      };
+
+      icon.addEventListener('mousedown', (e) => beginDrag(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+      window.addEventListener('mouseup', endDrag);
+
+      icon.addEventListener('touchstart', (e) => beginDrag(e.touches[0].clientX, e.touches[0].clientY), { passive: false });
+      window.addEventListener('touchmove', (e) => {
+        if(isDragging) {
+           e.preventDefault(); // prevent scroll while dragging
+           moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: false });
+      window.addEventListener('touchend', endDrag);
+
+
+      // --- Intersection Observer for Read Tracking ---
+      const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          // Reached the bottom
+          const readStorage = JSON.parse(localStorage.getItem('stories_read') || '{}');
+          if (!readStorage[storyId]) {
+            readStorage[storyId] = Date.now();
+            localStorage.setItem('stories_read', JSON.stringify(readStorage));
+            
+            // UI Updates
+            document.getElementById('status-badge').classList.remove('opacity-0');
+            document.querySelector('.read-success').classList.add('visible');
+            
+            // Haptic celebratory
+            if (navigator.vibrate) navigator.vibrate([10, 50, 20]);
+            playHapticLottie(article.offsetWidth / 2, article.offsetHeight - 80);
+          }
+        }
+      }, {
+        threshold: 0.5
+      });
+
+      observer.observe(document.getElementById('end-marker'));
+
+    });
+  </script>
+</body>
+</html>
