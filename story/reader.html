@@ -22,35 +22,19 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Shape Outside Core */
     .article-container {
       position: relative;
       max-width: 680px;
       margin: 0 auto;
-      text-align: justify;
-      line-height: 1.8;
-      font-size: 1.125rem; /* 18px */
-      color: #262626;
-      /* padding bottom so scrolling past bottom works */
-      padding-bottom: 20vh; 
+      padding-bottom: 20vh;
+      min-height: 80vh;
     }
 
-    /* 
-      This invisible floated element handles the text wrapping. 
-      It is updated dynamically to match the visual icon's position.
-    */
-    .wrap-shape {
-      float: left;
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      shape-outside: circle(50%);
-      margin-top: 0px;
-      margin-left: 0px;
-      /* transition helps smooth out rapid mouse movements */
-      transition: margin 0.05s linear;
-      opacity: 0;
-      pointer-events: none;
+    #text-canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      cursor: default;
     }
 
     /* The Draggable Fidget Icon */
@@ -58,8 +42,8 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 100px;
-      height: 100px;
+      width: 80px;
+      height: 80px;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -72,7 +56,7 @@
       color: #404040;
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
       user-select: none;
-      touch-action: none; /* Crucial for custom touch drag */
+      touch-action: none;
     }
 
     .fidget-icon:active {
@@ -85,13 +69,9 @@
       position: absolute;
       pointer-events: none;
       z-index: 40;
-      width: 150px;
-      height: 150px;
+      width: 120px;
+      height: 120px;
       transform: translate(-50%, -50%);
-    }
-
-    .paragraphs p {
-      margin-bottom: 1.5em;
     }
 
     .read-success {
@@ -108,7 +88,6 @@
 </head>
 <body class="min-h-screen">
 
-  <!-- Nav -->
   <nav class="sticky top-0 z-40 bg-[#fafaf9]/90 backdrop-blur-md border-b border-neutral-200/50">
     <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="index.html" class="text-neutral-500 hover:text-neutral-900 transition-colors text-sm font-medium flex items-center gap-2">
@@ -121,7 +100,6 @@
   </nav>
 
   <main class="w-full max-w-4xl mx-auto px-6 pt-12">
-    <!-- Header -->
     <header class="mb-12 max-w-[680px] mx-auto">
       <h1 id="story-title" class="text-4xl md:text-5xl font-bold tracking-tight text-neutral-900 mb-4" style="font-family: 'DM Serif Display', serif;">
         Loading...
@@ -131,20 +109,15 @@
       </p>
     </header>
 
-    <!-- Content Engine -->
     <div class="article-container" id="article">
-      <!-- The dynamic shape for wrapping -->
-      <div class="wrap-shape" id="wrap-shape"></div>
-      
-      <!-- The visible interactive icon -->
+      <!-- The Draggable Icon -->
       <div class="fidget-icon" id="fidget-icon">
-        <i id="fidget-svg" data-lucide="star" class="w-8 h-8"></i>
+        <i id="fidget-svg" data-lucide="star" class="w-6 h-6"></i>
       </div>
 
-      <!-- The Text content -->
-      <div class="paragraphs text-neutral-600" id="story-content"></div>
+      <!-- Canvas for Pretext Text Rendering -->
+      <canvas id="text-canvas"></canvas>
       
-      <!-- End of article marker for Intersection Observer -->
       <div id="end-marker" class="h-20 w-full mt-12 flex items-center justify-center">
         <div class="read-success flex flex-col items-center text-green-600">
           <i data-lucide="check-circle-2" class="w-10 h-10 mb-2"></i>
@@ -155,198 +128,228 @@
   </main>
 
   <script src="data.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
+  <script type="module">
+    import { prepareWithSegments, layoutNextLineRange, materializeLineRange } from 'https://esm.sh/@chenglou/pretext';
+
+    document.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(window.location.search);
       const storyId = params.get('id');
       const story = STORY_DATA.find(s => s.id === storyId);
 
       if (!story) {
         document.getElementById('story-title').textContent = "Story not found";
-        document.getElementById('story-content').innerHTML = "<p>Please return to the main wiki index.</p>";
         return;
       }
 
-      // Populate Data
-      document.title = \`\${story.title} — Micro-Wiki\`;
+      // Populate Meta
+      document.title = `${story.title} — Micro-Wiki`;
       document.getElementById('story-title').textContent = story.title;
       document.getElementById('fidget-svg').setAttribute('data-lucide', story.iconName);
+      lucide.createIcons();
+
+      // UI References
+      const canvas = document.getElementById('text-canvas');
+      const ctx = canvas.getContext('2d');
+      const article = document.getElementById('article');
+      const icon = document.getElementById('fidget-icon');
+
+      // Font Configuration
+      const fontSize = 18;
+      const lineHeight = 32;
+      const font = `400 ${fontSize}px Inter`;
       
-      // Load and insert text content
-      const contentEl = document.getElementById('story-content');
-      const paras = story.content.split('\\n\\n').filter(p => p.trim() !== '');
-      // duplicate the lorom ipsum paragraphs a few times to ensure scrollable height
-      const extendedParas = [...paras, ...paras, ...paras, ...paras];
-      contentEl.innerHTML = extendedParas.map(p => \`<p>\${p}</p>\`).join('');
-      
-      // Update read status badge
+      // Wait for font to be ready (critical for Pretext measurement)
+      await document.fonts.load(font);
+
+      // Prepare Text Content
+      const cleanContent = story.content.replace(/\r/g, '').trim();
+      const preparedText = prepareWithSegments(cleanContent, font);
+
+      // Fidget State
+      let iconX = 600; // start right
+      let iconY = 100;
+      let isDragging = false;
+      let startX, startY, startIconX, startIconY;
+      const iconRadius = 40; 
+      const wrapPadding = 20;
+
+      const updateCanvasSize = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = article.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.style.width = `${rect.width}px`;
+        draw();
+      };
+
+      const draw = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const width = article.offsetWidth;
+        if (width === 0) return;
+
+        // Pass 1: Measure Total Height
+        let cursor = { segmentIndex: 0, graphemeIndex: 0 };
+        let yTotal = 0;
+        while (true) {
+          const currentY = yTotal + lineHeight / 2;
+          const dy = Math.abs(currentY - iconY);
+          let lineWidth = width;
+
+          if (dy < iconRadius + wrapPadding) {
+            const wrapW = Math.sqrt(Math.pow(iconRadius + wrapPadding, 2) - Math.pow(dy, 2));
+            lineWidth = Math.max(50, width - wrapW - iconRadius);
+          }
+
+          const range = layoutNextLineRange(preparedText, cursor, lineWidth);
+          if (range === null) break;
+          cursor = range.end;
+          yTotal += lineHeight;
+        }
+
+        const totalHeight = Math.max(400, yTotal + 40);
+        canvas.height = totalHeight * dpr;
+        canvas.style.height = `${totalHeight}px`;
+
+        // Pass 2: Draw
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, width, totalHeight);
+        ctx.font = font;
+        ctx.fillStyle = '#404040';
+        ctx.textBaseline = 'middle';
+
+        cursor = { segmentIndex: 0, graphemeIndex: 0 };
+        let yDraw = lineHeight / 2;
+
+        while (true) {
+          const currentY = yDraw;
+          const dy = Math.abs(currentY - iconY);
+          let xOffset = 0;
+          let lineWidth = width;
+
+          if (dy < iconRadius + wrapPadding) {
+            const wrapW = Math.sqrt(Math.pow(iconRadius + wrapPadding, 2) - Math.pow(dy, 2));
+            if (iconX < width / 2) {
+              xOffset = iconX + wrapW;
+              lineWidth = width - xOffset;
+            } else {
+              lineWidth = iconX - wrapW;
+            }
+          }
+
+          const range = layoutNextLineRange(preparedText, cursor, lineWidth);
+          if (range === null) break;
+          
+          const line = materializeLineRange(preparedText, range);
+          ctx.fillText(line.text, xOffset, yDraw);
+          
+          cursor = range.end;
+          yDraw += lineHeight;
+        }
+
+        // Update icon position
+        icon.style.transform = `translate(${iconX - iconRadius}px, ${iconY - iconRadius}px) scale(${isDragging ? 1.1 : 1})`;
+      };
+
+      const onStart = (e) => {
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const rect = article.getBoundingClientRect();
+        const mouseX = clientX - rect.left;
+        const mouseY = clientY - rect.top;
+
+        const dist = Math.sqrt(Math.pow(mouseX - iconX, 2) + Math.pow(mouseY - iconY, 2));
+        if (dist < iconRadius) {
+          isDragging = true;
+          startX = clientX;
+          startY = clientY;
+          startIconX = iconX;
+          startIconY = iconY;
+          playHapticLottie(iconX, iconY);
+          e.preventDefault();
+        }
+      };
+
+      const onMove = (e) => {
+        if (!isDragging) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const deltaX = clientX - startX;
+        const deltaY = clientY - startY;
+
+        iconX = Math.max(iconRadius, Math.min(article.offsetWidth - iconRadius, startIconX + deltaX));
+        iconY = Math.max(iconRadius, Math.min(canvas.offsetHeight - iconRadius, startIconY + deltaY));
+        
+        draw();
+      };
+
+      const onEnd = () => {
+        if (isDragging) {
+          isDragging = false;
+          playHapticLottie(iconX, iconY);
+          draw();
+        }
+      };
+
+      window.addEventListener('mousedown', onStart);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+      window.addEventListener('touchstart', onStart, { passive: false });
+      window.addEventListener('touchmove', (e) => { if(isDragging) e.preventDefault(); onMove(e); }, { passive: false });
+      window.addEventListener('touchend', onEnd);
+      window.addEventListener('resize', updateCanvasSize);
+
+      updateCanvasSize();
+
+      // Ripple & Haptics
+      const createRippleJSON = () => ({
+        "v": "5.7.4", "fr": 60, "ip": 0, "op": 30, "w": 200, "h": 200, "nm": "Ripple",
+        "layers": [{
+          "ty": 4, "ks": {
+            "o": { "a": 1, "k": [{ "t": 0, "s": [100] }, { "t": 30, "s": [0] }] },
+            "s": { "a": 1, "k": [{ "t": 0, "s": [0,0,100] }, { "t": 30, "s": [100,100,100] }] },
+            "p": { "a": 0, "k": [100, 100, 0] }
+          },
+          "shapes": [
+            { "ty": "el", "p": { "a": 0, "k": [0, 0] }, "s": { "a": 0, "k": [150, 150] } },
+            { "ty": "st", "c": { "a": 0, "k": [0.3, 0.3, 0.3, 1] }, "o": { "a": 0, "k": 100 }, "w": { "a": 0, "k": 4 } }
+          ]
+        }]
+      });
+
+      const playHapticLottie = (x, y) => {
+        if (navigator.vibrate) navigator.vibrate(10);
+        const container = document.createElement('div');
+        container.className = 'lottie-container';
+        container.style.left = `${x}px`;
+        container.style.top = `${y}px`;
+        article.appendChild(container);
+        const anim = lottie.loadAnimation({
+          container, renderer: 'svg', loop: false, autoplay: true, animationData: createRippleJSON()
+        });
+        anim.addEventListener('complete', () => { anim.destroy(); container.remove(); });
+      };
+
+      // Read Tracking
+      const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          const readStorage = JSON.parse(localStorage.getItem('stories_read') || '{}');
+          if (!readStorage[storyId]) {
+            readStorage[storyId] = Date.now();
+            localStorage.setItem('stories_read', JSON.stringify(readStorage));
+            document.getElementById('status-badge').classList.remove('opacity-0');
+            document.querySelector('.read-success').classList.add('visible');
+            if (navigator.vibrate) navigator.vibrate([10, 50, 20]);
+            playHapticLottie(article.offsetWidth / 2, article.offsetHeight - 80);
+          }
+        }
+      }, { threshold: 0.5 });
+      observer.observe(document.getElementById('end-marker'));
+
       const readData = JSON.parse(localStorage.getItem('stories_read') || '{}');
       if (readData[storyId]) {
         document.getElementById('status-badge').classList.remove('opacity-0');
         document.querySelector('.read-success').classList.add('visible');
       }
-
-      lucide.createIcons();
-
-      // --- Minimal Lottie Ripples Setup ---
-      // We'll create a simple animated circle burst JSON payload locally
-      const createRippleJSON = () => {
-        return {
-          "v": "5.7.4", "fr": 60, "ip": 0, "op": 30, "w": 200, "h": 200, "nm": "Ripple",
-          "layers": [
-            {
-              "ty": 4, "nm": "Circle", "sr": 1, "ks": {
-                "o": { "a": 1, "k": [{ "i": {"x": [0.833], "y": [0.833]}, "o": {"x": [0.167], "y": [0.167]}, "t": 0, "s": [100] }, { "t": 30, "s": [0] }] },
-                "s": { "a": 1, "k": [{ "i": {"x": [0.4], "y": [1]}, "o": {"x": [0.2], "y": [0]}, "t": 0, "s": [0,0,100] }, { "t": 30, "s": [100,100,100] }] },
-                "p": { "a": 0, "k": [100, 100, 0] }
-              },
-              "shapes": [
-                {
-                  "ty": "el", "p": { "a": 0, "k": [0, 0] }, "s": { "a": 0, "k": [150, 150] }, "nm": "Ellipse"
-                },
-                {
-                  "ty": "st", "c": { "a": 0, "k": [0.8, 0.8, 0.8, 1] }, "o": { "a": 0, "k": 100 }, "w": { "a": 0, "k": 10 }, "nm": "Stroke"
-                }
-              ]
-            }
-          ]
-        };
-      };
-
-      const article = document.getElementById('article');
-      let lottieInstances = [];
-
-      const playHapticLottie = (x, y) => {
-        // Vibrate
-        if (navigator.vibrate) navigator.vibrate(10);
-        
-        // Spawn lottie container
-        const container = document.createElement('div');
-        container.className = 'lottie-container';
-        container.style.left = \`\${x}px\`;
-        container.style.top = \`\${y}px\`;
-        article.appendChild(container);
-
-        const anim = lottie.loadAnimation({
-          container: container,
-          renderer: 'svg',
-          loop: false,
-          autoplay: true,
-          animationData: createRippleJSON()
-        });
-
-        anim.addEventListener('complete', () => {
-          anim.destroy();
-          container.remove();
-        });
-      };
-
-
-      // --- Fidget Drag Engine (Shape Outside) ---
-      const icon = document.getElementById('fidget-icon');
-      const wrapShape = document.getElementById('wrap-shape');
-      
-      let isDragging = false;
-      let startX, startY, startLeft, startTop;
-
-      // Position top-right initially
-      let currentLeft = article.offsetWidth - 120;
-      let currentTop = 20;
-
-      const updatePositions = () => {
-        // Update visual icon
-        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px)\`;
-        // Update float shape (shape-outside)
-        wrapShape.style.marginLeft = \`\${currentLeft}px\`;
-        wrapShape.style.marginTop = \`\${currentTop}px\`;
-      };
-      
-      // Initialize layout
-      updatePositions();
-
-      const beginDrag = (clientX, clientY) => {
-        isDragging = true;
-        startX = clientX;
-        startY = clientY;
-        startLeft = currentLeft;
-        startTop = currentTop;
-        
-        // Ensure wrap-shape is instantly reactive during drag
-        wrapShape.style.transition = 'none';
-        
-        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px) scale(1.1)\`;
-        
-        // Haptic feedback
-        playHapticLottie(currentLeft + 50, currentTop + 50);
-      };
-
-      const moveDrag = (clientX, clientY) => {
-        if (!isDragging) return;
-        
-        const deltaX = clientX - startX;
-        const deltaY = clientY - startY;
-        
-        // Constrain to container boundaries
-        const maxLeft = article.offsetWidth - 100;
-        const maxTop = article.offsetHeight - 100;
-
-        currentLeft = Math.max(0, Math.min(maxLeft, startLeft + deltaX));
-        currentTop = Math.max(0, Math.min(maxTop, startTop + deltaY));
-
-        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px) scale(1.1)\`;
-        
-        wrapShape.style.marginLeft = \`\${currentLeft}px\`;
-        wrapShape.style.marginTop = \`\${currentTop}px\`;
-      };
-
-      const endDrag = () => {
-        if (!isDragging) return;
-        isDragging = false;
-        wrapShape.style.transition = 'margin 0.05s linear';
-        icon.style.transform = \`translate(\${currentLeft}px, \${currentTop}px)\`;
-        
-        // Final haptic
-        playHapticLottie(currentLeft + 50, currentTop + 50);
-      };
-
-      icon.addEventListener('mousedown', (e) => beginDrag(e.clientX, e.clientY));
-      window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
-      window.addEventListener('mouseup', endDrag);
-
-      icon.addEventListener('touchstart', (e) => beginDrag(e.touches[0].clientX, e.touches[0].clientY), { passive: false });
-      window.addEventListener('touchmove', (e) => {
-        if(isDragging) {
-           e.preventDefault(); // prevent scroll while dragging
-           moveDrag(e.touches[0].clientX, e.touches[0].clientY);
-        }
-      }, { passive: false });
-      window.addEventListener('touchend', endDrag);
-
-
-      // --- Intersection Observer for Read Tracking ---
-      const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          // Reached the bottom
-          const readStorage = JSON.parse(localStorage.getItem('stories_read') || '{}');
-          if (!readStorage[storyId]) {
-            readStorage[storyId] = Date.now();
-            localStorage.setItem('stories_read', JSON.stringify(readStorage));
-            
-            // UI Updates
-            document.getElementById('status-badge').classList.remove('opacity-0');
-            document.querySelector('.read-success').classList.add('visible');
-            
-            // Haptic celebratory
-            if (navigator.vibrate) navigator.vibrate([10, 50, 20]);
-            playHapticLottie(article.offsetWidth / 2, article.offsetHeight - 80);
-          }
-        }
-      }, {
-        threshold: 0.5
-      });
-
-      observer.observe(document.getElementById('end-marker'));
-
     });
   </script>
 </body>
