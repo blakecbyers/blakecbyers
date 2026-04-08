@@ -317,7 +317,11 @@
       });
 
       const playHapticLottie = (x, y) => {
-        if (navigator.vibrate) navigator.vibrate(10);
+        if (window.haptics) {
+          window.haptics.trigger('medium');
+        } else if (navigator.vibrate) {
+          navigator.vibrate(10);
+        }
         const container = document.createElement('div');
         container.className = 'lottie-container';
         container.style.left = `${x}px`;
@@ -352,5 +356,6 @@
       }
     });
   </script>
+  <script type="module" src="../haptics.js"></script>
 </body>
 </html>

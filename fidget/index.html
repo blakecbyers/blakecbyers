@@ -97,15 +97,22 @@
 
     /* ── Widget row ── */
     #widgets {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-end;
-      justify-content: center;
-      gap: clamp(16px, 4.5vw, 52px);
-      flex-wrap: wrap;
-      padding: 110px 20px 90px;
-      max-width: 700px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      align-items: end;
+      justify-items: center;
+      gap: clamp(18px, 5vw, 48px) clamp(12px, 3.5vw, 36px);
+      padding: 100px 24px 88px;
+      max-width: 560px;
       width: 100%;
+    }
+
+    /* On wide screens, go back to single row */
+    @media (min-width: 600px) {
+      #widgets {
+        grid-template-columns: repeat(5, 1fr);
+        max-width: 700px;
+      }
     }
 
     .widget-col {
@@ -113,7 +120,14 @@
       flex-direction: column;
       align-items: center;
       gap: 10px;
+      /* Large invisible touch target */
+      padding: 10px;
+      margin: -10px;
+      border-radius: 20px;
+      transition: background 0.15s;
     }
+    .widget-col:active { background: rgba(61,35,20,0.04); }
+
     .widget-label {
       font-size: 10px;
       letter-spacing: 0.22em;
@@ -121,6 +135,27 @@
       color: var(--caramel);
       font-weight: 500;
       user-select: none;
+    }
+
+    /* ── Mobile scale boost ── */
+    @media (max-width: 599px) {
+      .press-body   { transform: scale(1.12); transform-origin: bottom center; }
+      .bean-ring    { transform: scale(1.12); transform-origin: center; }
+      .bubble-grid  { transform: scale(1.15); transform-origin: center; }
+      .drip-body    { transform: scale(1.12); transform-origin: bottom center; }
+      .bell-body    { transform: scale(1.12); transform-origin: bottom center; }
+    }
+
+    /* Spring bounce on widget tap */
+    .widget-col { transform-origin: center bottom; }
+    .widget-col.bounce {
+      animation: widget-bounce 0.38s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes widget-bounce {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(0.88); }
+      70%  { transform: scale(1.06); }
+      100% { transform: scale(1); }
     }
 
     /* ── WIDGET 1: French Press ── */
@@ -604,6 +639,14 @@ function bumpCombo(x, y, color) {
   if (x != null) burst(x, y, 4 + Math.min(combo, 12), color || '#b07d52');
 }
 
+// ── Spring bounce helper ──
+function springBounce(el) {
+  el.classList.remove('bounce');
+  void el.offsetWidth; // reflow
+  el.classList.add('bounce');
+  el.addEventListener('animationend', () => el.classList.remove('bounce'), { once: true });
+}
+
 // ── WIDGET 1: French Press ──
 const pressEl = document.getElementById('press-widget');
 let pressActive = false;
@@ -612,6 +655,7 @@ function pressDown(e) {
   if (pressActive) return;
   pressActive = true;
   pressEl.classList.add('pressed');
+  springBounce(pressEl);
   haptic('heavy'); playPress();
   const r = pressEl.getBoundingClientRect();
   const cx = r.left + r.width / 2, cy = r.top + r.height * 0.65;
@@ -753,8 +797,8 @@ function endDrip() {
   }, 320);
 }
 
-dripEl.addEventListener('mousedown',  e => { e.preventDefault(); startDrip(); });
-dripEl.addEventListener('touchstart', e => { e.preventDefault(); startDrip(); }, { passive: false });
+dripEl.addEventListener('mousedown',  e => { e.preventDefault(); springBounce(dripEl); startDrip(); });
+dripEl.addEventListener('touchstart', e => { e.preventDefault(); springBounce(dripEl); startDrip(); }, { passive: false });
 // Note: mouseup/touchend for drip are handled in global handlers below
 
 // ── WIDGET 5: Service Bell ──
@@ -765,6 +809,7 @@ function ringBell() {
   if (bellCool) return;
   bellCool = true;
   bellEl.classList.add('ringing');
+  springBounce(bellEl);
   haptic('success'); playBell();
   const r = bellEl.getBoundingClientRect();
   const cx = r.left + r.width/2, cy = r.top + r.height/2;
