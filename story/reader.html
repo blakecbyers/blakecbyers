@@ -223,6 +223,28 @@
             wFactor = 0.85 * Math.sqrt(Math.max(0, 1 - bodyT*bodyT));
           }
         }
+        else if (shape === 'bottle') {
+          const P = 700; const t = (y % P) / P;
+          if (t < 0.3) wFactor = 0.25;
+          else if (t < 0.4) wFactor = 0.25 + ((t-0.3)/0.1) * 0.45;
+          else if (t < 0.95) wFactor = 0.7;
+          else wFactor = 0.7 - ((t-0.95)/0.05) * 0.2;
+        }
+        else if (shape === 'diamond') {
+          const P = 600; const t = (y % P) / P;
+          const dy = Math.abs(0.5 - t) / 0.5;
+          wFactor = 0.9 * (1 - dy);
+        }
+        else if (shape === 'urn') {
+          const P = 600; const t = (y % P) / P;
+          if (t < 0.1) wFactor = 0.4;
+          else if (t < 0.2) wFactor = 0.25;
+          else if (t < 0.7) {
+            const bodyT = (t - 0.45) / 0.25;
+            wFactor = 0.85 * Math.sqrt(Math.max(0, 1 - bodyT*bodyT));
+          }
+          else wFactor = 0.4;
+        }
 
         lineWidth = Math.max(50, baseWidth * wFactor);
         xOffset = R - lineWidth / 2;

@@ -161,6 +161,118 @@ Thinking earnestly upon these points, I remained, for an hour perhaps, half sitt
 "Yet she smiled on and still on, uncomplainingly, because she saw that the painter (who had high renown) took a fervid and burning pleasure in his task, and wrought day and night to depict her who so loved him, yet who grew daily more dispirited and weak. And in sooth some who beheld the portrait spoke of its resemblance in low words, as of a mighty marvel, and a proof not less of the power of the painter than of his deep love for her whom he depicted so surpassingly well. But at length, as the labor drew nearer to its conclusion, there were admitted none into the turret; for the painter had grown wild with the ardor of his work, and turned his eyes from canvas rarely, even to regard the countenance of his wife.
 
 "And he would not see that the tints which he spread upon the canvas were drawn from the cheeks of her who sat beside him. And when many weeks had passed, and but little remained to do, save one brush upon the mouth and one tint upon the eye, the spirit of the lady again flickered up as the flame within the socket of the lamp. And then the brush was given, and then the tint was placed; and, for one moment, the painter stood entranced before the work which he had wrought; but in the next, while he yet gazed, he grew tremulous and very pallid, and aghast, and crying with a loud voice, 'This is indeed Life itself!' turned suddenly to regard his beloved:—She was dead!"`
+  },
+  {
+    id: "amontillado",
+    title: "The Cask of Amontillado",
+    author: "Edgar Allan Poe",
+    iconName: "grape",
+    layoutShape: "bottle",
+    isRead: false,
+    content: `THE thousand injuries of Fortunato I had borne as I best could, but when he ventured upon insult I vowed revenge. You, who so well know the nature of my soul, will not suppose, however, that I gave utterance to a threat. At length I would be avenged; this was a point definitely settled—but the very definitiveness with which it was resolved precluded the idea of risk. I must not only punish but punish with impunity. A wrong is unredressed when retribution overtakes its redresser. It is equally unredressed when the avenger fails to make himself felt as such to him who has done the wrong.
+It must be understood that neither by word nor deed had I given Fortunato cause to doubt my good will. I continued, as was my wont, to smile in his face, and he did not perceive that my smile now was at the thought of his immolation.
+He had a weak point—this Fortunato—although in other regards he was a man to be respected and even feared. He prided himself on his connoisseurship in wine...
+"Come," I said, with decision, "we will go back; your health is precious. You are rich, respected, admired, beloved; you are happy, as once I was. You are a man to be missed. For me it is no matter. We will go back; you will be ill, and I cannot be responsible. Besides, there is Luchesi—"
+"Enough," he said; "the cough is a mere nothing; it will not kill me. I shall not die of a cough."
+We passed through a range of low arches, descended, passed on, and descending again, arrived at a deep crypt, in which the foulness of the air caused our flambeaux rather to glow than flame.
+At the most remote end of the crypt there appeared another less spacious. Its walls had been lined with human remains...
+A moment more and I had fettered him to the granite. In its surface were two iron staples, distant from each other about two feet, horizontally. From one of these depended a short chain, from the other a padlock. Throwing the links about his waist, it was but the work of a few seconds to secure it. He was too much astounded to resist. Withdrawing the key I stepped back from the recess.
+I forced the last stone into its position; I plastered it up. Against the new masonry I re-erected the old rampart of bones. For the half of a century no mortal has disturbed them. In pace requiescat!`
+  },
+  {
+    id: "open-window",
+    title: "The Open Window",
+    author: "Saki",
+    iconName: "scan-face",
+    layoutShape: "diamond",
+    isRead: false,
+    content: `"My aunt will be down presently, Mr. Nuttel," said a very self-possessed young lady of fifteen; "in the meantime you must try and put up with me."
+Framton Nuttel endeavoured to say the correct something which should duly flatter the niece of the moment without unduly discounting the aunt that was to come. Privately he doubted more than ever whether these formal visits on a succession of total strangers would do much towards helping the nerve cure which he was supposed to be undergoing.
+"Do you know many of the people round here?" asked the niece, when she judged that they had had sufficient silent communion.
+"Hardly a soul," said Framton. 
+"Then you know practically nothing about my aunt?" pursued the self-possessed young lady.
+"Only her name and address," admitted the caller. 
+"Her great tragedy happened just three years ago," said the child; "that would be since your sister's time."
+"Her tragedy?" asked Framton; somehow in this restful country spot tragedies seemed out of place.
+"You may wonder why we keep that window wide open on an October afternoon," said the niece, indicating a large French window that opened on to a lawn.
+"Out through that window, three years ago to a day, her husband and her two young brothers went off for their day's shooting. They never came back. In crossing the moor to their favourite snipe-shooting ground they were all three engulfed in a treacherous piece of bog. Their bodies were never recovered. That was the dreadful part of it." Here the child's voice lost its self-possessed note and became falteringly human. "Poor aunt always thinks that they will come back some day, they and the little brown spaniel that was lost with them, and walk in at that window just as they used to do..."
+She broke off with a little shudder. It was a relief to Framton when the aunt bustled into the room with a whirl of apologies...
+"Here they are at last!" she cried. "Just in time for tea, and don't they look as if they were muddy up to the eyes!"
+Framton shivered slightly and turned towards the niece with a look intended to convey sympathetic comprehension. The child was staring out through the open window with dazed horror in her eyes. In a chill shock of nameless fear Framton swung round in his seat and looked in the same direction.
+In the deepening twilight three figures were walking across the lawn towards the window...
+Framton grabbed wildly at his stick and hat; the hall-door, the gravel-drive, and the front gate were dimly-noted stages in his headlong retreat. A cyclist coming along the road had to run into the hedge to avoid an imminent collision.
+"Here we are, my dear," said the bearer of the white mackintosh, coming in through the window... "Who was that who bolted out as we came up?"
+"A most extraordinary man, a Mr. Nuttel," said Mrs. Sappleton; "could only talk about his illnesses, and dashed off without a word of good-bye or apology..."
+"I expect it was the spaniel," said the niece calmly. "He told me he had a horror of dogs. He was once hunted into a cemetery somewhere on the banks of the Ganges by a pack of pariah dogs... Romance at short notice was her speciality."`
+  },
+  {
+    id: "monkeys-paw",
+    title: "The Monkey's Paw",
+    author: "W.W. Jacobs",
+    iconName: "hand",
+    layoutShape: "urn",
+    isRead: false,
+    content: `"To look at," said the sergeant-major, fumbling in his pocket, "it's just an ordinary little paw, dried to a mummy."
+He took something out of his pocket and proffered it. Mrs. White drew back with a grimace, but her son, taking it, examined it curiously.
+"And what is there special about it?" inquired Mr. White as he took it from his son...
+"It had a spell put on it by an old fakir," said the sergeant-major, "a very holy man. He wanted to show that fate ruled people's lives, and that those who interfered with it did so to their sorrow. He put a spell on it so that three separate men could each have three wishes from it."
+He dropped it back in his pocket.
+"If you've had your three wishes, it's no good to you now, then, Morris," said the old man at last. "What do you keep it for?"
+The soldier shook his head. "Fancy, I suppose," he said slowly. "I did have some idea of selling it, but I don't think I will. It has caused enough mischief already. Besides, people won't buy. They think it's a fairy tale, some of them; and those who do think anything of it want to try it first and pay me afterward."
+"If you could have another three wishes," said the old man, eyeing him keenly, "would you have them?"
+"I don't know," said the other. "I don't know."
+He took the paw, and dangling it between his forefinger and thumb, suddenly threw it upon the fire. White, with a slight cry, stooped down and snatched it off.
+"Better let it burn," said the soldier solemnly...
+"I wish for two hundred pounds," said the old man distinctly.
+...
+A man dropped his hand, and darted to the door... "The firm wished me to convey their sincere sympathy with you in your great loss," he said... "They admit no liability at all, but in consideration of your son's services, they wish to present you with a certain sum as compensation... Two hundred pounds."
+...
+"Wish!" she cried, in a strong voice.
+"It is foolish and wicked," he faltered.
+"Wish!" repeated his wife.
+He raised his hand. "I wish my son alive again."
+...
+A loud knock resounded through the house.
+"It's Herbert!" she screamed. "It's Herbert!"
+He heard the chain rattle back and the bottom bolt drawn slowly and stiffly from the socket. Then the old man's voice, as if breathing his last breath, "I wish him dead."
+The knocking ceased suddenly... The street lamp flickering opposite shone on a quiet and deserted road.`
+  },
+  {
+    id: "tell-tale-heart",
+    title: "The Tell-Tale Heart",
+    author: "Edgar Allan Poe",
+    iconName: "heart",
+    layoutShape: "bat",
+    isRead: false,
+    content: `TRUE!—nervous—very, very dreadfully nervous I had been and am; but why will you say that I am mad? The disease had sharpened my senses—not destroyed—not dulled them. Above all was the sense of hearing acute. I heard all things in the heaven and in the earth. I heard many things in hell. How, then, am I mad? Hearken! and observe how healthily—how calmly I can tell you the whole story.
+It is impossible to say how first the idea entered my brain; but once conceived, it haunted me day and night. Object there was none. Passion there was none. I loved the old man. He had never wronged me... I think it was his eye! yes, it was this! He had the eye of a vulture—a pale blue eye, with a film over it. Whenever it fell upon me, my blood ran cold; and so by degrees—very gradually—I made up my mind to take the life of the old man, and thus rid myself of the eye forever.
+...
+I smiled,—for what had I to fear? I bade the gentlemen welcome. The shriek, I said, was my own in a dream. The old man, I mentioned, was absent in the country. I took my visitors all over the house. I bade them search—search well. I led them, at length, to his chamber. I showed them his treasures, secure, undisturbed. In the enthusiasm of my confidence, I brought chairs into the room, and desired them here to rest from their fatigues, while I myself, in the wild audacity of my perfect triumph, placed my own seat upon the very spot beneath which reposed the corpse of the victim.
+The officers were satisfied. My manner had convinced them... But, ere long, I felt myself getting pale and wished them gone. My head ached, and I fancied a ringing in my ears: but still they sat and still chatted. The ringing became more distinct:—It continued and became more distinct: I talked more freely to get rid of the feeling: but it continued and gained definiteness—until, at length, I found that the noise was not within my ears.
+No doubt I now grew very pale;—but I talked more fluently, and with a heightened voice. Yet the sound increased—and what could I do? It was a low, dull, quick sound—much such a sound as a watch makes when enveloped in cotton. I gasped for breath—and yet the officers heard it not.
+I paced the floor to and fro with heavy strides... Oh God! what could I do? I foamed—I raved—I swore! 
+"Villains!" I shrieked, "dissemble no more! I admit the deed!—tear up the planks! here, here!—It is the beating of his hideous heart!"`
+  },
+  {
+    id: "story-of-an-hour",
+    title: "The Story of an Hour",
+    author: "Kate Chopin",
+    iconName: "clock",
+    layoutShape: "hourglass",
+    isRead: false,
+    content: `Knowing that Mrs. Mallard was afflicted with a heart trouble, great care was taken to break to her as gently as possible the news of her husband's death.
+It was her sister Josephine who told her, in broken sentences; veiled hints that revealed in half concealing. Her husband's friend Richards was there, too, near her... He had only taken the time to assure himself of its truth by a second telegram, and had hastened to forestall any less careful, less tender friend in bearing the sad message.
+She did not hear the story as many women have heard the same, with a paralyzed inability to accept its significance. She wept at once, with sudden, wild abandonment, in her sister's arms...
+There stood, facing the open window, a comfortable, roomy armchair. Into this she sank, pressed down by a physical exhaustion that haunted her body and seemed to reach into her soul.
+She could see in the open square before her house the tops of trees that were all aquiver with the new spring life. The delicious breath of rain was in the air.
+...There was something coming to her and she was waiting for it, fearfully. What was it? She did not know; it was too subtle and elusive to name.
+When she abandoned herself a little whispered word escaped her slightly parted lips. She said it over and over under the breath: "free, free, free!"
+She saw beyond that bitter moment a long procession of years to come that would belong to her absolutely. And she opened and spread her arms out to them in welcome.
+There would be no one to live for during those coming years; she would live for herself. There would be no powerful will bending hers in that blind persistence with which men and women believe they have a right to impose a private will upon a fellow-creature...
+"Go away. I am not making myself ill." No; she was drinking in a very elixir of life through that open window.
+...She arose at length and opened the door to her sister's importunities. There was a feverish triumph in her eyes, and she carried herself unwittingly like a goddess of Victory.
+Someone was opening the front door with a latchkey. It was Brently Mallard who entered, a little travel-stained, composedly carrying his grip-sack and umbrella. He had been far from the scene of the accident, and did not even know there had been one. He stood amazed at Josephine's piercing cry; at Richards' quick motion to screen him from the view of his wife.
+When the doctors came they said she had died of heart disease--of the joy that kills.`
   }
 ];
 
