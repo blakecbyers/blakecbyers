@@ -4,7 +4,7 @@ const STORY_DATA = [
     title: "Ozymandias",
     author: "Percy Bysshe Shelley",
     iconName: "crown",
-    layoutShape: "diamond",
+    layoutShape: "scarab",
     isRead: false,
     content: `I met a traveller from an antique land,
 Who said—“Two vast and trunkless legs of stone
@@ -26,7 +26,7 @@ The lone and level sands stretch far away.”`
     title: "Jabberwocky",
     author: "Lewis Carroll",
     iconName: "swords",
-    layoutShape: "wave",
+    layoutShape: "snake",
     isRead: false,
     content: `’Twas brillig, and the slithy toves
       Did gyre and gimble in the wabe:
@@ -68,7 +68,7 @@ All mimsy were the borogoves,
     title: "The Road Not Taken",
     author: "Robert Frost",
     iconName: "git-branch",
-    layoutShape: "hourglass",
+    layoutShape: "bat",
     isRead: false,
     content: `Two roads diverged in a yellow wood,
 And sorry I could not travel both
@@ -99,7 +99,7 @@ And that has made all the difference.`
     title: "The Human Abstract",
     author: "William Blake",
     iconName: "brain",
-    layoutShape: "circle",
+    layoutShape: "spider",
     isRead: false,
     content: `Pity would be no more
 If we did not make somebody poor;
@@ -136,7 +136,7 @@ There grows one in the Human Brain.`
     title: "The Oval Portrait",
     author: "Edgar Allan Poe",
     iconName: "frame",
-    layoutShape: "straight",
+    layoutShape: "fish",
     isRead: false,
     content: `The chateau into which my valet had ventured to make forcible entrance, rather than permit me, in my desperately wounded condition, to pass a night in the open air, was one of those piles of commingled gloom and grandeur which have so long frowned among the Apennines.
 

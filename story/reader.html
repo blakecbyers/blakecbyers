@@ -178,28 +178,54 @@
         let xOffset = 0;
         let lineWidth = baseWidth;
         const R = baseWidth / 2;
-        if (shape === 'circle') {
-          const clampY = y % (2 * R);
-          const dy = Math.abs(R - clampY);
-          const chord = 2 * Math.sqrt(Math.max(0, R*R - dy*dy));
-          lineWidth = Math.max(80, chord);
-          xOffset = R - lineWidth / 2;
-        } else if (shape === 'diamond') {
-          const clampY = y % (2 * R);
-          const dy = Math.abs(R - clampY);
-          lineWidth = Math.max(80, 2 * (R - dy));
-          xOffset = R - lineWidth / 2;
-        } else if (shape === 'hourglass') {
-          const clampY = y % (2 * R);
-          const dy = Math.abs(R - clampY);
-          lineWidth = Math.max(80, Math.max(baseWidth * 0.2, 2 * dy));
-          xOffset = R - lineWidth / 2;
-        } else if (shape === 'wave') {
-          const period = 500;
-          const offset = Math.sin(y / period * Math.PI * 2) * (baseWidth / 4);
-          lineWidth = baseWidth * 0.6;
-          xOffset = R - lineWidth / 2 + offset;
+        let wFactor = 1.0;
+
+        if (shape === 'snake') {
+          const P = 700; const t = (y % P) / P;
+          lineWidth = Math.max(80, baseWidth * 0.4);
+          xOffset = R - lineWidth / 2 + Math.sin(t * Math.PI * 2) * (baseWidth * 0.25);
+          return { shapeXOffset: xOffset, shapeLineWidth: lineWidth };
+        } 
+        
+        if (shape === 'spider') {
+          const P = 800; const t = (y % P) / P;
+          if (t < 0.3) {
+            const localT = (t - 0.15) / 0.15;
+            wFactor = 0.3 * Math.sqrt(Math.max(0, 1 - localT*localT));
+          } else {
+            const localT = (t - 0.65) / 0.35;
+            wFactor = 0.9 * Math.sqrt(Math.max(0, 1 - localT*localT));
+          }
+        } 
+        else if (shape === 'fish') {
+          const P = 900; const t = (y % P) / P;
+          if (t < 0.05) wFactor = t / 0.05 * 0.3 + 0.1;
+          else if (t < 0.4) wFactor = 0.4 + Math.sin((t-0.05)/0.35 * Math.PI) * 0.5;
+          else if (t < 0.8) wFactor = 0.4 - ((t-0.4)/0.4) * 0.25;
+          else wFactor = 0.15 + ((t-0.8)/0.2) * 0.6;
+        } 
+        else if (shape === 'bat') {
+          const P = 800; const t = (y % P) / P;
+          if (t < 0.3) wFactor = 1.0 - (t/0.3) * 0.7;
+          else if (t < 0.8) {
+            const bodyT = (t - 0.55) / 0.25;
+            wFactor = 0.3 + Math.sqrt(Math.max(0, 1 - bodyT*bodyT)) * 0.2;
+          }
+          else wFactor = 0.3 - ((t-0.8)/0.2) * 0.2;
+        } 
+        else if (shape === 'scarab') {
+          const P = 800; const t = (y % P) / P;
+          if (t < 0.15) {
+            const headT = (t - 0.15) / 0.15;
+            wFactor = 0.1 + Math.sqrt(Math.max(0, 1 - headT*headT)) * 0.3;
+          } else {
+            const bodyT = (t - 0.575) / 0.425;
+            wFactor = 0.85 * Math.sqrt(Math.max(0, 1 - bodyT*bodyT));
+          }
         }
+
+        lineWidth = Math.max(50, baseWidth * wFactor);
+        xOffset = R - lineWidth / 2;
         return { shapeXOffset: xOffset, shapeLineWidth: lineWidth };
       };
 
