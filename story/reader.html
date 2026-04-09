@@ -167,12 +167,41 @@
       const preparedText = prepareWithSegments(cleanContent, font);
 
       // Fidget State
-      let iconX = 600; // start right
+      let iconX = window.innerWidth / 2 || 300; // start middle
       let iconY = 100;
       let isDragging = false;
       let startX, startY, startIconX, startIconY;
       const iconRadius = 40; 
-      const wrapPadding = 20;
+      const wrapPadding = 35; // increased padding to ensure no clipping
+
+      const getShapeConstraints = (y, baseWidth, shape) => {
+        let xOffset = 0;
+        let lineWidth = baseWidth;
+        const R = baseWidth / 2;
+        if (shape === 'circle') {
+          const clampY = y % (2 * R);
+          const dy = Math.abs(R - clampY);
+          const chord = 2 * Math.sqrt(Math.max(0, R*R - dy*dy));
+          lineWidth = Math.max(80, chord);
+          xOffset = R - lineWidth / 2;
+        } else if (shape === 'diamond') {
+          const clampY = y % (2 * R);
+          const dy = Math.abs(R - clampY);
+          lineWidth = Math.max(80, 2 * (R - dy));
+          xOffset = R - lineWidth / 2;
+        } else if (shape === 'hourglass') {
+          const clampY = y % (2 * R);
+          const dy = Math.abs(R - clampY);
+          lineWidth = Math.max(80, Math.max(baseWidth * 0.2, 2 * dy));
+          xOffset = R - lineWidth / 2;
+        } else if (shape === 'wave') {
+          const period = 500;
+          const offset = Math.sin(y / period * Math.PI * 2) * (baseWidth / 4);
+          lineWidth = baseWidth * 0.6;
+          xOffset = R - lineWidth / 2 + offset;
+        }
+        return { shapeXOffset: xOffset, shapeLineWidth: lineWidth };
+      };
 
       const updateCanvasSize = () => {
         const dpr = window.devicePixelRatio || 1;
@@ -193,11 +222,24 @@
         while (true) {
           const currentY = yTotal + lineHeight / 2;
           const dy = Math.abs(currentY - iconY);
-          let lineWidth = width;
+          
+          const { shapeXOffset, shapeLineWidth } = getShapeConstraints(currentY, width, story.layoutShape);
+          let xOffset = shapeXOffset;
+          let lineWidth = shapeLineWidth;
 
           if (dy < iconRadius + wrapPadding) {
             const wrapW = Math.sqrt(Math.pow(iconRadius + wrapPadding, 2) - Math.pow(dy, 2));
-            lineWidth = Math.max(50, width - wrapW - iconRadius);
+            const lineCenter = xOffset + lineWidth / 2;
+            if (iconX < lineCenter) {
+              const newLeft = iconX + wrapW;
+              const shift = newLeft - xOffset;
+              if (shift > 0) { xOffset += shift; lineWidth -= shift; }
+            } else {
+              const newRight = iconX - wrapW;
+              const shift = (xOffset + lineWidth) - newRight;
+              if (shift > 0) { lineWidth -= shift; }
+            }
+            lineWidth = Math.max(40, lineWidth);
           }
 
           const range = layoutNextLineRange(preparedText, cursor, lineWidth);
@@ -206,7 +248,7 @@
           yTotal += lineHeight;
         }
 
-        const totalHeight = Math.max(400, yTotal + 40);
+        const totalHeight = Math.max(400, yTotal + 80);
         canvas.height = totalHeight * dpr;
         canvas.style.height = `${totalHeight}px`;
 
@@ -214,6 +256,23 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
         ctx.clearRect(0, 0, width, totalHeight);
+        
+        // Draw Faint Background Shape
+        if (story.layoutShape && story.layoutShape !== 'straight') {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.02)';
+          ctx.beginPath();
+          for (let bgY = 0; bgY <= totalHeight; bgY += 4) {
+            const { shapeXOffset } = getShapeConstraints(bgY, width, story.layoutShape);
+            if (bgY === 0) ctx.moveTo(shapeXOffset, bgY);
+            else ctx.lineTo(shapeXOffset, bgY);
+          }
+          for (let bgY = totalHeight; bgY >= 0; bgY -= 4) {
+            const { shapeXOffset, shapeLineWidth } = getShapeConstraints(bgY, width, story.layoutShape);
+            ctx.lineTo(shapeXOffset + shapeLineWidth, bgY);
+          }
+          ctx.fill();
+        }
+
         ctx.font = font;
         ctx.fillStyle = '#404040';
         ctx.textBaseline = 'middle';
@@ -224,17 +283,24 @@
         while (true) {
           const currentY = yDraw;
           const dy = Math.abs(currentY - iconY);
-          let xOffset = 0;
-          let lineWidth = width;
+          
+          const { shapeXOffset, shapeLineWidth } = getShapeConstraints(currentY, width, story.layoutShape);
+          let xOffset = shapeXOffset;
+          let lineWidth = shapeLineWidth;
 
           if (dy < iconRadius + wrapPadding) {
             const wrapW = Math.sqrt(Math.pow(iconRadius + wrapPadding, 2) - Math.pow(dy, 2));
-            if (iconX < width / 2) {
-              xOffset = iconX + wrapW;
-              lineWidth = width - xOffset;
+            const lineCenter = xOffset + lineWidth / 2;
+            if (iconX < lineCenter) {
+               const newLeft = iconX + wrapW;
+               const shift = newLeft - xOffset;
+               if (shift > 0) { xOffset += shift; lineWidth -= shift; }
             } else {
-              lineWidth = iconX - wrapW;
+               const newRight = iconX - wrapW;
+               const shift = (xOffset + lineWidth) - newRight;
+               if (shift > 0) { lineWidth -= shift; }
             }
+            lineWidth = Math.max(40, lineWidth);
           }
 
           const range = layoutNextLineRange(preparedText, cursor, lineWidth);
