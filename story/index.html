@@ -6,9 +6,10 @@
   <title>Stories — Micro-Wiki</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
-    
     :root {
       --main-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
@@ -101,7 +102,7 @@
         const isRead = !!readData[story.id];
         if (isRead) readCount++;
 
-        const delay = Math.min(idx * 20 + 100, 800); 
+        const delay = Math.min(idx * 15, 200);
         
         const a = document.createElement('a');
         a.href = `reader.html?id=${story.id}`;
