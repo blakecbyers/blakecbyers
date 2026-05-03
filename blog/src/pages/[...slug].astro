@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection('blog');
+  return blogEntries.map(entry => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description}>
+  <article class="prose prose-stone prose-invert max-w-none prose-headings:text-black prose-p:text-black prose-a:text-black prose-strong:text-black prose-li:text-black font-serif">
+    <header class="mb-12 not-prose">
+      <h1 class="text-4xl font-bold mb-4 tracking-tight font-sans text-black">{entry.data.title}</h1>
+      <time datetime={entry.data.pubDate.toISOString()} class="text-gray-500 font-sans">
+        {entry.data.pubDate.toLocaleDateString('en-us', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })}
+      </time>
+    </header>
+    <div class="content">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .content {
+    font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    line-height: 1.8;
+  }
+</style>
