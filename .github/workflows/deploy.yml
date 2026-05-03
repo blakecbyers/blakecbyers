@@ -31,7 +31,7 @@ jobs:
 
       - name: Install dependencies for Astro blog
         working-directory: ./blog
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build Astro blog
         working-directory: ./blog
