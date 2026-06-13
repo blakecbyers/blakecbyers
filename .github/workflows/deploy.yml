@@ -40,12 +40,19 @@ jobs:
       - name: Prepare Deployment Artifact
         run: |
           mkdir -p public-dist
-          # Copy all root files except ignored folders
+          # Copy all root-level files
           find . -maxdepth 1 -type f -exec cp {} public-dist/ \;
-          # Create blog directory inside public-dist
-          mkdir -p public-dist/blog
+          # Copy all root-level subdirectories except .github, blog, node_modules
+          for dir in */ ; do
+            dirname="${dir%/}"
+            if [[ "$dirname" != ".github" && "$dirname" != "blog" && "$dirname" != "node_modules" ]]; then
+              cp -R "$dirname" "public-dist/$dirname"
+            fi
+          done
           # Copy Astro build output to public-dist/blog
+          mkdir -p public-dist/blog
           cp -R blog/dist/* public-dist/blog/
+
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
